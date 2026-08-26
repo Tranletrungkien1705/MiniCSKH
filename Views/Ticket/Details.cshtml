@@ -1,0 +1,85 @@
+@model Ticket
+@{
+    ViewData["Title"] = $"Phiếu {Model.Code}";
+    var agents = (List<Agent>)ViewBag.Agents;
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div><h5 class="fw-bold mb-0"><i class="bi bi-ticket-detailed me-2"></i>@Model.Code — @Model.Subject</h5>
+        <small class="text-muted">Tạo @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm") · @Ui.ChannelName(Model.Channel) @if(Model.IsOverdue){<span class="text-danger ms-1"><i class="bi bi-alarm"></i> Quá hạn SLA</span>}</small></div>
+    <a asp-action="Index" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Danh sách</a>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="card mb-3"><div class="card-body">
+            <div class="text-muted small text-uppercase mb-1">Nội dung</div>
+            <p class="mb-0">@(string.IsNullOrEmpty(Model.Description) ? "(không có mô tả)" : Model.Description)</p>
+        </div></div>
+
+        <div class="card"><div class="card-header bg-white fw-semibold"><i class="bi bi-chat-left-text me-1"></i>Trao đổi (@Model.Comments.Count)</div>
+        <div class="card-body">
+            @foreach (var c in Model.Comments.OrderBy(x => x.CreatedAt))
+            {
+                <div class="d-flex gap-2 mb-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:38px;height:38px;background:@(c.IsInternal?"#fef3c7":"#ede9fe");color:@(c.IsInternal?"#d97706":"#6d28d9");font-weight:700">
+                        @(string.IsNullOrEmpty(c.Author)?"?":c.Author[..1])</div>
+                    <div class="flex-fill">
+                        <div><b>@c.Author</b> <span class="small text-muted">· @c.CreatedAt.ToString("dd/MM HH:mm")</span>
+                            @if(c.IsInternal){<span class="badge bg-warning-subtle text-warning ms-1">Nội bộ</span>}</div>
+                        <div class="p-2 mt-1 rounded" style="background:@(c.IsInternal?"#fffbeb":"#f8f7fc")">@c.Body</div>
+                    </div>
+                </div>
+            }
+            <hr />
+            <form asp-action="Comment" asp-route-id="@Model.Id" method="post">
+                @Html.AntiForgeryToken()
+                <div class="row g-2">
+                    <div class="col-md-4"><input name="author" class="form-control form-control-sm" placeholder="Tên agent" value="Agent" /></div>
+                    <div class="col-md-8"><div class="form-check"><input class="form-check-input" type="checkbox" name="isInternal" value="true" id="int" /><label class="form-check-label small" for="int">Ghi chú nội bộ (khách không thấy)</label></div></div>
+                </div>
+                <textarea name="body" class="form-control mt-2" rows="3" placeholder="Nhập nội dung trả lời…" required></textarea>
+                <button class="btn btn-primary btn-sm mt-2"><i class="bi bi-send me-1"></i>Gửi</button>
+            </form>
+        </div></div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card mb-3"><div class="card-body">
+            <div class="text-muted small text-uppercase mb-2">Khách hàng</div>
+            <div class="fw-bold">@Model.CustomerName</div>
+            @if(!string.IsNullOrEmpty(Model.CustomerPhone)){<div class="small"><i class="bi bi-telephone me-1"></i>@Model.CustomerPhone</div>}
+            @if(!string.IsNullOrEmpty(Model.CustomerEmail)){<div class="small text-muted"><i class="bi bi-envelope me-1"></i>@Model.CustomerEmail</div>}
+        </div></div>
+
+        <div class="card"><div class="card-body">
+            <div class="mb-3">
+                <div class="text-muted small text-uppercase mb-1">Trạng thái</div>
+                <form asp-action="Status" asp-route-id="@Model.Id" method="post" class="d-flex gap-2">@Html.AntiForgeryToken()
+                    <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                        @foreach (TicketStatus s in Enum.GetValues<TicketStatus>()){<option value="@s" selected="@(Model.Status==s)">@Ui.StatusName(s)</option>}
+                    </select></form>
+            </div>
+            <div class="mb-3">
+                <div class="text-muted small text-uppercase mb-1">Độ ưu tiên</div>
+                <form asp-action="Priority" asp-route-id="@Model.Id" method="post">@Html.AntiForgeryToken()
+                    <select name="priority" class="form-select form-select-sm" onchange="this.form.submit()">
+                        @foreach (TicketPriority p in Enum.GetValues<TicketPriority>()){<option value="@p" selected="@(Model.Priority==p)">@Ui.PriorityName(p)</option>}
+                    </select></form>
+            </div>
+            <div class="mb-2">
+                <div class="text-muted small text-uppercase mb-1">Agent phụ trách</div>
+                <form asp-action="Assign" asp-route-id="@Model.Id" method="post">@Html.AntiForgeryToken()
+                    <select name="agentId" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="">— Chưa gán —</option>
+                        @foreach (var a in agents){<option value="@a.Id" selected="@(Model.AssignedAgentId==a.Id)">@a.Name</option>}
+                    </select></form>
+            </div>
+            <div class="small text-muted mt-3">
+                @if(Model.Category!=null){<div>Loại: <b>@Model.Category.Name</b> (SLA @Model.Category.SlaHours h)</div>}
+                @if(Model.DueAt.HasValue){<div>Hạn: <b class="@(Model.IsOverdue?"text-danger":"")">@Model.DueAt.Value.ToString("dd/MM/yyyy HH:mm")</b></div>}
+                @if(Model.ResolvedAt.HasValue){<div>Giải quyết: @Model.ResolvedAt.Value.ToString("dd/MM HH:mm")</div>}
+            </div>
+        </div></div>
+    </div>
+</div>

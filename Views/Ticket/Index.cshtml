@@ -1,0 +1,55 @@
+@model List<Ticket>
+@{
+    ViewData["Title"] = "Phiếu hỗ trợ";
+    var agents = (List<Agent>)ViewBag.Agents;
+    var st = ViewBag.Status as TicketStatus?;
+    var pr = ViewBag.Priority as TicketPriority?;
+    var ag = ViewBag.AgentId as int?;
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div><h5 class="fw-bold mb-0"><i class="bi bi-ticket-detailed me-2"></i>Phiếu hỗ trợ</h5>
+        <small class="text-muted">@Model.Count phiếu</small></div>
+    <a asp-action="Create" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Tạo phiếu</a>
+</div>
+
+<form method="get" class="card p-3 mb-3"><div class="row g-2 align-items-end">
+    <div class="col-auto"><label class="form-label small mb-1">Trạng thái</label>
+        <select name="status" class="form-select form-select-sm">
+            <option value="">Tất cả</option>
+            @foreach (TicketStatus s in Enum.GetValues<TicketStatus>()){<option value="@s" selected="@(st==s)">@Ui.StatusName(s)</option>}
+        </select></div>
+    <div class="col-auto"><label class="form-label small mb-1">Ưu tiên</label>
+        <select name="priority" class="form-select form-select-sm">
+            <option value="">Tất cả</option>
+            @foreach (TicketPriority p in Enum.GetValues<TicketPriority>()){<option value="@p" selected="@(pr==p)">@Ui.PriorityName(p)</option>}
+        </select></div>
+    <div class="col-auto"><label class="form-label small mb-1">Agent</label>
+        <select name="agentId" class="form-select form-select-sm">
+            <option value="">Tất cả</option>
+            @foreach (var a in agents){<option value="@a.Id" selected="@(ag==a.Id)">@a.Name</option>}
+        </select></div>
+    <div class="col"><label class="form-label small mb-1">Tìm kiếm</label>
+        <input name="q" value="@ViewBag.Q" class="form-control form-control-sm" placeholder="Mã / tiêu đề / khách hàng" /></div>
+    <div class="col-auto"><button class="btn btn-outline-primary btn-sm">Lọc</button>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Xóa</a></div>
+</div></form>
+
+<div class="card"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
+    <thead><tr><th>Mã</th><th>Tiêu đề</th><th>Khách hàng</th><th>Kênh</th><th>Ưu tiên</th><th>Trạng thái</th><th>Agent</th><th>SLA</th></tr></thead>
+    <tbody>
+        @if(!Model.Any()){<tr><td colspan="8" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>Không có phiếu</td></tr>}
+        @foreach (var t in Model)
+        {
+            <tr style="cursor:pointer" onclick="location.href='/Ticket/Details/@t.Id'">
+                <td class="font-monospace small fw-semibold">@t.Code</td>
+                <td class="fw-semibold">@t.Subject</td>
+                <td class="small">@t.CustomerName</td>
+                <td class="small"><i class="bi @Ui.ChannelIcon(t.Channel) me-1"></i>@Ui.ChannelName(t.Channel)</td>
+                <td>@Html.Raw(Ui.PriorityBadge(t.Priority))</td>
+                <td>@Html.Raw(Ui.StatusBadge(t.Status))</td>
+                <td class="small">@(t.AssignedAgent?.Name ?? "—")</td>
+                <td class="small">@if(t.IsOverdue){<span class="text-danger fw-semibold"><i class="bi bi-alarm"></i> Quá hạn</span>}else if(t.DueAt.HasValue){<span class="text-muted">@t.DueAt.Value.ToString("dd/MM HH:mm")</span>}</td>
+            </tr>
+        }
+    </tbody>
+</table></div></div>
