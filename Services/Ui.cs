@@ -29,4 +29,13 @@ public static class Ui
     { Channel.Web => "Web", Channel.Email => "Email", Channel.Zalo => "Zalo", Channel.Phone => "Điện thoại", Channel.Facebook => "Facebook", _ => c.ToString() };
     public static string ChannelIcon(Channel c) => c switch
     { Channel.Web => "bi-globe", Channel.Email => "bi-envelope", Channel.Zalo => "bi-chat-dots", Channel.Phone => "bi-telephone", Channel.Facebook => "bi-facebook", _ => "bi-tag" };
+
+    public static string OutcomeName(CallOutcome o) => o switch
+    { CallOutcome.Answered => "Đã nghe", CallOutcome.Missed => "Nhỡ", CallOutcome.Voicemail => "Hộp thư", CallOutcome.Busy => "Bận", _ => o.ToString() };
+    public static string OutcomeColor(CallOutcome o) => o switch
+    { CallOutcome.Answered => "success", CallOutcome.Missed => "danger", CallOutcome.Voicemail => "warning", CallOutcome.Busy => "secondary", _ => "secondary" };
+    public static string OutcomeBadge(CallOutcome o) =>
+        $"<span class='badge bg-{OutcomeColor(o)}-subtle text-{OutcomeColor(o)} border border-{OutcomeColor(o)}-subtle'>{OutcomeName(o)}</span>";
+    public static string DirName(CallDirection d) => d == CallDirection.Inbound ? "Gọi đến" : "Gọi đi";
+    public static string DirIcon(CallDirection d) => d == CallDirection.Inbound ? "bi-telephone-inbound" : "bi-telephone-outbound";
 }

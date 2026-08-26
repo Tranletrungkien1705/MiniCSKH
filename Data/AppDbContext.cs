@@ -10,9 +10,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Ticket> Tickets => Set<Ticket>();
     public DbSet<TicketComment> Comments => Set<TicketComment>();
     public DbSet<KbArticle> KbArticles => Set<KbArticle>();
+    public DbSet<CallLog> Calls => Set<CallLog>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
+        b.Entity<CallLog>(e =>
+        {
+            e.Ignore(x => x.DurationText);
+            e.HasOne(x => x.Agent).WithMany().HasForeignKey(x => x.AgentId);
+            e.HasOne(x => x.Ticket).WithMany().HasForeignKey(x => x.TicketId);
+        });
         b.Entity<Ticket>(e =>
         {
             e.Property(x => x.Code).HasMaxLength(20);

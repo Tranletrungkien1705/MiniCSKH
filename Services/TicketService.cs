@@ -23,6 +23,10 @@ public interface ITicketService
     Task<List<KbArticle>> KbListAsync(string? q, string? category);
     Task<KbArticle?> KbGetAsync(int id, bool countView = false);
     Task<List<string>> KbCategoriesAsync();
+    // Call center
+    Task<List<CallLog>> CallsAsync(CallDirection? dir, CallOutcome? outcome, string? q);
+    Task<int> LogCallAsync(CallLog call);
+    Task<(int todayTotal, int missed, int avgSeconds)> CallStatsAsync();
 }
 
 public class TicketService(AppDbContext db) : ITicketService
@@ -129,4 +133,30 @@ public class TicketService(AppDbContext db) : ITicketService
     public async Task<List<string>> KbCategoriesAsync() =>
         (await db.KbArticles.Where(a => a.IsPublished).Select(a => a.Category).ToListAsync())
         .Distinct().OrderBy(c => c).ToList();
+
+    public async Task<List<CallLog>> CallsAsync(CallDirection? dir, CallOutcome? outcome, string? q)
+    {
+        var query = db.Calls.Include(c => c.Agent).Include(c => c.Ticket).AsQueryable();
+        if (dir.HasValue) query = query.Where(c => c.Direction == dir.Value);
+        if (outcome.HasValue) query = query.Where(c => c.Outcome == outcome.Value);
+        if (!string.IsNullOrWhiteSpace(q)) query = query.Where(c => c.PhoneNumber.Contains(q) || (c.CustomerName ?? "").Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderByDescending(c => c.StartedAt).ToList();
+    }
+
+    public async Task<int> LogCallAsync(CallLog call)
+    {
+        db.Calls.Add(call);
+        await db.SaveChangesAsync();
+        return call.Id;
+    }
+
+    public async Task<(int todayTotal, int missed, int avgSeconds)> CallStatsAsync()
+    {
+        var calls = await db.Calls.ToListAsync();
+        var today = calls.Where(c => c.StartedAt.Date == DateTime.Today).ToList();
+        var answered = today.Where(c => c.Outcome == CallOutcome.Answered && c.DurationSeconds > 0).ToList();
+        var avg = answered.Count > 0 ? (int)answered.Average(c => c.DurationSeconds) : 0;
+        return (today.Count, today.Count(c => c.Outcome == CallOutcome.Missed), avg);
+    }
 }

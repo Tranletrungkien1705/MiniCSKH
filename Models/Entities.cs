@@ -68,6 +68,29 @@ public class TicketComment
     public Ticket Ticket { get; set; } = null!;
 }
 
+public enum CallDirection { Inbound = 0, Outbound = 1 }
+public enum CallOutcome { Answered = 0, Missed = 1, Voicemail = 2, Busy = 3 }
+
+/// <summary>Nhật ký cuộc gọi (call center) — có thể gắn với 1 phiếu.</summary>
+public class CallLog
+{
+    public int Id { get; set; }
+    public CallDirection Direction { get; set; }
+    public string PhoneNumber { get; set; } = "";
+    public string? CustomerName { get; set; }
+    public int? AgentId { get; set; }
+    public DateTime StartedAt { get; set; } = DateTime.Now;
+    public int DurationSeconds { get; set; }
+    public CallOutcome Outcome { get; set; } = CallOutcome.Answered;
+    public string? Note { get; set; }
+    public int? TicketId { get; set; }
+
+    public Agent? Agent { get; set; }
+    public Ticket? Ticket { get; set; }
+
+    public string DurationText => DurationSeconds <= 0 ? "—" : $"{DurationSeconds / 60}:{DurationSeconds % 60:D2}";
+}
+
 /// <summary>Bài viết Knowledge Base.</summary>
 public class KbArticle
 {
