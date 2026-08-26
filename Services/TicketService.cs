@@ -53,7 +53,7 @@ public class TicketService(AppDbContext db) : ITicketService
         t.Code = $"TK{DateTime.Now:yyMM}{count + 1:D4}";
         if (t.CategoryId is { } cid)
         {
-            var cat = await db.Categories.FindAsync(cid);
+            var cat = await db.Categories.FirstOrDefaultAsync(x => x.Id == cid);
             if (cat != null) t.DueAt = t.CreatedAt.AddHours(cat.SlaHours);
         }
         t.Comments.Add(new TicketComment { Author = "Hệ thống", Body = $"Phiếu tạo qua kênh {t.Channel}.", CreatedAt = DateTime.Now });
@@ -64,7 +64,7 @@ public class TicketService(AppDbContext db) : ITicketService
 
     public async Task AddCommentAsync(int ticketId, string author, string body, bool isInternal)
     {
-        var t = await db.Tickets.FindAsync(ticketId) ?? throw new KeyNotFoundException();
+        var t = await db.Tickets.FirstOrDefaultAsync(x => x.Id == ticketId) ?? throw new KeyNotFoundException();
         db.Comments.Add(new TicketComment { TicketId = ticketId, Author = author, Body = body, IsInternal = isInternal });
         t.FirstResponseAt ??= DateTime.Now;
         await db.SaveChangesAsync();
@@ -72,7 +72,7 @@ public class TicketService(AppDbContext db) : ITicketService
 
     public async Task AssignAsync(int ticketId, int? agentId)
     {
-        var t = await db.Tickets.FindAsync(ticketId) ?? throw new KeyNotFoundException();
+        var t = await db.Tickets.FirstOrDefaultAsync(x => x.Id == ticketId) ?? throw new KeyNotFoundException();
         t.AssignedAgentId = agentId;
         if (agentId != null && t.Status == TicketStatus.New) t.Status = TicketStatus.InProgress;
         await db.SaveChangesAsync();
@@ -80,7 +80,7 @@ public class TicketService(AppDbContext db) : ITicketService
 
     public async Task ChangeStatusAsync(int ticketId, TicketStatus status)
     {
-        var t = await db.Tickets.FindAsync(ticketId) ?? throw new KeyNotFoundException();
+        var t = await db.Tickets.FirstOrDefaultAsync(x => x.Id == ticketId) ?? throw new KeyNotFoundException();
         t.Status = status;
         if (status == TicketStatus.Resolved) t.ResolvedAt ??= DateTime.Now;
         if (status == TicketStatus.Closed) t.ClosedAt ??= DateTime.Now;
@@ -89,7 +89,7 @@ public class TicketService(AppDbContext db) : ITicketService
 
     public async Task ChangePriorityAsync(int ticketId, TicketPriority priority)
     {
-        var t = await db.Tickets.FindAsync(ticketId) ?? throw new KeyNotFoundException();
+        var t = await db.Tickets.FirstOrDefaultAsync(x => x.Id == ticketId) ?? throw new KeyNotFoundException();
         t.Priority = priority;
         await db.SaveChangesAsync();
     }
@@ -125,7 +125,7 @@ public class TicketService(AppDbContext db) : ITicketService
 
     public async Task<KbArticle?> KbGetAsync(int id, bool countView = false)
     {
-        var a = await db.KbArticles.FindAsync(id);
+        var a = await db.KbArticles.FirstOrDefaultAsync(x => x.Id == id);
         if (a != null && countView) { a.Views++; await db.SaveChangesAsync(); }
         return a;
     }

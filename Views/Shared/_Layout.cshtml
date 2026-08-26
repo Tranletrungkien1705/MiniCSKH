@@ -39,13 +39,15 @@
             <div class="nav-section">Tri thức</div>
             <a class="nav-link @(Nav("Kb","Index"))" href="/Kb"><i class="bi bi-journal-richtext"></i> Knowledge Base</a>
             <a class="nav-link" href="/Portal" target="_blank"><i class="bi bi-box-arrow-up-right"></i> Cổng khách hàng</a>
+            <div class="nav-section">Hệ thống</div>
+            <a class="nav-link @(Nav("Org","Index"))" href="/Org"><i class="bi bi-building"></i> Tổ chức</a>
         </div>
         <div class="mt-auto p-3" style="color:#544f6e;font-size:11px">CSKH đa kênh · eTicket · demo</div>
     </nav>
     <div class="main-content flex-fill" style="overflow-x:hidden">
         <div class="topbar d-flex align-items-center justify-content-between">
             <h6 class="mb-0 fw-bold">@ViewData["Title"]</h6>
-            <span class="text-muted small"><i class="bi bi-building me-1"></i>Trung tâm CSKH idocNet</span>
+            <a href="/Org" class="text-muted small text-decoration-none"><i class="bi bi-building me-1"></i>@(Context.Request.Cookies["org_name"] ?? "Demo CSKH") <i class="bi bi-chevron-down ms-1" style="font-size:10px"></i></a>
         </div>
         <div class="content-area">
             @if (TempData["Success"] != null) { <div class="alert alert-success alert-dismissible fade show"><i class="bi bi-check-circle me-2"></i>@TempData["Success"]<button class="btn-close" data-bs-dismiss="alert"></button></div> }

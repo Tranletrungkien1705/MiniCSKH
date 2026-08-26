@@ -5,26 +5,29 @@ public enum TicketPriority { Low = 0, Normal = 1, High = 2, Urgent = 3 }
 public enum Channel { Web = 0, Email = 1, Zalo = 2, Phone = 3, Facebook = 4 }
 
 /// <summary>Nhân viên hỗ trợ (agent).</summary>
-public class Agent
+public class Agent : IOrgOwned
 {
     public int Id { get; set; }
+    public Guid OrgId { get; set; }
     public string Name { get; set; } = "";
     public string Email { get; set; } = "";
     public bool IsActive { get; set; } = true;
 }
 
 /// <summary>Nhóm/loại phiếu — gắn SLA (giờ) mặc định.</summary>
-public class TicketCategory
+public class TicketCategory : IOrgOwned
 {
     public int Id { get; set; }
+    public Guid OrgId { get; set; }
     public string Name { get; set; } = "";
     public int SlaHours { get; set; } = 24;
 }
 
 /// <summary>Phiếu hỗ trợ (eTicket).</summary>
-public class Ticket
+public class Ticket : IOrgOwned
 {
     public int Id { get; set; }
+    public Guid OrgId { get; set; }
     public string Code { get; set; } = "";
     public string Subject { get; set; } = "";
     public string? Description { get; set; }
@@ -56,9 +59,10 @@ public class Ticket
 }
 
 /// <summary>Dòng trao đổi trên phiếu (timeline). IsInternal = ghi chú nội bộ, KH không thấy.</summary>
-public class TicketComment
+public class TicketComment : IOrgOwned
 {
     public int Id { get; set; }
+    public Guid OrgId { get; set; }
     public int TicketId { get; set; }
     public string Author { get; set; } = "";
     public string Body { get; set; } = "";
@@ -72,9 +76,10 @@ public enum CallDirection { Inbound = 0, Outbound = 1 }
 public enum CallOutcome { Answered = 0, Missed = 1, Voicemail = 2, Busy = 3 }
 
 /// <summary>Nhật ký cuộc gọi (call center) — có thể gắn với 1 phiếu.</summary>
-public class CallLog
+public class CallLog : IOrgOwned
 {
     public int Id { get; set; }
+    public Guid OrgId { get; set; }
     public CallDirection Direction { get; set; }
     public string PhoneNumber { get; set; } = "";
     public string? CustomerName { get; set; }
@@ -92,9 +97,10 @@ public class CallLog
 }
 
 /// <summary>Bài viết Knowledge Base.</summary>
-public class KbArticle
+public class KbArticle : IOrgOwned
 {
     public int Id { get; set; }
+    public Guid OrgId { get; set; }
     public string Title { get; set; } = "";
     public string Category { get; set; } = "Chung";
     public string Body { get; set; } = "";

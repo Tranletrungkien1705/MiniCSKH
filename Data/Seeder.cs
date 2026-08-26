@@ -8,6 +8,13 @@ public static class Seeder
     public static async Task SeedAsync(AppDbContext db)
     {
         await db.Database.EnsureCreatedAsync();
+        await MigratePostgresAsync(db);   // DB cloud cũ: thêm Orgs + cột OrgId nếu thiếu
+
+        if (!await db.Orgs.AnyAsync(o => o.Id == TenantContext.DefaultOrgId))
+        {
+            db.Orgs.Add(new Org { Id = TenantContext.DefaultOrgId, Name = "Demo CSKH", ApiKey = TenantContext.DefaultApiKey });
+            await db.SaveChangesAsync();
+        }
 
         if (!await db.Agents.AnyAsync())
         {
@@ -76,5 +83,22 @@ public static class Seeder
             );
             await db.SaveChangesAsync();
         }
+    }
+
+    /// <summary>DB Postgres cloud cũ: tạo Orgs + thêm cột OrgId nếu thiếu, backfill về org mặc định. Idempotent.</summary>
+    private static async Task MigratePostgresAsync(AppDbContext db)
+    {
+        if (!db.Database.IsNpgsql()) return;
+        var def = TenantContext.DefaultOrgId;
+        var tables = new[] { "Agents", "Categories", "Tickets", "Comments", "KbArticles", "Calls" };
+        var sql = new List<string>
+        {
+            "CREATE TABLE IF NOT EXISTS minicskh.\"Orgs\" (\"Id\" uuid PRIMARY KEY, \"Name\" text NOT NULL DEFAULT '', \"ApiKey\" text NOT NULL DEFAULT '', \"CreatedAt\" timestamp NOT NULL DEFAULT now())",
+            "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_Orgs_ApiKey\" ON minicskh.\"Orgs\" (\"ApiKey\")",
+        };
+        foreach (var t in tables)
+            sql.Add($"ALTER TABLE minicskh.\"{t}\" ADD COLUMN IF NOT EXISTS \"OrgId\" uuid NOT NULL DEFAULT '{def}'");
+        foreach (var s in sql)
+            try { await db.Database.ExecuteSqlRawAsync(s); } catch { }
     }
 }
