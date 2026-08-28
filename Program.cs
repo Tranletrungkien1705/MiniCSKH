@@ -1,11 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using MiniCSKH.Data;
 using MiniCSKH.Services;
+using Serilog;
 
 // Npgsql: DateTime (Kind Local/Unspecified) '' timestamp without time zone (khong phai timestamptz)
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
+FleetObs.ConfigureLogger("minicskh");
 var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseSerilog();
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
@@ -18,11 +21,14 @@ builder.Services.AddDbContext<AppDbContext>(o =>
 });
 builder.Services.AddScoped<ITicketService, TicketService>();
 builder.Services.AddScoped<ITenantContext, TenantContext>();   // multi-tenant: ngữ cảnh org/request
+builder.Services.AddFleetObs();
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 using (var scope = app.Services.CreateScope())
     await Seeder.SeedAsync(scope.ServiceProvider.GetRequiredService<AppDbContext>());
+
+app.UseFleetObs();
 
 // Multi-tenant: org của request = cookie org_key (UI) hoặc header X-Api-Key (API). Đặt TRƯỚC khi dựng AppDbContext.
 app.Use(async (ctx, next) =>
