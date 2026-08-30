@@ -27,7 +27,10 @@ export const api = {
   inboundCall: (b) => req('/calls/inbound', { method: 'POST', body: b }),
   surveys: () => req('/surveys'),
   csat: () => req('/csat'),
-  submitSurvey: (code, b) => req(`/survey/${code}/submit`, { method: 'POST', body: b })
+  submitSurvey: (code, b) => req(`/survey/${code}/submit`, { method: 'POST', body: b }),
+  campaigns: () => req('/campaigns'),
+  createCampaign: (b) => req('/campaigns', { method: 'POST', body: b }),
+  runCampaign: (id) => req(`/campaigns/${id}/run`, { method: 'POST' })
 }
 export const fmtDateTime = (s) => s ? new Date(s).toLocaleString('vi-VN') : '—'
 export const STATUS = ['Mới', 'Đang xử lý', 'Chờ khách', 'Đã giải quyết', 'Đã đóng', 'Đã hủy']

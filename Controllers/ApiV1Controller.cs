@@ -150,6 +150,29 @@ public class ApiV1Controller(ITicketService svc, ICache cache, ITenantContext te
         return ok ? Ok(new { ok, msg }) : BadRequest(new { ok, error = msg });
     }
 
+    // ── Chiến dịch outbound (HCC Campaign) ──
+    [HttpGet("campaigns")]
+    public async Task<IActionResult> Campaigns()
+        => Ok((await svc.CampaignsAsync()).Select(c => new { c.Id, c.Name, channel = (int)c.Channel, c.Message, status = (int)c.Status, c.CreatedAt, total = c.Total, reached = c.Reached }));
+
+    [HttpPost("campaigns")]
+    public async Task<IActionResult> CreateCampaign([FromBody] CampaignReq r)
+    {
+        if (string.IsNullOrWhiteSpace(r.Name)) return BadRequest(new { error = "Cần tên chiến dịch." });
+        var targets = (r.Targets ?? []).Where(t => !string.IsNullOrWhiteSpace(t.Phone))
+            .Select(t => new CampaignTarget { Phone = t.Phone!.Trim(), Name = t.Name }).ToList();
+        var id = await svc.CreateCampaignAsync(new Campaign { Name = r.Name.Trim(), Channel = (Channel)r.Channel, Message = r.Message }, targets);
+        return Ok(new { id });
+    }
+
+    [HttpPost("campaigns/{id:int}/run")]
+    public async Task<IActionResult> RunCampaign(int id)
+    {
+        var (ok, msg) = await svc.RunCampaignAsync(id);
+        await cache.RemoveByPrefixAsync("cskh:");
+        return ok ? Ok(new { ok, msg }) : BadRequest(new { ok, error = msg });
+    }
+
     /// <summary>CTI: cuộc gọi ĐẾN → screen-pop lịch sử KH + tự tạo/nối ticket + ghi call.</summary>
     [HttpPost("calls/inbound")]
     public async Task<IActionResult> InboundCall([FromBody] InboundReq r)
@@ -179,3 +202,5 @@ public class CommentReq { public string? Author { get; set; } public string? Bod
 public class CallReq { public int Direction { get; set; } public int Outcome { get; set; } public string? PhoneNumber { get; set; } public string? CustomerName { get; set; } public int DurationSeconds { get; set; } public string? Note { get; set; } }
 public class InboundReq { public string Phone { get; set; } = ""; public string? Name { get; set; } public int? AgentId { get; set; } }
 public class SurveySubmitReq { public int Score { get; set; } public string? Comment { get; set; } }
+public class CampaignReq { public string Name { get; set; } = ""; public int Channel { get; set; } = 3; public string? Message { get; set; } public List<CampaignTargetReq>? Targets { get; set; } }
+public class CampaignTargetReq { public string? Phone { get; set; } public string? Name { get; set; } }

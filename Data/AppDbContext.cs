@@ -18,6 +18,8 @@ public class AppDbContext : DbContext
     public DbSet<KbArticle> KbArticles => Set<KbArticle>();
     public DbSet<CallLog> Calls => Set<CallLog>();
     public DbSet<SurveyResponse> Surveys => Set<SurveyResponse>();
+    public DbSet<Campaign> Campaigns => Set<Campaign>();
+    public DbSet<CampaignTarget> CampaignTargets => Set<CampaignTarget>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -53,6 +55,16 @@ public class AppDbContext : DbContext
         {
             e.Ignore(x => x.Responded);
             e.HasIndex(x => x.Code);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<Campaign>(e =>
+        {
+            e.Ignore(x => x.Total); e.Ignore(x => x.Reached);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<CampaignTarget>(e =>
+        {
+            e.HasOne(x => x.Campaign).WithMany(x => x.Targets).HasForeignKey(x => x.CampaignId);
             e.HasQueryFilter(x => x.OrgId == _orgId);
         });
     }

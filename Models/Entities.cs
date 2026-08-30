@@ -124,3 +124,29 @@ public class SurveyResponse : IOrgOwned
     public DateTime? RespondedAt { get; set; }
     public bool Responded => RespondedAt != null;
 }
+
+public enum CampaignStatus { Draft = 0, Running = 1, Done = 2 }
+/// <summary>Chiến dịch outbound (telemarketing/CSKH chủ động) — HCC Campaign.</summary>
+public class Campaign : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string Name { get; set; } = "";
+    public Channel Channel { get; set; } = Channel.Phone;
+    public string? Message { get; set; }
+    public CampaignStatus Status { get; set; } = CampaignStatus.Draft;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public List<CampaignTarget> Targets { get; set; } = [];
+    public int Total => Targets.Count;
+    public int Reached => Targets.Count(t => t.SentAt != null);
+}
+public class CampaignTarget : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public int CampaignId { get; set; }
+    public string Phone { get; set; } = "";
+    public string? Name { get; set; }
+    public DateTime? SentAt { get; set; }
+    public Campaign Campaign { get; set; } = null!;
+}

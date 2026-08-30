@@ -21,7 +21,7 @@ function Layout() {
     <>
       <nav className="nav"><span className="brand">🎧 MiniCSKH</span>
         <NavLink to="/" end>Tổng quan</NavLink><NavLink to="/tickets">Ticket</NavLink>
-        <NavLink to="/calls">Cuộc gọi</NavLink><NavLink to="/surveys">Khảo sát</NavLink><NavLink to="/kb">Kiến thức</NavLink></nav>
+        <NavLink to="/calls">Cuộc gọi</NavLink><NavLink to="/campaigns">Chiến dịch</NavLink><NavLink to="/surveys">Khảo sát</NavLink><NavLink to="/kb">Kiến thức</NavLink></nav>
       <div className="wrap"><Outlet /></div>
     </>
   )
@@ -207,10 +207,40 @@ export default function App() {
         <Route index element={<Dashboard />} />
         <Route path="tickets" element={<Tickets />} />
         <Route path="calls" element={<Calls />} />
+        <Route path="campaigns" element={<Campaigns />} />
         <Route path="surveys" element={<Surveys />} />
         <Route path="kb" element={<Kb />} />
       </Route>
     </Routes>
+  )
+}
+
+function Campaigns() {
+  const [rows, setRows] = useState([])
+  const load = () => api.campaigns().then(r => setRows(r.data))
+  useEffect(() => { load() }, [])
+  const create = async () => {
+    const name = prompt('Tên chiến dịch:', 'CSKH cuối năm'); if (!name) return
+    const msg = prompt('Nội dung tin nhắn/thoại:', 'Cảm ơn quý khách đã tin dùng!') || ''
+    const phones = prompt('Danh sách SĐT (cách nhau dấu phẩy):', '0900111222,0900333444') || ''
+    const targets = phones.split(',').map(p => p.trim()).filter(Boolean).map(p => ({ phone: p }))
+    try { await api.createCampaign({ name, channel: 3, message: msg, targets }); load() } catch (e) { alert('❌ ' + e.message) }
+  }
+  const run = async (id) => { try { const r = await api.runCampaign(id); alert(r.data.msg); load() } catch (e) { alert('❌ ' + e.message) } }
+  const ST = ['Nháp', 'Đang chạy', 'Hoàn tất']
+  return (
+    <>
+      <div className="toolbar"><h1 style={{ margin: 0, flex: 1 }}>Chiến dịch outbound</h1>
+        <button className="btn sm" style={{ flex: 'none' }} onClick={create}>+ Tạo chiến dịch</button></div>
+      <div className="card" style={{ padding: 0, overflow: 'auto' }}>
+        <table><thead><tr><th>Tên</th><th>Nội dung</th><th>Tiếp cận</th><th>Trạng thái</th><th></th></tr></thead>
+          <tbody>{rows.map(c => (
+            <tr key={c.id}><td>{c.name}</td><td className="muted">{c.message || '—'}</td><td>{c.reached}/{c.total}</td>
+              <td>{ST[c.status]}</td><td>{c.status !== 2 && <button className="btn gray sm" style={{ flex: 'none' }} onClick={() => run(c.id)}>▶ Chạy</button>}</td></tr>))}
+            {!rows.length && <tr><td colSpan={5} className="muted" style={{ padding: 16 }}>Chưa có chiến dịch.</td></tr>}</tbody>
+        </table>
+      </div>
+    </>
   )
 }
 

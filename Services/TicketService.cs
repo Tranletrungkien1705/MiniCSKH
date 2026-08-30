@@ -34,6 +34,10 @@ public interface ITicketService
     Task<(bool ok, string msg)> SubmitSurveyAsync(string code, int score, string? comment);
     Task<List<SurveyResponse>> SurveysAsync();
     Task<(int sent, int responded, double avgScore)> CsatAsync();
+    // Chiến dịch outbound (HCC Campaign)
+    Task<List<Campaign>> CampaignsAsync();
+    Task<int> CreateCampaignAsync(Campaign c, List<CampaignTarget> targets);
+    Task<(bool ok, string msg)> RunCampaignAsync(int id);
 }
 
 /// <summary>Kết quả xử lý cuộc gọi đến (CTI screen-pop).</summary>
@@ -128,6 +132,35 @@ public class TicketService(AppDbContext db) : ITicketService
         var all = await db.Surveys.ToListAsync();
         var done = all.Where(s => s.Responded).ToList();
         return (all.Count, done.Count, done.Count > 0 ? Math.Round(done.Average(s => s.Score), 2) : 0);
+    }
+
+    public Task<List<Campaign>> CampaignsAsync() =>
+        db.Campaigns.Include(c => c.Targets).OrderByDescending(c => c.CreatedAt).ToListAsync();
+
+    public async Task<int> CreateCampaignAsync(Campaign c, List<CampaignTarget> targets)
+    {
+        c.Targets = targets;
+        db.Campaigns.Add(c);
+        await db.SaveChangesAsync();
+        return c.Id;
+    }
+
+    // "Chạy" chiến dịch: đánh dấu đã gửi + ghi 1 outbound call/target (mô phỏng gọi ra).
+    public async Task<(bool ok, string msg)> RunCampaignAsync(int id)
+    {
+        var c = await db.Campaigns.Include(x => x.Targets).FirstOrDefaultAsync(x => x.Id == id);
+        if (c == null) return (false, "Không tìm thấy chiến dịch.");
+        if (c.Status == CampaignStatus.Done) return (false, "Chiến dịch đã chạy xong.");
+        var now = DateTime.Now;
+        foreach (var t in c.Targets.Where(t => t.SentAt == null))
+        {
+            t.SentAt = now;
+            if (c.Channel == Channel.Phone)
+                db.Calls.Add(new CallLog { Direction = CallDirection.Outbound, PhoneNumber = t.Phone, CustomerName = t.Name, Outcome = CallOutcome.Answered, Note = $"Chiến dịch: {c.Name}" });
+        }
+        c.Status = CampaignStatus.Done;
+        await db.SaveChangesAsync();
+        return (true, $"Đã chạy chiến dịch '{c.Name}' — tiếp cận {c.Targets.Count} khách.");
     }
 
     public async Task ChangePriorityAsync(int ticketId, TicketPriority priority)

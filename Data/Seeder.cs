@@ -97,6 +97,8 @@ public static class Seeder
             "CREATE UNIQUE INDEX IF NOT EXISTS \"IX_Orgs_ApiKey\" ON minicskh.\"Orgs\" (\"ApiKey\")",
             // Bảng khảo sát CSAT (đợt bổ sung HCC Survey)
             "CREATE TABLE IF NOT EXISTS minicskh.\"Surveys\" (\"Id\" serial PRIMARY KEY, \"OrgId\" uuid NOT NULL DEFAULT '" + def + "', \"Code\" text NOT NULL DEFAULT '', \"TicketId\" integer NOT NULL DEFAULT 0, \"CustomerName\" text, \"CustomerPhone\" text, \"Score\" integer NOT NULL DEFAULT 0, \"Comment\" text, \"CreatedAt\" timestamp NOT NULL DEFAULT now(), \"RespondedAt\" timestamp)",
+            "CREATE TABLE IF NOT EXISTS minicskh.\"Campaigns\" (\"Id\" serial PRIMARY KEY, \"OrgId\" uuid NOT NULL DEFAULT '" + def + "', \"Name\" text NOT NULL DEFAULT '', \"Channel\" integer NOT NULL DEFAULT 3, \"Message\" text, \"Status\" integer NOT NULL DEFAULT 0, \"CreatedAt\" timestamp NOT NULL DEFAULT now())",
+            "CREATE TABLE IF NOT EXISTS minicskh.\"CampaignTargets\" (\"Id\" serial PRIMARY KEY, \"OrgId\" uuid NOT NULL DEFAULT '" + def + "', \"CampaignId\" integer NOT NULL DEFAULT 0, \"Phone\" text NOT NULL DEFAULT '', \"Name\" text, \"SentAt\" timestamp)",
         };
         foreach (var t in tables)
             sql.Add($"ALTER TABLE minicskh.\"{t}\" ADD COLUMN IF NOT EXISTS \"OrgId\" uuid NOT NULL DEFAULT '{def}'");
