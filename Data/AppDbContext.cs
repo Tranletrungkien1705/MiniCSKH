@@ -17,6 +17,7 @@ public class AppDbContext : DbContext
     public DbSet<TicketComment> Comments => Set<TicketComment>();
     public DbSet<KbArticle> KbArticles => Set<KbArticle>();
     public DbSet<CallLog> Calls => Set<CallLog>();
+    public DbSet<SurveyResponse> Surveys => Set<SurveyResponse>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -46,6 +47,12 @@ public class AppDbContext : DbContext
         b.Entity<TicketComment>(e =>
         {
             e.HasOne(x => x.Ticket).WithMany(x => x.Comments).HasForeignKey(x => x.TicketId);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<SurveyResponse>(e =>
+        {
+            e.Ignore(x => x.Responded);
+            e.HasIndex(x => x.Code);
             e.HasQueryFilter(x => x.OrgId == _orgId);
         });
     }

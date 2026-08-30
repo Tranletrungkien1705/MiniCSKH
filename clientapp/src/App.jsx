@@ -21,7 +21,7 @@ function Layout() {
     <>
       <nav className="nav"><span className="brand">🎧 MiniCSKH</span>
         <NavLink to="/" end>Tổng quan</NavLink><NavLink to="/tickets">Ticket</NavLink>
-        <NavLink to="/calls">Cuộc gọi</NavLink><NavLink to="/kb">Kiến thức</NavLink></nav>
+        <NavLink to="/calls">Cuộc gọi</NavLink><NavLink to="/surveys">Khảo sát</NavLink><NavLink to="/kb">Kiến thức</NavLink></nav>
       <div className="wrap"><Outlet /></div>
     </>
   )
@@ -207,8 +207,40 @@ export default function App() {
         <Route index element={<Dashboard />} />
         <Route path="tickets" element={<Tickets />} />
         <Route path="calls" element={<Calls />} />
+        <Route path="surveys" element={<Surveys />} />
         <Route path="kb" element={<Kb />} />
       </Route>
     </Routes>
+  )
+}
+
+function Surveys() {
+  const [rows, setRows] = useState([]); const [csat, setCsat] = useState(null)
+  const load = () => { api.surveys().then(r => setRows(r.data)); api.csat().then(r => setCsat(r.data)) }
+  useEffect(() => { load() }, [])
+  const rate = async (code) => {
+    const s = prompt('Đánh giá thử (1-5 sao):', '5'); if (!s) return
+    try { await api.submitSurvey(code, { score: Number(s), comment: 'Đánh giá từ demo' }); load() } catch (e) { alert('❌ ' + e.message) }
+  }
+  const stars = n => '★'.repeat(n) + '☆'.repeat(5 - n)
+  return (
+    <>
+      <div className="toolbar"><h1 style={{ margin: 0, flex: 1 }}>Khảo sát hài lòng (CSAT)</h1></div>
+      {csat && <div className="grid kpis" style={{ marginBottom: 14 }}>
+        <div className="kpi"><div className="v" style={{ color: 'var(--warning, #f59e0b)' }}>{csat.avgScore}★</div><div className="l">Điểm hài lòng TB</div></div>
+        <div className="kpi"><div className="v">{csat.responded}/{csat.sent}</div><div className="l">Đã trả lời / đã gửi</div></div>
+        <div className="kpi"><div className="v">{csat.sent ? Math.round(csat.responded / csat.sent * 100) : 0}%</div><div className="l">Tỷ lệ phản hồi</div></div>
+      </div>}
+      <div className="card" style={{ padding: 0, overflow: 'auto' }}>
+        <table><thead><tr><th>Ticket</th><th>Khách</th><th>Điểm</th><th>Nhận xét</th><th>Ngày gửi</th><th></th></tr></thead>
+          <tbody>{rows.map(s => (
+            <tr key={s.id}><td>#{s.ticketId}</td><td>{s.customerName || '—'}</td>
+              <td style={{ color: 'var(--warning, #f59e0b)' }}>{s.responded ? stars(s.score) : <span className="muted">chưa trả lời</span>}</td>
+              <td>{s.comment || '—'}</td><td className="muted">{fmtDateTime(s.createdAt)}</td>
+              <td>{!s.responded && <button className="btn gray sm" style={{ flex: 'none' }} onClick={() => rate(s.code)}>Gửi thử</button>}</td></tr>))}
+            {!rows.length && <tr><td colSpan={6} className="muted" style={{ padding: 16 }}>Chưa có khảo sát. Đóng (Đã giải quyết) 1 ticket để tự sinh phiếu khảo sát.</td></tr>}</tbody>
+        </table>
+      </div>
+    </>
   )
 }

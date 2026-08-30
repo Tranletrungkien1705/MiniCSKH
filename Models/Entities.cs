@@ -108,3 +108,19 @@ public class KbArticle : IOrgOwned
     public bool IsPublished { get; set; } = true;
     public DateTime UpdatedAt { get; set; } = DateTime.Now;
 }
+
+/// <summary>Phiếu khảo sát hài lòng (CSAT) sau khi xử lý ticket. Score 1-5; 0 = chưa trả lời.</summary>
+public class SurveyResponse : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string Code { get; set; } = "";      // mã link khảo sát công khai
+    public int TicketId { get; set; }
+    public string? CustomerName { get; set; }
+    public string? CustomerPhone { get; set; }
+    public int Score { get; set; }              // 0 = chưa trả lời, 1-5 sao
+    public string? Comment { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime? RespondedAt { get; set; }
+    public bool Responded => RespondedAt != null;
+}

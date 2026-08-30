@@ -124,6 +124,32 @@ public class ApiV1Controller(ITicketService svc, ICache cache, ITenantContext te
         return Ok(new { id });
     }
 
+    // ── Khảo sát hài lòng (CSAT) ──
+    [HttpGet("surveys")]
+    public async Task<IActionResult> Surveys()
+        => Ok((await svc.SurveysAsync()).Select(s => new { s.Id, s.Code, s.TicketId, s.CustomerName, s.CustomerPhone, s.Score, s.Comment, s.CreatedAt, s.RespondedAt, responded = s.Responded }));
+
+    [HttpGet("csat")]
+    public async Task<IActionResult> Csat()
+    { var (sent, responded, avg) = await svc.CsatAsync(); return Ok(new { sent, responded, avgScore = avg }); }
+
+    /// <summary>Công khai: khách mở link khảo sát theo mã.</summary>
+    [HttpGet("survey/{code}")]
+    public async Task<IActionResult> GetSurvey(string code)
+    {
+        var s = await svc.GetSurveyByCodeAsync(code);
+        return s == null ? NotFound(new { found = false }) : Ok(new { found = true, s.Code, s.TicketId, s.CustomerName, s.Score, responded = s.Responded });
+    }
+
+    /// <summary>Công khai: khách gửi đánh giá (1-5 sao).</summary>
+    [HttpPost("survey/{code}/submit")]
+    public async Task<IActionResult> SubmitSurvey(string code, [FromBody] SurveySubmitReq r)
+    {
+        var (ok, msg) = await svc.SubmitSurveyAsync(code, r.Score, r.Comment);
+        await cache.RemoveByPrefixAsync("cskh:");
+        return ok ? Ok(new { ok, msg }) : BadRequest(new { ok, error = msg });
+    }
+
     /// <summary>CTI: cuộc gọi ĐẾN → screen-pop lịch sử KH + tự tạo/nối ticket + ghi call.</summary>
     [HttpPost("calls/inbound")]
     public async Task<IActionResult> InboundCall([FromBody] InboundReq r)
@@ -152,3 +178,4 @@ public class AssignReq { public int? AgentId { get; set; } }
 public class CommentReq { public string? Author { get; set; } public string? Body { get; set; } public bool IsInternal { get; set; } }
 public class CallReq { public int Direction { get; set; } public int Outcome { get; set; } public string? PhoneNumber { get; set; } public string? CustomerName { get; set; } public int DurationSeconds { get; set; } public string? Note { get; set; } }
 public class InboundReq { public string Phone { get; set; } = ""; public string? Name { get; set; } public int? AgentId { get; set; } }
+public class SurveySubmitReq { public int Score { get; set; } public string? Comment { get; set; } }

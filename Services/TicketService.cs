@@ -29,6 +29,11 @@ public interface ITicketService
     Task<(int todayTotal, int missed, int avgSeconds)> CallStatsAsync();
     // CTI: cuộc gọi đến → screen-pop lịch sử + tự tạo/nối ticket
     Task<InboundCallResult> HandleInboundCallAsync(string phone, string? name, int? agentId);
+    // Khảo sát hài lòng (CSAT)
+    Task<SurveyResponse?> GetSurveyByCodeAsync(string code);
+    Task<(bool ok, string msg)> SubmitSurveyAsync(string code, int score, string? comment);
+    Task<List<SurveyResponse>> SurveysAsync();
+    Task<(int sent, int responded, double avgScore)> CsatAsync();
 }
 
 /// <summary>Kết quả xử lý cuộc gọi đến (CTI screen-pop).</summary>
@@ -91,7 +96,38 @@ public class TicketService(AppDbContext db) : ITicketService
         t.Status = status;
         if (status == TicketStatus.Resolved) t.ResolvedAt ??= DateTime.Now;
         if (status == TicketStatus.Closed) t.ClosedAt ??= DateTime.Now;
+        // Xử lý xong (Resolved) → gửi phiếu khảo sát hài lòng (CSAT), 1 phiếu/ticket.
+        if (status == TicketStatus.Resolved && !await db.Surveys.AnyAsync(s => s.TicketId == ticketId))
+            db.Surveys.Add(new SurveyResponse
+            {
+                TicketId = ticketId, Code = Guid.NewGuid().ToString("N")[..12].ToUpperInvariant(),
+                CustomerName = t.CustomerName, CustomerPhone = t.CustomerPhone
+            });
         await db.SaveChangesAsync();
+    }
+
+    public Task<SurveyResponse?> GetSurveyByCodeAsync(string code) =>
+        db.Surveys.IgnoreQueryFilters().FirstOrDefaultAsync(s => s.Code == code.Trim());
+
+    public async Task<(bool ok, string msg)> SubmitSurveyAsync(string code, int score, string? comment)
+    {
+        var s = await db.Surveys.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Code == code.Trim());
+        if (s == null) return (false, "Không tìm thấy phiếu khảo sát.");
+        if (s.Responded) return (false, $"Bạn đã đánh giá {s.Score}★ rồi. Cảm ơn!");
+        if (score < 1 || score > 5) return (false, "Điểm phải từ 1 đến 5.");
+        s.Score = score; s.Comment = comment; s.RespondedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+        return (true, "Cảm ơn bạn đã đánh giá! 🌟");
+    }
+
+    public Task<List<SurveyResponse>> SurveysAsync() =>
+        db.Surveys.OrderByDescending(s => s.CreatedAt).Take(200).ToListAsync();
+
+    public async Task<(int sent, int responded, double avgScore)> CsatAsync()
+    {
+        var all = await db.Surveys.ToListAsync();
+        var done = all.Where(s => s.Responded).ToList();
+        return (all.Count, done.Count, done.Count > 0 ? Math.Round(done.Average(s => s.Score), 2) : 0);
     }
 
     public async Task ChangePriorityAsync(int ticketId, TicketPriority priority)
