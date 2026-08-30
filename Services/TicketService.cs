@@ -27,7 +27,14 @@ public interface ITicketService
     Task<List<CallLog>> CallsAsync(CallDirection? dir, CallOutcome? outcome, string? q);
     Task<int> LogCallAsync(CallLog call);
     Task<(int todayTotal, int missed, int avgSeconds)> CallStatsAsync();
+    // CTI: cuộc gọi đến → screen-pop lịch sử + tự tạo/nối ticket
+    Task<InboundCallResult> HandleInboundCallAsync(string phone, string? name, int? agentId);
 }
+
+/// <summary>Kết quả xử lý cuộc gọi đến (CTI screen-pop).</summary>
+public record InboundCallResult(int TicketId, string TicketCode, bool TicketIsNew, int CallId,
+    string CustomerName, int HistoryCount, List<TicketBrief> OpenTickets);
+public record TicketBrief(int Id, string Code, string Subject, string StatusText);
 
 public class TicketService(AppDbContext db) : ITicketService
 {
@@ -158,5 +165,36 @@ public class TicketService(AppDbContext db) : ITicketService
         var answered = today.Where(c => c.Outcome == CallOutcome.Answered && c.DurationSeconds > 0).ToList();
         var avg = answered.Count > 0 ? (int)answered.Average(c => c.DurationSeconds) : 0;
         return (today.Count, today.Count(c => c.Outcome == CallOutcome.Missed), avg);
+    }
+
+    // CTI: cuộc gọi đến → tra lịch sử theo SĐT (screen-pop), nối phiếu đang mở hoặc tạo phiếu mới, ghi call.
+    public async Task<InboundCallResult> HandleInboundCallAsync(string phone, string? name, int? agentId)
+    {
+        phone = (phone ?? "").Trim();
+        var history = await db.Tickets.Where(t => t.CustomerPhone == phone).OrderByDescending(t => t.CreatedAt).ToListAsync();
+        var open = history.Where(t => t.IsOpen).ToList();
+        var known = history.FirstOrDefault()?.CustomerName;
+        var custName = string.IsNullOrWhiteSpace(name) ? (known ?? "Khách gọi đến") : name.Trim();
+
+        Ticket ticket; bool isNew;
+        if (open.Count > 0) { ticket = open[0]; isNew = false; }   // nối vào phiếu đang mở gần nhất
+        else
+        {
+            var id = await CreateAsync(new Ticket
+            {
+                Subject = $"Cuộc gọi đến từ {phone}", CustomerName = custName, CustomerPhone = phone,
+                Channel = Channel.Phone, Priority = TicketPriority.Normal, AssignedAgentId = agentId,
+                Description = "Phiếu tạo tự động từ cuộc gọi đến (CTI)."
+            });
+            ticket = (await GetAsync(id))!; isNew = true;
+        }
+        var callId = await LogCallAsync(new CallLog
+        {
+            Direction = CallDirection.Inbound, PhoneNumber = phone, CustomerName = custName,
+            AgentId = agentId, Outcome = CallOutcome.Answered, TicketId = ticket.Id,
+            Note = isNew ? "Tự tạo phiếu từ cuộc gọi" : $"Nối vào phiếu {ticket.Code}"
+        });
+        return new InboundCallResult(ticket.Id, ticket.Code, isNew, callId, custName, history.Count,
+            open.Select(t => new TicketBrief(t.Id, t.Code, t.Subject, Ui.StatusName(t.Status))).ToList());
     }
 }

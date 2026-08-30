@@ -124,6 +124,16 @@ public class ApiV1Controller(ITicketService svc, ICache cache, ITenantContext te
         return Ok(new { id });
     }
 
+    /// <summary>CTI: cuộc gọi ĐẾN → screen-pop lịch sử KH + tự tạo/nối ticket + ghi call.</summary>
+    [HttpPost("calls/inbound")]
+    public async Task<IActionResult> InboundCall([FromBody] InboundReq r)
+    {
+        if (string.IsNullOrWhiteSpace(r.Phone)) return BadRequest(new { error = "Cần số điện thoại." });
+        var res = await svc.HandleInboundCallAsync(r.Phone, r.Name, r.AgentId);
+        await cache.RemoveByPrefixAsync("cskh:");
+        return Ok(res);
+    }
+
     private static object ToListDto(Ticket t) => new
     {
         t.Id, t.Code, t.Subject, t.CustomerName, channel = t.Channel.ToString(), priority = (int)t.Priority, status = (int)t.Status,
@@ -141,3 +151,4 @@ public class PriorityReq { public int Priority { get; set; } }
 public class AssignReq { public int? AgentId { get; set; } }
 public class CommentReq { public string? Author { get; set; } public string? Body { get; set; } public bool IsInternal { get; set; } }
 public class CallReq { public int Direction { get; set; } public int Outcome { get; set; } public string? PhoneNumber { get; set; } public string? CustomerName { get; set; } public int DurationSeconds { get; set; } public string? Note { get; set; } }
+public class InboundReq { public string Phone { get; set; } = ""; public string? Name { get; set; } public int? AgentId { get; set; } }

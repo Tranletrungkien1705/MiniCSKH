@@ -128,12 +128,25 @@ function TicketForm({ onClose, onSaved }) {
 }
 
 function Calls() {
-  const [rows, setRows] = useState([]); const [stats, setStats] = useState(null); const [show, setShow] = useState(false)
+  const [rows, setRows] = useState([]); const [stats, setStats] = useState(null); const [show, setShow] = useState(false); const [pop, setPop] = useState(null)
   const load = () => { api.calls().then(r => setRows(r.data)); api.callStats().then(r => setStats(r.data)) }
   useEffect(() => { load() }, [])
+  const ring = async () => {
+    const phone = prompt('📞 Cuộc gọi đến — số điện thoại khách:', '09'); if (!phone) return
+    try { const r = await api.inboundCall({ phone }); setPop(r.data); load() } catch (e) { alert('❌ ' + e.message) }
+  }
   return (
     <>
-      <div className="toolbar"><h1 style={{ margin: 0, flex: 1 }}>Cuộc gọi</h1><button className="btn sm" style={{ flex: 'none' }} onClick={() => setShow(true)}>+ Ghi cuộc gọi</button></div>
+      <div className="toolbar"><h1 style={{ margin: 0, flex: 1 }}>Cuộc gọi</h1>
+        <button className="btn sm" style={{ flex: 'none', background: 'var(--ok, #16a34a)' }} onClick={ring}>☎ Cuộc gọi đến (CTI)</button>
+        <button className="btn sm" style={{ flex: 'none' }} onClick={() => setShow(true)}>+ Ghi cuộc gọi</button></div>
+      {pop && <div className="card" style={{ marginBottom: 12, borderLeft: '4px solid var(--primary, #2563eb)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <b>☎ Screen-pop: {pop.customerName}</b>
+          <button className="btn gray sm" style={{ flex: 'none' }} onClick={() => setPop(null)}>×</button></div>
+        <div className="muted" style={{ fontSize: 13, margin: '6px 0' }}>Lịch sử {pop.historyCount} phiếu · {pop.ticketIsNew ? 'ĐÃ TẠO phiếu mới' : 'nối vào phiếu đang mở'}: <b>{pop.ticketCode}</b></div>
+        {pop.openTickets?.length > 0 && <div style={{ fontSize: 12 }}>Phiếu đang mở: {pop.openTickets.map(t => t.code + ' (' + t.statusText + ')').join(', ')}</div>}
+      </div>}
       {stats && <div className="grid kpis" style={{ marginBottom: 14 }}>
         <div className="kpi"><div className="v">{stats.todayTotal}</div><div className="l">Cuộc gọi hôm nay</div></div>
         <div className="kpi"><div className="v" style={{ color: 'var(--danger)' }}>{stats.missed}</div><div className="l">Nhỡ</div></div>

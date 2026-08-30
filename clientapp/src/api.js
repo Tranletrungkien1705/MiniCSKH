@@ -23,7 +23,8 @@ export const api = {
   kbArticle: (id) => req(`/kb/${id}`),
   calls: () => req('/calls'),
   callStats: () => req('/call-stats'),
-  logCall: (b) => req('/calls', { method: 'POST', body: b })
+  logCall: (b) => req('/calls', { method: 'POST', body: b }),
+  inboundCall: (b) => req('/calls/inbound', { method: 'POST', body: b })
 }
 export const fmtDateTime = (s) => s ? new Date(s).toLocaleString('vi-VN') : '—'
 export const STATUS = ['Mới', 'Đang xử lý', 'Chờ khách', 'Đã giải quyết', 'Đã đóng', 'Đã hủy']
