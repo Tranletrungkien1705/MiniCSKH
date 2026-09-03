@@ -12,7 +12,7 @@ namespace MiniCSKH.Controllers;
 [ApiController]
 [Route("api/v1")]
 [Produces("application/json")]
-public class ApiV1Controller(ITicketService svc, ICache cache, ITenantContext tenant) : ControllerBase
+public class ApiV1Controller(ITicketService svc, ICache cache, ITenantContext tenant, AppDbContext db) : ControllerBase
 {
     [HttpGet("dashboard")]
     public async Task<IActionResult> Dashboard()
@@ -183,6 +183,36 @@ public class ApiV1Controller(ITicketService svc, ICache cache, ITenantContext te
         return Ok(res);
     }
 
+    [HttpPost("import/tickets")]
+    public async Task<IActionResult> ImportTickets([FromBody] List<ImportTicketDto> rows)
+    {
+        if (rows == null || rows.Count == 0) return BadRequest(new { error = "Không có dữ liệu import." });
+        int added = 0, skipped = 0;
+        var orgId = tenant.OrgId;
+        var existCodes = db.Tickets.Where(t => t.OrgId == orgId).Select(t => t.Code).ToHashSet();
+        foreach (var row in rows)
+        {
+            var code = row.Code?.Trim() ?? ("SKY-" + Guid.NewGuid().ToString("N")[..8].ToUpper());
+            if (existCodes.Contains(code)) { skipped++; continue; }
+            db.Tickets.Add(new Ticket
+            {
+                OrgId = orgId, Code = code,
+                Subject = row.Subject?.Trim() ?? "(không tiêu đề)",
+                Description = row.Description,
+                CustomerName = row.CustomerName?.Trim() ?? "Khách hàng",
+                CustomerPhone = row.CustomerPhone,
+                Status = (TicketStatus)Math.Clamp(row.Status, 0, 5),
+                Priority = (TicketPriority)Math.Clamp(row.Priority, 0, 3),
+                Channel = (Channel)Math.Clamp(row.Channel, 0, 4),
+                CreatedAt = row.CreatedAt ?? DateTime.Now
+            });
+            existCodes.Add(code);
+            added++;
+        }
+        await db.SaveChangesAsync();
+        return Ok(new { added, skipped, total = added + skipped });
+    }
+
     private static object ToListDto(Ticket t) => new
     {
         t.Id, t.Code, t.Subject, t.CustomerName, channel = t.Channel.ToString(), priority = (int)t.Priority, status = (int)t.Status,
@@ -204,3 +234,4 @@ public class InboundReq { public string Phone { get; set; } = ""; public string?
 public class SurveySubmitReq { public int Score { get; set; } public string? Comment { get; set; } }
 public class CampaignReq { public string Name { get; set; } = ""; public int Channel { get; set; } = 3; public string? Message { get; set; } public List<CampaignTargetReq>? Targets { get; set; } }
 public class CampaignTargetReq { public string? Phone { get; set; } public string? Name { get; set; } }
+public class ImportTicketDto { public string? Code { get; set; } public string? Subject { get; set; } public string? Description { get; set; } public string? CustomerName { get; set; } public string? CustomerPhone { get; set; } public int Status { get; set; } public int Priority { get; set; } public int Channel { get; set; } public DateTime? CreatedAt { get; set; } }
