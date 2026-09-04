@@ -1,0 +1,101 @@
+@{
+    ViewData["Title"] = "Gọi trình duyệt (WebRTC)";
+    var room = (string)ViewBag.Room;
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div><h5 class="fw-bold mb-0"><i class="bi bi-camera-video me-2"></i>Gọi trực tiếp trình duyệt↔trình duyệt</h5>
+        <small class="text-muted">Kết nối P2P thật qua WebRTC — mượt nhất, không qua tổng đài. Chỉ dùng được khi cả 2 bên cùng mở trang này (agent↔agent, hoặc gửi link cho khách). KHÔNG gọi được số điện thoại thường.</small></div>
+</div>
+
+<div class="card mb-3"><div class="card-body">
+    <label class="form-label small mb-1">Mã phòng (gửi link này cho người muốn gọi cùng)</label>
+    <div class="input-group">
+        <input id="room-link" class="form-control font-monospace" readonly />
+        <button class="btn btn-outline-secondary" id="copy-link-btn" type="button"><i class="bi bi-clipboard"></i> Copy</button>
+    </div>
+</div></div>
+
+<div id="webrtc-status" class="alert alert-info">Chưa kết nối. Bấm "Bắt đầu gọi" để xin quyền micro và tham gia phòng.</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-6"><div class="card"><div class="card-body p-2">
+        <div class="small text-muted mb-1">Bạn</div>
+        <audio id="local-audio" autoplay muted></audio>
+        <div class="text-center text-muted py-4"><i class="bi bi-mic fs-1"></i></div>
+    </div></div></div>
+    <div class="col-md-6"><div class="card"><div class="card-body p-2">
+        <div class="small text-muted mb-1">Đối phương</div>
+        <audio id="remote-audio" autoplay></audio>
+        <div class="text-center text-muted py-4"><i class="bi bi-person-circle fs-1"></i></div>
+    </div></div></div>
+</div>
+
+<button class="btn btn-success" id="start-call-btn"><i class="bi bi-telephone-outbound me-1"></i>Bắt đầu gọi</button>
+<button class="btn btn-danger d-none" id="end-call-btn"><i class="bi bi-telephone-x me-1"></i>Kết thúc</button>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8/dist/browser/signalr.min.js"></script>
+<script>
+const room = @Html.Raw(Json.Serialize(room));
+document.getElementById('room-link').value = window.location.origin + '/Call/WebRtc/' + room;
+document.getElementById('copy-link-btn').addEventListener('click', () => {
+    navigator.clipboard.writeText(document.getElementById('room-link').value);
+});
+
+const statusEl = document.getElementById('webrtc-status');
+function setStatus(msg, type) { statusEl.className = 'alert alert-' + (type || 'info'); statusEl.textContent = msg; }
+
+let pc = null, localStream = null, connection = null;
+const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+// Lưu ý: chỉ có STUN (giúp NAT-traversal cơ bản) — nếu 2 bên ở mạng doanh nghiệp/firewall khắt khe cần thêm TURN server thật (dịch vụ trả phí như Twilio TURN/Xirsys) mới đảm bảo kết nối được mọi trường hợp.
+
+async function startCall() {
+    document.getElementById('start-call-btn').classList.add('d-none');
+    document.getElementById('end-call-btn').classList.remove('d-none');
+    setStatus('Đang xin quyền micro...', 'info');
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (e) {
+        setStatus('Không xin được quyền micro: ' + e.message, 'danger');
+        return;
+    }
+    document.getElementById('local-audio').srcObject = localStream;
+
+    connection = new signalR.HubConnectionBuilder().withUrl('/hubs/webrtc').build();
+    pc = new RTCPeerConnection(rtcConfig);
+    localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+    pc.ontrack = (e) => { document.getElementById('remote-audio').srcObject = e.streams[0]; setStatus('Đã kết nối! Đang nói chuyện.', 'success'); };
+    pc.onicecandidate = (e) => { if (e.candidate) connection.invoke('SendIceCandidate', room, JSON.stringify(e.candidate)); };
+
+    connection.on('PeerJoined', async () => {
+        setStatus('Đối phương đã vào phòng, đang thiết lập kết nối...', 'info');
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        connection.invoke('SendOffer', room, JSON.stringify(offer));
+    });
+    connection.on('ReceiveOffer', async (from, sdp) => {
+        await pc.setRemoteDescription(JSON.parse(sdp));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        connection.invoke('SendAnswer', room, JSON.stringify(answer));
+    });
+    connection.on('ReceiveAnswer', async (from, sdp) => { await pc.setRemoteDescription(JSON.parse(sdp)); });
+    connection.on('ReceiveIceCandidate', async (from, cand) => { try { await pc.addIceCandidate(JSON.parse(cand)); } catch (e) {} });
+    connection.on('PeerLeft', () => setStatus('Đối phương đã rời phòng.', 'warning'));
+
+    await connection.start();
+    await connection.invoke('JoinRoom', room);
+    setStatus('Đã vào phòng, đang chờ đối phương...', 'info');
+}
+
+document.getElementById('start-call-btn').addEventListener('click', startCall);
+document.getElementById('end-call-btn').addEventListener('click', () => {
+    if (pc) pc.close();
+    if (localStream) localStream.getTracks().forEach(t => t.stop());
+    if (connection) connection.invoke('LeaveRoom', room).then(() => connection.stop());
+    document.getElementById('start-call-btn').classList.remove('d-none');
+    document.getElementById('end-call-btn').classList.add('d-none');
+    setStatus('Đã kết thúc cuộc gọi.', 'secondary');
+});
+</script>
+}

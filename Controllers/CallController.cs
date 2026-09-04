@@ -32,6 +32,14 @@ public class CallController(ITicketService svc, IConfiguration cfg) : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    /// <summary>Phòng gọi WebRTC trình duyệt↔trình duyệt (agent↔agent hoặc agent↔khách qua link chia sẻ) — mượt nhất vì kết nối P2P trực tiếp, không qua trung gian điện thoại, KHÔNG gọi được số điện thoại thật (khác VoipToken/StringeeX ở trên).</summary>
+    [Route("/Call/WebRtc/{room?}")]
+    public IActionResult WebRtc(string? room)
+    {
+        ViewBag.Room = string.IsNullOrWhiteSpace(room) ? Guid.NewGuid().ToString("N")[..8] : room;
+        return View();
+    }
+
     /// <summary>Sinh access-token StringeeX cho Web SDK gọi VoIP thật trong trình duyệt.
     /// Cần ENV STRINGEE_SID + STRINGEE_KEY + STRINGEE_SECRET (đăng ký tại stringee.com) — chưa cấu hình sẽ báo lỗi rõ ràng, không giả lập.</summary>
     [HttpGet("/api/v1/calls/voip-token")]

@@ -41,6 +41,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 builder.Services.AddAuthorization();
 builder.Services.AddFleetObs();
 builder.Services.AddControllersWithViews();
+builder.Services.AddSignalR();   // kênh signaling WebRTC (SDP/ICE) cho gọi trình duyệt↔trình duyệt
 
 var app = builder.Build();
 using (var scope = app.Services.CreateScope())
@@ -89,6 +90,7 @@ app.MapPost("/api/orgs/register", async (RegisterOrgDto dto, AppDbContext db) =>
 });
 
 app.MapControllerRoute(name: "default", pattern: "{controller=Home}/{action=Index}/{id?}");
+app.MapHub<MiniCSKH.Hubs.WebRtcSignalingHub>("/hubs/webrtc");
 app.Run();
 
 record RegisterOrgDto(string Name);
