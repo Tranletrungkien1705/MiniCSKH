@@ -48,6 +48,7 @@ using (var scope = app.Services.CreateScope())
     await Seeder.SeedAsync(scope.ServiceProvider.GetRequiredService<AppDbContext>());
 
 app.UseFleetObs();
+FleetObs.ReportLicense(ssoAuthority, "minicskh");
 app.UseAuthentication();
 app.UseAuthorization();
 
