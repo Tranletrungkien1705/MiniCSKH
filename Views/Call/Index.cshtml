@@ -50,9 +50,9 @@
 </div></form>
 
 <div class="card"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
-    <thead><tr><th>Chiều</th><th>Số điện thoại</th><th>Khách hàng</th><th>Agent</th><th>Thời điểm</th><th>Thời lượng</th><th>Kết quả</th><th>Ghi chú</th></tr></thead>
+    <thead><tr><th>Chiều</th><th>Số điện thoại</th><th>Khách hàng</th><th>Agent</th><th>Thời điểm</th><th>Thời lượng</th><th>Kết quả</th><th>Ghi chú</th><th></th></tr></thead>
     <tbody>
-        @if(!Model.Any()){<tr><td colspan="8" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>Chưa có cuộc gọi</td></tr>}
+        @if(!Model.Any()){<tr><td colspan="9" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>Chưa có cuộc gọi</td></tr>}
         @foreach (var c in Model)
         {
             <tr>
@@ -64,7 +64,65 @@
                 <td class="font-monospace">@c.DurationText</td>
                 <td>@Html.Raw(Ui.OutcomeBadge(c.Outcome))</td>
                 <td class="small text-muted">@c.Note</td>
+                <td>
+                    <a href="tel:@c.PhoneNumber" class="btn btn-sm btn-outline-secondary" title="Gọi qua app điện thoại/softphone trên máy"><i class="bi bi-telephone"></i></a>
+                    <button type="button" class="btn btn-sm btn-outline-primary voip-call-btn" data-phone="@c.PhoneNumber" title="Gọi VoIP thật ngay trong trình duyệt (cần cấu hình StringeeX)"><i class="bi bi-mic"></i></button>
+                </td>
             </tr>
         }
     </tbody>
 </table></div></div>
+
+<div id="voip-status" class="alert d-none mt-3"></div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/stringee-js-sdk@3/dist/StringeeSdk.min.js"></script>
+<script>
+// Gọi VoIP thật trong trình duyệt qua StringeeX Web SDK. Cần backend đã cấu hình ENV STRINGEE_SID/STRINGEE_KEY/STRINGEE_SECRET
+// (đăng ký tài khoản tại stringee.com) — nếu chưa có, nút sẽ báo lỗi rõ ràng thay vì giả vờ gọi được.
+let stringeeClient = null, currentCall = null;
+
+function showVoipStatus(msg, type) {
+    const el = document.getElementById('voip-status');
+    el.className = 'alert alert-' + (type || 'info') + ' mt-3';
+    el.textContent = msg;
+}
+
+async function ensureStringeeClient() {
+    if (stringeeClient) return stringeeClient;
+    const res = await fetch('/api/v1/calls/voip-token');
+    if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || ('Lỗi lấy token VoIP (HTTP ' + res.status + ')'));
+    }
+    const data = await res.json();
+    stringeeClient = new StringeeClient();
+    stringeeClient.connect(data.token);
+    await new Promise((resolve, reject) => {
+        stringeeClient.on('connect', resolve);
+        stringeeClient.on('authen', (r) => { if (!r || r.r !== 0) reject(new Error('Xác thực StringeeX thất bại: ' + JSON.stringify(r))); });
+        setTimeout(() => reject(new Error('Timeout kết nối StringeeX')), 10000);
+    });
+    return stringeeClient;
+}
+
+document.querySelectorAll('.voip-call-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+        const phone = btn.getAttribute('data-phone');
+        try {
+            showVoipStatus('Đang kết nối tới StringeeX để gọi ' + phone + '...', 'info');
+            const client = await ensureStringeeClient();
+            currentCall = new StringeeCall(client, phone, 'internal', false);
+            currentCall.on('signalingstate', (s) => showVoipStatus('Trạng thái cuộc gọi tới ' + phone + ': ' + (s.reason || s.code), 'info'));
+            currentCall.on('error', (e) => showVoipStatus('Lỗi cuộc gọi: ' + JSON.stringify(e), 'danger'));
+            currentCall.makeCall((res) => {
+                if (!res || res.r !== 0) showVoipStatus('Không thực hiện được cuộc gọi: ' + JSON.stringify(res), 'danger');
+                else showVoipStatus('Đang gọi ' + phone + '...', 'success');
+            });
+        } catch (err) {
+            showVoipStatus('Chưa dùng được VoIP thật: ' + err.message, 'warning');
+        }
+    });
+});
+</script>
+}
