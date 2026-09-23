@@ -223,4 +223,8 @@ public static class Ui
     public static string TagActiveBadge(bool active) => active
         ? "<span class='badge bg-success-subtle text-success border-success-subtle'>Đang dùng</span>"
         : "<span class='badge bg-secondary-subtle text-secondary border-secondary-subtle'>Ngừng dùng</span>";
+
+    // ── Người nhận thông báo phiếu (Mst_EstablishReceiveNotifyETicket) ──
+    public static string AgentBadge(string code, string? name) =>
+        $"<span class='badge bg-primary-subtle text-primary border-primary-subtle'><i class='bi bi-person-badge me-1'></i>{(string.IsNullOrWhiteSpace(name) ? code : name)}</span>";
 }

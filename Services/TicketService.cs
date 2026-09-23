@@ -114,6 +114,12 @@ public interface ITicketService
     Task<int> TagSaveAsync(Tag model);
     Task TagToggleAsync(int id);
     Task<TagStats> TagStatsAsync();
+    // Người nhận thông báo phiếu (Mst_EstablishReceiveNotifyETicket)
+    Task<List<ReceiveNotify>> ReceiveNotifiesAsync(string? q);
+    Task<ReceiveNotify?> ReceiveNotifyGetAsync(int id);
+    Task<int> ReceiveNotifySaveAsync(ReceiveNotify model);
+    Task ReceiveNotifyDeleteAsync(int id);
+    Task<ReceiveNotifyStats> ReceiveNotifyStatsAsync();
 }
 
 public record SlaStats(int Policies, int TicketsWithSla, int ViolatingFirstRes, int ViolatingResolution);
@@ -139,6 +145,8 @@ public record PaymentTermStats(int Total, int Active, int Sale, int Purchase, in
 public record AreaStats(int Total, int Active, int Root, int Child, int MaxLevel);
 
 public record TagStats(int Total, int Active, int WithSlug, int Inactive);
+
+public record ReceiveNotifyStats(int Total, int WithName, int WithRemark, int DistinctAgents);
 
 public record TicketTypeStats(int Total, int Active, int ETicket, int Campaign);
 
@@ -1049,5 +1057,51 @@ public class TicketService(AppDbContext db) : ITicketService
             list.Count(t => t.IsActive),
             list.Count(t => !string.IsNullOrWhiteSpace(t.Slug)),
             list.Count(t => !t.IsActive));
+    }
+
+    // ── Người nhận thông báo phiếu (Mst_EstablishReceiveNotifyETicket) ──
+    public async Task<List<ReceiveNotify>> ReceiveNotifiesAsync(string? q)
+    {
+        var query = db.ReceiveNotifies.AsQueryable();
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(r => r.AgentCode.Contains(q) || (r.AgentName ?? "").Contains(q) || (r.Remark ?? "").Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderBy(r => r.AgentCode).ToList();
+    }
+
+    public Task<ReceiveNotify?> ReceiveNotifyGetAsync(int id) =>
+        db.ReceiveNotifies.FirstOrDefaultAsync(r => r.Id == id);
+
+    public async Task<int> ReceiveNotifySaveAsync(ReceiveNotify model)
+    {
+        if (model.Id == 0)
+        {
+            model.CreatedAt = model.UpdatedAt = DateTime.Now;
+            db.ReceiveNotifies.Add(model);
+            await db.SaveChangesAsync();
+            return model.Id;
+        }
+        var e = await db.ReceiveNotifies.FirstOrDefaultAsync(x => x.Id == model.Id) ?? throw new KeyNotFoundException();
+        e.AgentCode = model.AgentCode; e.AgentName = model.AgentName; e.Remark = model.Remark;
+        e.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
+    public async Task ReceiveNotifyDeleteAsync(int id)
+    {
+        var r = await db.ReceiveNotifies.FirstOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException();
+        db.ReceiveNotifies.Remove(r);
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<ReceiveNotifyStats> ReceiveNotifyStatsAsync()
+    {
+        var list = await db.ReceiveNotifies.ToListAsync();
+        return new ReceiveNotifyStats(
+            list.Count,
+            list.Count(r => !string.IsNullOrWhiteSpace(r.AgentName)),
+            list.Count(r => !string.IsNullOrWhiteSpace(r.Remark)),
+            list.Select(r => r.AgentCode).Distinct().Count());
     }
 }

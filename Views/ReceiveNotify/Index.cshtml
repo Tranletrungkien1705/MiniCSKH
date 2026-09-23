@@ -1,0 +1,47 @@
+@model List<ReceiveNotify>
+@{
+    ViewData["Title"] = "Người nhận thông báo phiếu";
+    var stats = (ReceiveNotifyStats)ViewBag.Stats;
+    var q = (string?)ViewBag.Q;
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div><h5 class="fw-bold mb-0"><i class="bi bi-bell-fill me-2"></i>Người nhận thông báo phiếu</h5>
+        <small class="text-muted">Danh sách agent nhận thông báo khi có eTicket mới (Mst_EstablishReceiveNotifyETicket)</small></div>
+    <a asp-action="Create" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Thêm người nhận</a>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Tổng người nhận</div><div class="fs-3 fw-bold">@stats.Total</div></div>
+        <i class="bi bi-people fs-2 text-primary opacity-50"></i></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Có tên agent</div><div class="fs-3 fw-bold text-success">@stats.WithName</div></div>
+        <i class="bi bi-person-badge fs-2 text-success opacity-50"></i></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Có ghi chú</div><div class="fs-3 fw-bold text-info">@stats.WithRemark</div></div>
+        <i class="bi bi-chat-left-text fs-2 text-info opacity-50"></i></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Agent khác nhau</div><div class="fs-3 fw-bold text-secondary">@stats.DistinctAgents</div></div>
+        <i class="bi bi-diagram-3 fs-2 text-secondary opacity-50"></i></div></div></div>
+</div>
+
+<form method="get" class="card p-3 mb-3"><div class="row g-2 align-items-end">
+    <div class="col"><label class="form-label small mb-1">Tìm</label><input name="q" value="@q" class="form-control form-control-sm" placeholder="Mã agent / tên / ghi chú" /></div>
+    <div class="col-auto"><button class="btn btn-outline-primary btn-sm">Lọc</button> <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Xóa</a></div>
+</div></form>
+
+<div class="card"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
+    <thead><tr><th>Mã agent (AgentCode)</th><th>Tên agent</th><th>Ghi chú</th><th>Cập nhật</th></tr></thead>
+    <tbody>
+        @if(!Model.Any()){<tr><td colspan="4" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>Chưa có người nhận thông báo</td></tr>}
+        @foreach (var r in Model)
+        {
+            <tr style="cursor:pointer" onclick="location.href='/ReceiveNotify/Details/@r.Id'">
+                <td><span class="font-monospace small fw-semibold">@r.AgentCode</span></td>
+                <td class="fw-semibold"><i class="bi bi-person me-1 text-muted"></i>@(string.IsNullOrWhiteSpace(r.AgentName) ? "—" : r.AgentName)</td>
+                <td class="small text-muted">@(string.IsNullOrWhiteSpace(r.Remark) ? "—" : r.Remark)</td>
+                <td class="small text-muted">@r.UpdatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+            </tr>
+        }
+    </tbody>
+</table></div></div>

@@ -39,6 +39,7 @@ public class AppDbContext : DbContext
     public DbSet<PaymentTerm> PaymentTerms => Set<PaymentTerm>();
     public DbSet<Area> Areas => Set<Area>();
     public DbSet<Tag> Tags => Set<Tag>();
+    public DbSet<ReceiveNotify> ReceiveNotifies => Set<ReceiveNotify>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -258,6 +259,14 @@ public class AppDbContext : DbContext
             e.Property(x => x.Slug).HasMaxLength(200);
             e.HasIndex(x => x.Code);
             e.Ignore(x => x.SlugText);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<ReceiveNotify>(e =>
+        {
+            e.Property(x => x.AgentCode).HasMaxLength(50);
+            e.Property(x => x.AgentName).HasMaxLength(200);
+            e.HasIndex(x => x.AgentCode);
+            e.Ignore(x => x.DisplayName);
             e.HasQueryFilter(x => x.OrgId == _orgId);
         });
     }

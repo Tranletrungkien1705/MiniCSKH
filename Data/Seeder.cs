@@ -476,6 +476,16 @@ public static class Seeder
             );
             await db.SaveChangesAsync();
         }
+
+        if (!await db.ReceiveNotifies.AnyAsync())
+        {
+            db.ReceiveNotifies.AddRange(
+                new ReceiveNotify { AgentCode = "ha.nguyen", AgentName = "Nguyễn Thu Hà", Remark = "Trưởng nhóm CSKH — nhận thông báo mọi phiếu mới.", CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-20), UpdatedAt = DateTime.Now.AddDays(-2) },
+                new ReceiveNotify { AgentCode = "minh.tran", AgentName = "Trần Văn Minh", Remark = "Nhận thông báo phiếu kỹ thuật.", CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-15), UpdatedAt = DateTime.Now.AddDays(-3) },
+                new ReceiveNotify { AgentCode = "lan.le", AgentName = "Lê Thị Lan", Remark = "Nhận thông báo phiếu tổng đài.", CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-10), UpdatedAt = DateTime.Now.AddDays(-1) }
+            );
+            await db.SaveChangesAsync();
+        }
     }
 
     /// <summary>DB Postgres cloud cũ: tạo Orgs + thêm cột OrgId nếu thiếu, backfill về org mặc định. Idempotent.</summary>
@@ -483,7 +493,7 @@ public static class Seeder
     {
         if (!db.Database.IsNpgsql()) return;
         var def = TenantContext.DefaultOrgId;
-        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags" };
+        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags", "ReceiveNotifies" };
         var sql = new List<string>
         {
             "CREATE TABLE IF NOT EXISTS minicskh.\"Orgs\" (\"Id\" uuid PRIMARY KEY, \"Name\" text NOT NULL DEFAULT '', \"ApiKey\" text NOT NULL DEFAULT '', \"CreatedAt\" timestamp NOT NULL DEFAULT now())",

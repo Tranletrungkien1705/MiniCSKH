@@ -755,3 +755,27 @@ public class Tag : IOrgOwned
         return sb.ToString().Trim('-');
     }
 }
+
+// ── Người nhận thông báo phiếu (Mst_EstablishReceiveNotifyETicket) ────
+// Theo SkyCS: danh sách agent (Sys_User.UserCode) sẽ nhận thông báo khi có
+// eTicket mới. Là cấu hình dạng danh sách theo tổ chức (OrgID) — khi lưu sẽ
+// ClearAll/InsertAll (theo `Mst_EstablishReceiveNotifyETicket_SaveX`).
+// (11.BackEnd/V10/idn.SkyCS.Biz/Master.cs, `Mst_EstablishReceiveNotifyETicket_Get`/`_SaveX`;
+//  model 12.Dev.Common/idn.SkyCS.Common/Models/Mst_EstablishReceiveNotifyETicket.cs;
+//  controller 13.ClientGate/V20/idn.SkyCS.WebAPI/Controllers/MstEstablishReceiveNotifyETicketController.cs)
+
+/// <summary>Người nhận thông báo phiếu (Mst_EstablishReceiveNotifyETicket) — 1 agent nhận thông báo.</summary>
+public class ReceiveNotify : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string AgentCode { get; set; } = "";        // AgentCode — mã agent (Sys_User.UserCode)
+    public string? AgentName { get; set; }              // su_UserName — tên agent (join Sys_User)
+    public string? Remark { get; set; }                 // Remark — ghi chú
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // LogLUDTimeUTC
+    public string CreatedBy { get; set; } = "";        // LogLUBy
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+    // ── tính toán ────────────────────
+    public string DisplayName => string.IsNullOrWhiteSpace(AgentName) ? AgentCode : AgentName!;
+}
