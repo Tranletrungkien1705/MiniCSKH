@@ -147,6 +147,41 @@ public static class Seeder
                 await db.SaveChangesAsync();
             }
         }
+
+        if (!await db.SurveyForms.AnyAsync())
+        {
+            db.SurveyForms.AddRange(
+                new SurveyForm
+                {
+                    Code = "SAT-STD", Name = "Khảo sát hài lòng tiêu chuẩn",
+                    Description = "Mẫu mặc định đánh giá phiếu hỗ trợ sau khi đóng.",
+                    IsActive = true, CreatedAt = DateTime.Now.AddDays(-10), UpdatedAt = DateTime.Now.AddDays(-10),
+                    CreatedBy = "Hệ thống", UsedAt = DateTime.Now.AddDays(-1),
+                    Fields =
+                    [
+                        new SurveyFormField { Code = "F1", Name = "Mức độ hài lòng chung", FieldType = SurveyFieldType.Rating, Order = 1, IsRequired = true },
+                        new SurveyFormField { Code = "F2", Name = "Thái độ nhân viên", FieldType = SurveyFieldType.SingleChoice, Order = 2, IsRequired = true, Options = "Rất tốt|Tốt|Bình thường|Kém" },
+                        new SurveyFormField { Code = "F3", Name = "Thời gian xử lý", FieldType = SurveyFieldType.SingleChoice, Order = 3, Options = "Nhanh|Chấp nhận được|Chậm" },
+                        new SurveyFormField { Code = "F4", Name = "Góp ý thêm", FieldType = SurveyFieldType.Text, Order = 4 }
+                    ]
+                },
+                new SurveyForm
+                {
+                    Code = "SAT-VIP", Name = "Khảo sát khách VIP",
+                    Description = "Mẫu khảo sát chi tiết dành cho khách hàng VIP.",
+                    IsActive = true, CreatedAt = DateTime.Now.AddDays(-5), UpdatedAt = DateTime.Now.AddDays(-5),
+                    CreatedBy = "Hệ thống",
+                    Fields =
+                    [
+                        new SurveyFormField { Code = "F1", Name = "Mức độ hài lòng chung", FieldType = SurveyFieldType.Rating, Order = 1, IsRequired = true },
+                        new SurveyFormField { Code = "F2", Name = "Chất lượng tư vấn", FieldType = SurveyFieldType.Rating, Order = 2, IsRequired = true },
+                        new SurveyFormField { Code = "F3", Name = "Khả năng quay lại / giới thiệu", FieldType = SurveyFieldType.SingleChoice, Order = 3, Options = "Chắc chắn|Có thể|Không" },
+                        new SurveyFormField { Code = "F4", Name = "Điểm cần cải thiện", FieldType = SurveyFieldType.MultiChoice, Order = 4, Options = "Thời gian chờ|Thái độ|Chuyên môn|Kênh liên hệ" }
+                    ]
+                }
+            );
+            await db.SaveChangesAsync();
+        }
     }
 
     /// <summary>DB Postgres cloud cũ: tạo Orgs + thêm cột OrgId nếu thiếu, backfill về org mặc định. Idempotent.</summary>
@@ -154,7 +189,7 @@ public static class Seeder
     {
         if (!db.Database.IsNpgsql()) return;
         var def = TenantContext.DefaultOrgId;
-        var tables = new[] { "Agents", "Categories", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings" };
+        var tables = new[] { "Agents", "Categories", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields" };
         var sql = new List<string>
         {
             "CREATE TABLE IF NOT EXISTS minicskh.\"Orgs\" (\"Id\" uuid PRIMARY KEY, \"Name\" text NOT NULL DEFAULT '', \"ApiKey\" text NOT NULL DEFAULT '', \"CreatedAt\" timestamp NOT NULL DEFAULT now())",

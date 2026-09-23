@@ -76,4 +76,16 @@ public static class Ui
     { RateResult.Satisfied => "success", RateResult.Neutral => "warning", RateResult.Unsatisfied => "danger", _ => "secondary" };
     public static string RateResultBadge(RateResult r) =>
         $"<span class='badge bg-{RateResultColor(r)}-subtle text-{RateResultColor(r)} border-{RateResultColor(r)}-subtle'>{RateResultName(r)}</span>";
+
+    // ── Mẫu khảo sát hài lòng (SurveyForm) ──
+    public static string SurveyFieldTypeName(SurveyFieldType t) => t switch
+    {
+        SurveyFieldType.Text => "Văn bản", SurveyFieldType.Number => "Số", SurveyFieldType.Rating => "Chấm điểm",
+        SurveyFieldType.SingleChoice => "Chọn 1", SurveyFieldType.MultiChoice => "Chọn nhiều", SurveyFieldType.Date => "Ngày", _ => t.ToString()
+    };
+    public static string SurveyFieldTypeIcon(SurveyFieldType t) => t switch
+    {
+        SurveyFieldType.Text => "bi-textarea-t", SurveyFieldType.Number => "bi-123", SurveyFieldType.Rating => "bi-star",
+        SurveyFieldType.SingleChoice => "bi-ui-radios", SurveyFieldType.MultiChoice => "bi-ui-checks", SurveyFieldType.Date => "bi-calendar3", _ => "bi-input-cursor"
+    };
 }

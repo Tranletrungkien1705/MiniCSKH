@@ -47,11 +47,19 @@ public interface ITicketService
     Task<int> RateTicketAsync(int ticketId, int score, RateResult result, string? comment, string ratedBy);
     Task ReviewRatingAsync(int ratingId, string reviewedBy, string? reviewNote);
     Task<RatingStats> RatingStatsAsync();
+    // Mẫu khảo sát hài lòng (St_SurveyForm)
+    Task<List<SurveyForm>> SurveyFormsAsync(bool? active, string? q);
+    Task<SurveyForm?> SurveyFormGetAsync(int id);
+    Task<int> SurveyFormSaveAsync(SurveyForm form, List<SurveyFormField> fields);
+    Task SurveyFormToggleAsync(int id);
+    Task<SurveyStats> SurveyStatsAsync();
 }
 
 public record SlaStats(int Policies, int TicketsWithSla, int ViolatingFirstRes, int ViolatingResolution);
 
 public record RatingStats(int Total, int Rated, int Reviewed, int Satisfied, int Unsatisfied, double AvgScore);
+
+public record SurveyStats(int Total, int Active, int Used, int Fields);
 
 public class TicketService(AppDbContext db) : ITicketService
 {
@@ -346,5 +354,60 @@ public class TicketService(AppDbContext db) : ITicketService
             rated.Count(r => r.Result == RateResult.Satisfied),
             rated.Count(r => r.Result == RateResult.Unsatisfied),
             avg);
+    }
+
+    // ── Mẫu khảo sát hài lòng (St_SurveyForm) ────────────────────────
+    public async Task<List<SurveyForm>> SurveyFormsAsync(bool? active, string? q)
+    {
+        var query = db.SurveyForms.Include(f => f.Fields).AsQueryable();
+        if (active.HasValue) query = query.Where(f => f.IsActive == active.Value);
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(f => f.Name.Contains(q) || f.Code.Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderByDescending(f => f.UpdatedAt).ToList();
+    }
+
+    public Task<SurveyForm?> SurveyFormGetAsync(int id) =>
+        db.SurveyForms.Include(f => f.Fields).FirstOrDefaultAsync(f => f.Id == id);
+
+    public async Task<int> SurveyFormSaveAsync(SurveyForm form, List<SurveyFormField> fields)
+    {
+        if (form.Id == 0)
+        {
+            if (string.IsNullOrWhiteSpace(form.Code)) form.Code = "SAT-" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+            form.CreatedAt = form.UpdatedAt = DateTime.Now;
+            foreach (var f in fields) form.Fields.Add(f);
+            db.SurveyForms.Add(form);
+            await db.SaveChangesAsync();
+            return form.Id;
+        }
+        var e = await db.SurveyForms.Include(x => x.Fields).FirstOrDefaultAsync(x => x.Id == form.Id)
+            ?? throw new KeyNotFoundException();
+        e.Name = form.Name; e.Description = form.Description; e.Remark = form.Remark;
+        e.IsActive = form.IsActive; e.UpdatedAt = DateTime.Now;
+        // Thay toàn bộ danh sách trường (mẫu khảo sát là cấu hình, không giữ lịch sử trường).
+        db.SurveyFormFields.RemoveRange(e.Fields);
+        e.Fields.Clear();
+        foreach (var f in fields) e.Fields.Add(f);
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
+    public async Task SurveyFormToggleAsync(int id)
+    {
+        var f = await db.SurveyForms.FirstOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException();
+        f.IsActive = !f.IsActive;
+        f.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<SurveyStats> SurveyStatsAsync()
+    {
+        var forms = await db.SurveyForms.Include(f => f.Fields).ToListAsync();
+        return new SurveyStats(
+            forms.Count,
+            forms.Count(f => f.IsActive),
+            forms.Count(f => f.IsUsed),
+            forms.Sum(f => f.Fields.Count));
     }
 }

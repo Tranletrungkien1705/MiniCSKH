@@ -1,0 +1,59 @@
+@model SurveyForm
+@{
+    ViewData["Title"] = "Chi tiết mẫu khảo sát";
+}
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Mẫu khảo sát</a>
+        <h5 class="fw-bold mb-1 mt-1">@Model.Name
+            @if(Model.IsActive){<span class="badge bg-success-subtle text-success border-success-subtle">Đang dùng</span>}
+            else{<span class="badge bg-secondary-subtle text-secondary border-secondary-subtle">Ngừng dùng</span>}</h5>
+        <div class="text-muted small"><span class="font-monospace">@Model.Code</span> · tạo @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil me-1"></i>Sửa</a>
+        <form asp-action="Toggle" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <button class="btn btn-sm @(Model.IsActive?"btn-outline-secondary":"btn-primary")">
+                <i class="bi bi-toggle-@(Model.IsActive?"off":"on") me-1"></i>@(Model.IsActive?"Ngừng dùng":"Kích hoạt")</button>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Số trường</div><div class="fs-3 fw-bold">@Model.FieldCount</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Bắt buộc</div><div class="fs-3 fw-bold text-warning">@Model.RequiredCount</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Đã sử dụng</div><div class="fs-5 fw-bold">@(Model.UsedAt?.ToString("dd/MM/yyyy") ?? "Chưa")</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Cập nhật</div><div class="fs-5 fw-bold">@Model.UpdatedAt.ToString("dd/MM HH:mm")</div></div></div></div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.Description))
+{
+    <div class="alert alert-light border"><i class="bi bi-info-circle me-1"></i>@Model.Description</div>
+}
+
+<div class="card"><div class="card-body">
+    <h6 class="fw-bold mb-3"><i class="bi bi-list-check me-1"></i>Các trường khảo sát</h6>
+    <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+        <thead><tr><th style="width:50px">#</th><th>Trường</th><th>Kiểu</th><th>Bắt buộc</th><th>Lựa chọn</th></tr></thead>
+        <tbody>
+            @if(!Model.Fields.Any()){<tr><td colspan="5" class="text-center text-muted py-4">Mẫu chưa có trường nào</td></tr>}
+            @foreach (var f in Model.Fields.OrderBy(x => x.Order))
+            {
+                <tr>
+                    <td class="text-muted">@f.Order</td>
+                    <td><i class="bi @Ui.SurveyFieldTypeIcon(f.FieldType) me-1 text-muted"></i>@f.Name
+                        <div class="small text-muted font-monospace">@f.Code</div></td>
+                    <td><span class="badge bg-light text-dark border">@Ui.SurveyFieldTypeName(f.FieldType)</span></td>
+                    <td>@if(f.IsRequired){<i class="bi bi-check-circle-fill text-warning"></i>}else{<span class="text-muted">—</span>}</td>
+                    <td class="small text-muted">@(f.OptionList.Count>0 ? string.Join(" · ", f.OptionList) : "—")</td>
+                </tr>
+            }
+        </tbody>
+    </table></div>
+</div></div>

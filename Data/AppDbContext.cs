@@ -21,6 +21,8 @@ public class AppDbContext : DbContext
     public DbSet<Campaign> Campaigns => Set<Campaign>();
     public DbSet<CampaignCustomer> CampaignCustomers => Set<CampaignCustomer>();
     public DbSet<TicketRating> Ratings => Set<TicketRating>();
+    public DbSet<SurveyForm> SurveyForms => Set<SurveyForm>();
+    public DbSet<SurveyFormField> SurveyFormFields => Set<SurveyFormField>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -89,6 +91,24 @@ public class AppDbContext : DbContext
             e.Property(x => x.FormCode).HasMaxLength(30);
             e.Ignore(x => x.Stars);
             e.HasOne(x => x.Ticket).WithMany(x => x.Ratings).HasForeignKey(x => x.TicketId);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<SurveyForm>(e =>
+        {
+            e.Property(x => x.Code).HasMaxLength(30);
+            e.Property(x => x.Name).HasMaxLength(200);
+            e.HasIndex(x => x.Code);
+            e.Ignore(x => x.FieldCount);
+            e.Ignore(x => x.RequiredCount);
+            e.Ignore(x => x.IsUsed);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<SurveyFormField>(e =>
+        {
+            e.Property(x => x.Code).HasMaxLength(50);
+            e.Property(x => x.Name).HasMaxLength(200);
+            e.Ignore(x => x.OptionList);
+            e.HasOne(x => x.SurveyForm).WithMany(x => x.Fields).HasForeignKey(x => x.SurveyFormId);
             e.HasQueryFilter(x => x.OrgId == _orgId);
         });
     }

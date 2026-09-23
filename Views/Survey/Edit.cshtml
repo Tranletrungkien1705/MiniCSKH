@@ -1,0 +1,82 @@
+@model SurveyForm
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Tạo mẫu khảo sát" : "Sửa mẫu khảo sát";
+    var fields = Model.Fields.OrderBy(f => f.Order).ToList();
+    if (fields.Count == 0) fields.Add(new SurveyFormField { FieldType = SurveyFieldType.Rating, IsRequired = true });
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Mẫu khảo sát</a>
+        <h5 class="fw-bold mb-0 mt-1">@ViewData["Title"]</h5>
+    </div>
+</div>
+
+<form asp-action="Save" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="Id" value="@Model.Id" />
+    <input type="hidden" name="Code" value="@Model.Code" />
+
+    <div class="card mb-3"><div class="card-body">
+        <h6 class="fw-bold mb-3"><i class="bi bi-info-circle me-1"></i>Thông tin mẫu</h6>
+        <div class="row g-3">
+            <div class="col-md-6"><label class="form-label small">Tên mẫu <span class="text-danger">*</span></label>
+                <input name="Name" value="@Model.Name" class="form-control form-control-sm" placeholder="VD: Khảo sát hài lòng sau hỗ trợ" required /></div>
+            <div class="col-md-6"><label class="form-label small">Ghi chú</label>
+                <input name="Remark" value="@Model.Remark" class="form-control form-control-sm" /></div>
+            <div class="col-12"><label class="form-label small">Mô tả</label>
+                <textarea name="Description" class="form-control form-control-sm" rows="2">@Model.Description</textarea></div>
+            <div class="col-12"><div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="IsActive" value="true" id="isActive" @(Model.IsActive ? "checked" : "") />
+                <label class="form-check-label small" for="isActive">Đang dùng (FlagActive)</label></div></div>
+        </div>
+    </div></div>
+
+    <div class="card mb-3"><div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold mb-0"><i class="bi bi-list-check me-1"></i>Các trường khảo sát</h6>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="addRow()"><i class="bi bi-plus-lg me-1"></i>Thêm trường</button>
+        </div>
+        <div class="table-responsive"><table class="table align-middle mb-0" id="fieldTable">
+            <thead><tr><th style="width:40%">Tên trường</th><th style="width:20%">Kiểu</th><th style="width:12%">Bắt buộc</th><th>Lựa chọn (phân tách bằng |)</th><th style="width:40px"></th></tr></thead>
+            <tbody>
+                @foreach (var f in fields)
+                {
+                    <tr>
+                        <td><input name="fieldName" value="@f.Name" class="form-control form-control-sm" placeholder="VD: Mức độ hài lòng" /></td>
+                        <td><select name="fieldType" class="form-select form-select-sm">
+                            @foreach (SurveyFieldType t in Enum.GetValues<SurveyFieldType>())
+                            {<option value="@t" selected="@(f.FieldType==t)">@Ui.SurveyFieldTypeName(t)</option>}
+                        </select></td>
+                        <td class="text-center"><input type="checkbox" name="fieldRequired" value="on" class="form-check-input" @(f.IsRequired ? "checked" : "") /></td>
+                        <td><input name="fieldOptions" value="@f.Options" class="form-control form-control-sm" placeholder="Rất tốt|Tốt|Bình thường|Kém" /></td>
+                        <td><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('tr').remove()"><i class="bi bi-x-lg"></i></button></td>
+                    </tr>
+                }
+            </tbody>
+        </table></div>
+    </div></div>
+
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary btn-sm"><i class="bi bi-check-lg me-1"></i>Lưu mẫu</button>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Hủy</a>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+    function addRow() {
+        const tb = document.querySelector('#fieldTable tbody');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input name="fieldName" class="form-control form-control-sm" placeholder="VD: Mức độ hài lòng" /></td>
+            <td><select name="fieldType" class="form-select form-select-sm">
+                @foreach (SurveyFieldType t in Enum.GetValues<SurveyFieldType>())
+                {<text><option value="@t">@Ui.SurveyFieldTypeName(t)</option></text>}
+            </select></td>
+            <td class="text-center"><input type="checkbox" name="fieldRequired" value="on" class="form-check-input" /></td>
+            <td><input name="fieldOptions" class="form-control form-control-sm" placeholder="Rất tốt|Tốt|Bình thường|Kém" /></td>
+            <td><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('tr').remove()"><i class="bi bi-x-lg"></i></button></td>`;
+        tb.appendChild(tr);
+    }
+</script>
+}

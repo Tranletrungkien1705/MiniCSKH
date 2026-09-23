@@ -233,3 +233,55 @@ public class TicketRating : IOrgOwned
 
     public string Stars => new string('★', Math.Clamp(Score, 0, 5)) + new string('☆', 5 - Math.Clamp(Score, 0, 5));
 }
+
+// ── Mẫu khảo sát hài lòng (St_SurveyForm / St_SurveyFormDetail) ──────
+// Theo SkyCS: mẫu khảo sát (St_SurveyForm) gồm nhiều trường cấu hình
+// (St_SurveyFormDetail → Mst_CampaignColumnConfig). Mẫu được dùng để
+// đánh giá eTicket sau khi đóng phiếu (ET_TicketRated.HstIdx = FrmSurveyCode).
+
+/// <summary>Kiểu dữ liệu của trường khảo sát (CampaignColCfgDataType).</summary>
+public enum SurveyFieldType { Text = 0, Number = 1, Rating = 2, SingleChoice = 3, MultiChoice = 4, Date = 5 }
+
+/// <summary>Mẫu khảo sát hài lòng (St_SurveyForm).</summary>
+public class SurveyForm : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string Code { get; set; } = "";            // FrmSurveyCode
+    public string Name { get; set; } = "";            // FrmSurveyName
+    public string? Description { get; set; }           // FrmSurveyDesc
+    public string? Remark { get; set; }                // Remark
+    public bool IsActive { get; set; } = true;         // FlagActive
+    public DateTime? UsedAt { get; set; }              // DTimeUsed — thời điểm mẫu được dùng
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // CreateDTimeUTC
+    public string CreatedBy { get; set; } = "";        // CreateBy
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;   // LUDTimeUTC
+
+    public List<SurveyFormField> Fields { get; set; } = [];
+
+    // ── tính toán ────────────────────────────────────────────────────
+    public int FieldCount => Fields.Count;
+    public int RequiredCount => Fields.Count(f => f.IsRequired);
+    public bool IsUsed => UsedAt.HasValue;
+}
+
+/// <summary>Một trường (câu hỏi) trong mẫu khảo sát (St_SurveyFormDetail).</summary>
+public class SurveyFormField : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public int SurveyFormId { get; set; }
+    public string Code { get; set; } = "";            // CampaignColCfgCodeSys
+    public string Name { get; set; } = "";            // CampaignColCfgName
+    public SurveyFieldType FieldType { get; set; } = SurveyFieldType.Text;  // CampaignColCfgDataType
+    public int Order { get; set; }                     // Idx — số thứ tự hiển thị
+    public int Width { get; set; } = 12;               // ColWidth (theo cột lưới 12)
+    public bool IsRequired { get; set; }               // FlagRequired
+    public string? Options { get; set; }               // JsonListOption — danh sách lựa chọn (phân tách bằng |)
+
+    public SurveyForm SurveyForm { get; set; } = null!;
+
+    public List<string> OptionList => string.IsNullOrWhiteSpace(Options)
+        ? []
+        : Options.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+}
