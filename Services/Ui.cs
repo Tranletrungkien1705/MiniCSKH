@@ -284,4 +284,38 @@ public static class Ui
     };
     public static string CustomTypeUseTypeBadge(CatalogUseType t) =>
         $"<span class='badge bg-{CustomTypeUseTypeColor(t)}-subtle text-{CustomTypeUseTypeColor(t)} border-{CustomTypeUseTypeColor(t)}-subtle'>{CustomTypeUseTypeName(t)}</span>";
+
+    // ── Điều kiện áp dụng SLA (Mst_SLATicketType/SLACustomerCN/…) ──
+    public static string SlaScopeKindName(SlaScopeKind k) => k switch
+    {
+        SlaScopeKind.TicketType => "Loại phiếu",
+        SlaScopeKind.TicketCustomType => "Loại phiếu tùy chỉnh",
+        SlaScopeKind.CustomerCN => "Khách hàng cá nhân",
+        SlaScopeKind.CustomerGroupCN => "Nhóm khách cá nhân",
+        SlaScopeKind.CustomerDN => "Khách hàng doanh nghiệp",
+        SlaScopeKind.CustomerGroupDN => "Nhóm khách doanh nghiệp",
+        _ => k.ToString()
+    };
+    public static string SlaScopeKindColor(SlaScopeKind k) => k switch
+    {
+        SlaScopeKind.TicketType => "primary",
+        SlaScopeKind.TicketCustomType => "info",
+        SlaScopeKind.CustomerCN => "success",
+        SlaScopeKind.CustomerGroupCN => "warning",
+        SlaScopeKind.CustomerDN => "success",
+        SlaScopeKind.CustomerGroupDN => "warning",
+        _ => "secondary"
+    };
+    public static string SlaScopeKindIcon(SlaScopeKind k) => k switch
+    {
+        SlaScopeKind.TicketType => "bi-diagram-3",
+        SlaScopeKind.TicketCustomType => "bi-ticket-perforated",
+        SlaScopeKind.CustomerCN => "bi-person",
+        SlaScopeKind.CustomerGroupCN => "bi-people",
+        SlaScopeKind.CustomerDN => "bi-building",
+        SlaScopeKind.CustomerGroupDN => "bi-people-fill",
+        _ => "bi-tag"
+    };
+    public static string SlaScopeKindBadge(SlaScopeKind k) =>
+        $"<span class='badge bg-{SlaScopeKindColor(k)}-subtle text-{SlaScopeKindColor(k)} border-{SlaScopeKindColor(k)}-subtle'><i class='bi {SlaScopeKindIcon(k)} me-1'></i>{SlaScopeKindName(k)}</span>";
 }

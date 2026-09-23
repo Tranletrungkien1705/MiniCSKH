@@ -134,6 +134,11 @@ public interface ITicketService
     Task<int> SlaCalendarSaveAsync(SlaPolicy model, List<SlaWorkingDay> workingDays, List<SlaHoliday> holidays);
     Task<SlaCalendarStats> SlaCalendarStatsAsync();
     Task<DateTime?> SlaCalcDeadlineAsync(int slaPolicyId, DateTime reception, bool firstResponse);
+    // Điều kiện áp dụng SLA (Mst_SLATicketType/SLACustomerCN/…)
+    Task<List<SlaPolicy>> SlaScopesAsync(string? q);
+    Task<SlaPolicy?> SlaScopeGetAsync(int id);
+    Task<int> SlaScopeSaveAsync(SlaPolicy model, List<SlaScope> scopes);
+    Task<SlaScopeStats> SlaScopeStatsAsync();
     // Kênh liên hệ (Mst_ContactChannel)
     Task<List<ContactChannel>> ContactChannelsAsync(bool? active, CatalogUseType? useType, string? q);
     Task<ContactChannel?> ContactChannelGetAsync(int id);
@@ -177,6 +182,8 @@ public record ReceiveNotifyStats(int Total, int WithName, int WithRemark, int Di
 public record AddressStats(int Total, int Active, int Provinces, int Districts, int Wards);
 
 public record SlaCalendarStats(int Policies, int WithWorkingDays, int WithHolidays, int WorkingDayRows, int HolidayRows);
+
+public record SlaScopeStats(int Policies, int WithScopes, int AllFlagPolicies, int ScopeRows, int TicketTypeScopes, int CustomerScopes);
 
 public record ContactChannelStats(int Total, int Active, int AgentOnly, int Both, int CustomerOnly);
 
@@ -1252,6 +1259,52 @@ public class TicketService(AppDbContext db) : ITicketService
             policies.Count(p => hdPolicyIds.Contains(p.Id)),
             wd.Count,
             hd.Count);
+    }
+
+    // ── Điều kiện áp dụng SLA (Mst_SLATicketType/SLACustomerCN/…) ────
+    public async Task<List<SlaPolicy>> SlaScopesAsync(string? q)
+    {
+        var query = db.SlaPolicies.Include(p => p.Scopes).AsQueryable();
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(p => p.Code.Contains(q) || p.Level.Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderBy(p => p.FirstResMinutes).ToList();
+    }
+
+    public Task<SlaPolicy?> SlaScopeGetAsync(int id) =>
+        db.SlaPolicies.Include(p => p.Scopes).FirstOrDefaultAsync(p => p.Id == id);
+
+    public async Task<int> SlaScopeSaveAsync(SlaPolicy model, List<SlaScope> scopes)
+    {
+        var e = await db.SlaPolicies.Include(x => x.Scopes).FirstOrDefaultAsync(x => x.Id == model.Id)
+            ?? throw new KeyNotFoundException();
+        // Cờ "áp dụng cho tất cả" (Mst_SLA.FlagAll*)
+        e.AllTicketType = model.AllTicketType;
+        e.AllTicketCustomType = model.AllTicketCustomType;
+        e.AllCustomerCN = model.AllCustomerCN;
+        e.AllCustomerGroupCN = model.AllCustomerGroupCN;
+        e.AllCustomerDN = model.AllCustomerDN;
+        e.AllCustomerGroupDN = model.AllCustomerGroupDN;
+        // Thay toàn bộ danh sách đối tượng áp dụng (điều kiện là cấu hình, không giữ lịch sử).
+        db.SlaScopes.RemoveRange(e.Scopes);
+        e.Scopes.Clear();
+        foreach (var s in scopes) e.Scopes.Add(s);
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
+    public async Task<SlaScopeStats> SlaScopeStatsAsync()
+    {
+        var policies = await db.SlaPolicies.Include(p => p.Scopes).ToListAsync();
+        var scopes = policies.SelectMany(p => p.Scopes).ToList();
+        return new SlaScopeStats(
+            policies.Count,
+            policies.Count(p => p.Scopes.Count > 0),
+            policies.Count(p => p.AllFlagCount > 0),
+            scopes.Count,
+            scopes.Count(s => s.Kind is SlaScopeKind.TicketType or SlaScopeKind.TicketCustomType),
+            scopes.Count(s => s.Kind is SlaScopeKind.CustomerCN or SlaScopeKind.CustomerGroupCN
+                or SlaScopeKind.CustomerDN or SlaScopeKind.CustomerGroupDN));
     }
 
     /// <summary>

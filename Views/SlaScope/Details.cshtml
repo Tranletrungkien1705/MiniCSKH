@@ -1,0 +1,78 @@
+@model SlaPolicy
+@{
+    ViewData["Title"] = "Chi tiết điều kiện áp dụng SLA";
+    var allFlags = new (string Name, bool On)[]
+    {
+        ("Loại phiếu", Model.AllTicketType),
+        ("Loại phiếu tùy chỉnh", Model.AllTicketCustomType),
+        ("Khách hàng cá nhân", Model.AllCustomerCN),
+        ("Nhóm khách cá nhân", Model.AllCustomerGroupCN),
+        ("Khách hàng doanh nghiệp", Model.AllCustomerDN),
+        ("Nhóm khách doanh nghiệp", Model.AllCustomerGroupDN)
+    };
+}
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Điều kiện áp dụng SLA</a>
+        <h5 class="fw-bold mb-1 mt-1"><span class="font-monospace">@Model.Code</span> · @Model.Level
+            @if(Model.IsActive){<span class="badge bg-success-subtle text-success border-success-subtle">Đang dùng</span>}
+            else{<span class="badge bg-secondary-subtle text-secondary border-secondary-subtle">Ngừng dùng</span>}</h5>
+        <div class="text-muted small">@Model.ScopeText</div>
+    </div>
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil me-1"></i>Sửa điều kiện</a>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Phản hồi đầu tiên</div><div class="fs-5 fw-bold">@Model.FirstResText</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Thời gian xử lý</div><div class="fs-5 fw-bold">@Model.ResolutionText</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Đối tượng cụ thể</div><div class="fs-5 fw-bold">@Model.ScopeCount</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Nhóm "tất cả"</div><div class="fs-5 fw-bold">@Model.AllFlagCount</div></div></div></div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.Description))
+{
+    <div class="alert alert-light border"><i class="bi bi-info-circle me-1"></i>@Model.Description</div>
+}
+
+<div class="card mb-3"><div class="card-body">
+    <h6 class="fw-bold mb-3"><i class="bi bi-asterisk me-1"></i>Áp dụng cho tất cả (Mst_SLA.FlagAll*)</h6>
+    <div class="row g-2">
+        @foreach (var f in allFlags)
+        {
+            <div class="col-md-4">
+                <div class="border rounded p-2 d-flex align-items-center gap-2">
+                    <i class="bi @(f.On ? "bi-check-circle-fill text-success" : "bi-circle text-muted")"></i>
+                    <span class="small @(f.On ? "fw-semibold" : "text-muted")">@f.Name</span>
+                </div>
+            </div>
+        }
+    </div>
+</div></div>
+
+<div class="card"><div class="card-body">
+    <h6 class="fw-bold mb-3"><i class="bi bi-list-check me-1"></i>Đối tượng áp dụng cụ thể</h6>
+    @if (!Model.Scopes.Any())
+    {
+        <div class="text-muted small"><i class="bi bi-inbox me-1"></i>Chưa gán đối tượng cụ thể nào.</div>
+    }
+    else
+    {
+        <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+            <thead><tr><th>Loại đối tượng</th><th>Mã đối tượng</th><th>Ghi chú</th></tr></thead>
+            <tbody>
+                @foreach (var s in Model.Scopes.OrderBy(x => x.Kind).ThenBy(x => x.RefCode))
+                {
+                    <tr>
+                        <td>@Html.Raw(Ui.SlaScopeKindBadge(s.Kind))</td>
+                        <td><span class="font-monospace small fw-semibold">@s.RefCode</span></td>
+                        <td class="small text-muted">@(string.IsNullOrWhiteSpace(s.Remark) ? "—" : s.Remark)</td>
+                    </tr>
+                }
+            </tbody>
+        </table></div>
+    }
+</div></div>

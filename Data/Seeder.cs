@@ -549,6 +549,27 @@ public static class Seeder
             }
         }
 
+        if (!await db.SlaScopes.AnyAsync())
+        {
+            // Điều kiện áp dụng SLA (Mst_SLATicketType/SLACustomerCN/…) — gán chính sách
+            // cho loại phiếu / khách hàng / nhóm khách + cờ "áp dụng cho tất cả".
+            var slas = await db.SlaPolicies.OrderBy(p => p.Id).ToListAsync();
+            if (slas.Count >= 3)
+            {
+                var vip = slas[0]; var std = slas[1]; var low = slas[2];
+                // SLA-VIP: áp dụng cho mọi khách VIP (nhóm) + loại phiếu khiếu nại.
+                vip.AllCustomerGroupCN = true;
+                vip.Scopes.Add(new SlaScope { Kind = SlaScopeKind.TicketType, RefCode = "TT-COMPLAINT", Remark = "Khiếu nại dịch vụ — ưu tiên VIP.", CreatedBy = "Hệ thống" });
+                vip.Scopes.Add(new SlaScope { Kind = SlaScopeKind.CustomerGroupCN, RefCode = "GRP-VIP", Remark = "Nhóm khách VIP.", CreatedBy = "Hệ thống" });
+                // SLA-STD: áp dụng cho mọi loại phiếu (mặc định toàn hệ thống).
+                std.AllTicketType = true;
+                // SLA-LOW: chỉ áp dụng cho loại phiếu tư vấn chung.
+                low.Scopes.Add(new SlaScope { Kind = SlaScopeKind.TicketType, RefCode = "TT-SUPPORT", Remark = "Yêu cầu hỗ trợ — mức thấp.", CreatedBy = "Hệ thống" });
+                low.Scopes.Add(new SlaScope { Kind = SlaScopeKind.CustomerDN, RefCode = "KH0002", Remark = "Đại lý Phương Nam.", CreatedBy = "Hệ thống" });
+                await db.SaveChangesAsync();
+            }
+        }
+
         if (!await db.ContactChannels.AnyAsync())
         {
             // Kênh liên hệ (Mst_ContactChannel) — cách liên hệ với khách hàng.
@@ -619,7 +640,7 @@ public static class Seeder
     {
         if (!db.Database.IsNpgsql()) return;
         var def = TenantContext.DefaultOrgId;
-        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags", "ReceiveNotifies", "Addresses", "SlaWorkingDays", "SlaHolidays", "ContactChannels", "TicketCustomTypes", "TicketCustomTypeMaps" };
+        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags", "ReceiveNotifies", "Addresses", "SlaWorkingDays", "SlaHolidays", "SlaScopes", "ContactChannels", "TicketCustomTypes", "TicketCustomTypeMaps" };
         var sql = new List<string>
         {
             "CREATE TABLE IF NOT EXISTS minicskh.\"Orgs\" (\"Id\" uuid PRIMARY KEY, \"Name\" text NOT NULL DEFAULT '', \"ApiKey\" text NOT NULL DEFAULT '', \"CreatedAt\" timestamp NOT NULL DEFAULT now())",

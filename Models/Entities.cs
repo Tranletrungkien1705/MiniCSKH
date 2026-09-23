@@ -67,10 +67,32 @@ public class SlaPolicy : IOrgOwned
     public int FirstResMinutes { get; set; } = 60;   // FirstResTime (phút)
     public int ResolutionMinutes { get; set; } = 480; // ResolutionTime (phút)
     public bool IsActive { get; set; } = true;       // SLAStatus
+    // ── cờ "áp dụng cho TẤT CẢ" (Mst_SLA.FlagAll*) ───────────────────
+    public bool AllTicketType { get; set; }          // FlagAllTicketType — mọi loại phiếu
+    public bool AllTicketCustomType { get; set; }    // FlagAllTicketCustomType — mọi loại tùy chỉnh
+    public bool AllCustomerCN { get; set; }          // FlagAllCustomerCN — mọi khách cá nhân
+    public bool AllCustomerGroupCN { get; set; }     // FlagAllCustomerGrpCN — mọi nhóm khách cá nhân
+    public bool AllCustomerDN { get; set; }          // FlagAllCustomerDN — mọi khách doanh nghiệp
+    public bool AllCustomerGroupDN { get; set; }     // FlagAllCustomerGrpDN — mọi nhóm khách doanh nghiệp
     public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+    public List<SlaScope> Scopes { get; set; } = [];
 
     public string FirstResText => FormatMinutes(FirstResMinutes);
     public string ResolutionText => FormatMinutes(ResolutionMinutes);
+
+    // ── tính toán ────────────────────────────────────────────────────
+    /// <summary>Số đối tượng áp dụng chi tiết (không tính cờ "tất cả").</summary>
+    public int ScopeCount => Scopes.Count;
+    /// <summary>Số nhóm đối tượng đang bật cờ "áp dụng cho tất cả".</summary>
+    public int AllFlagCount => (AllTicketType ? 1 : 0) + (AllTicketCustomType ? 1 : 0)
+        + (AllCustomerCN ? 1 : 0) + (AllCustomerGroupCN ? 1 : 0)
+        + (AllCustomerDN ? 1 : 0) + (AllCustomerGroupDN ? 1 : 0);
+    /// <summary>Mô tả ngắn phạm vi áp dụng (dùng cho view).</summary>
+    public string ScopeText => AllFlagCount == 6 ? "Áp dụng cho tất cả"
+        : AllFlagCount > 0 ? $"{AllFlagCount} nhóm \"tất cả\" + {ScopeCount} đối tượng"
+        : ScopeCount > 0 ? $"{ScopeCount} đối tượng cụ thể"
+        : "Chưa gán đối tượng";
 
     public static string FormatMinutes(int m) => m <= 0 ? "—" : m < 60 ? $"{m} phút" : m % 60 == 0 ? $"{m / 60} giờ" : $"{m / 60}g{m % 60}p";
 }
@@ -881,7 +903,62 @@ public class SlaHoliday : IOrgOwned
     public string CreatedBy { get; set; } = "";          // LogLUBy
 
     public SlaPolicy SlaPolicy { get; set; } = null!;
-}// ── Kênh liên hệ (Mst_ContactChannel) ────────────────────────────────
+}
+
+// ── Điều kiện áp dụng SLA (Mst_SLATicketType / Mst_SLATicketCustomType / ──
+//    Mst_SLACustomerCN / Mst_SLACustomerGroupCN / Mst_SLACustomerDN / ──
+//    Mst_SLACustomerGroupDN) ────────────────────────────────────────────
+// Theo SkyCS: mỗi chính sách SLA (Mst_SLA) được gán cho một tập đối tượng
+// áp dụng — loại phiếu (TicketType), loại phiếu tùy chỉnh (TicketCustomType),
+// khách hàng cá nhân (CN), nhóm khách cá nhân, khách doanh nghiệp (DN) và
+// nhóm khách doanh nghiệp. Ngoài ra Mst_SLA có các cờ "áp dụng cho TẤT CẢ"
+// (FlagAllTicketType/FlagAllTicketCustomType/FlagAllCustomerCN/…): khi bật cờ
+// thì không cần liệt kê chi tiết. Khi tạo eTicket, hệ thống dò các điều kiện
+// này để chọn đúng chính sách SLA (Master.1.cs, `Mst_SLA_Get`/`Mst_SLA_SaveX`).
+// Ở đây gộp 6 bảng con vào 1 bảng `SlaScope` với Kind để dễ nhìn.
+
+/// <summary>Loại đối tượng áp dụng SLA (bảng con gốc bên SkyCS).</summary>
+public enum SlaScopeKind
+{
+    TicketType = 0,          // Mst_SLATicketType — loại phiếu
+    TicketCustomType = 1,    // Mst_SLATicketCustomType — loại phiếu tùy chỉnh
+    CustomerCN = 2,          // Mst_SLACustomerCN — khách hàng cá nhân
+    CustomerGroupCN = 3,     // Mst_SLACustomerGroupCN — nhóm khách cá nhân
+    CustomerDN = 4,          // Mst_SLACustomerDN — khách hàng doanh nghiệp
+    CustomerGroupDN = 5      // Mst_SLACustomerGroupDN — nhóm khách doanh nghiệp
+}
+
+/// <summary>
+/// Một đối tượng áp dụng của chính sách SLA (gộp 6 bảng con Mst_SLA*).
+/// Mỗi dòng = 1 cặp (SLA ↔ mã đối tượng) theo Kind.
+/// </summary>
+public class SlaScope : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public int SlaPolicyId { get; set; }                 // SLAID — chính sách SLA
+    public SlaScopeKind Kind { get; set; } = SlaScopeKind.TicketType;  // bảng con gốc
+    public string RefCode { get; set; } = "";            // TicketType/TicketCustomType/CustomerCodeSys/CustomerGrpCode
+    public string? Remark { get; set; }                  // ghi chú
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // LogLUDTimeUTC
+    public string CreatedBy { get; set; } = "";          // LogLUBy
+
+    public SlaPolicy SlaPolicy { get; set; } = null!;
+
+    // ── tính toán ────────────────────────────────────────────────────
+    public string KindName => Kind switch
+    {
+        SlaScopeKind.TicketType => "Loại phiếu",
+        SlaScopeKind.TicketCustomType => "Loại phiếu tùy chỉnh",
+        SlaScopeKind.CustomerCN => "Khách hàng cá nhân",
+        SlaScopeKind.CustomerGroupCN => "Nhóm khách cá nhân",
+        SlaScopeKind.CustomerDN => "Khách hàng doanh nghiệp",
+        SlaScopeKind.CustomerGroupDN => "Nhóm khách doanh nghiệp",
+        _ => Kind.ToString()
+    };
+}
+
+// ── Kênh liên hệ (Mst_ContactChannel) ────────────────────────────────
 // Theo SkyCS: kênh liên hệ (Mst_ContactChannel) là master data quy định
 // CÁCH liên hệ với khách hàng (gọi điện, email, Zalo, SMS, gặp trực tiếp…),
 // khác với "kênh tiếp nhận" (Mst_ReceptionChannel — nơi phiếu được tạo đến).

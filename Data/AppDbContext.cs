@@ -43,6 +43,7 @@ public class AppDbContext : DbContext
     public DbSet<Address> Addresses => Set<Address>();
     public DbSet<SlaWorkingDay> SlaWorkingDays => Set<SlaWorkingDay>();
     public DbSet<SlaHoliday> SlaHolidays => Set<SlaHoliday>();
+    public DbSet<SlaScope> SlaScopes => Set<SlaScope>();
     public DbSet<ContactChannel> ContactChannels => Set<ContactChannel>();
     public DbSet<TicketCustomType> TicketCustomTypes => Set<TicketCustomType>();
     public DbSet<TicketCustomTypeMap> TicketCustomTypeMaps => Set<TicketCustomTypeMap>();
@@ -69,6 +70,9 @@ public class AppDbContext : DbContext
             e.HasIndex(x => x.Code);
             e.Ignore(x => x.FirstResText);
             e.Ignore(x => x.ResolutionText);
+            e.Ignore(x => x.ScopeCount);
+            e.Ignore(x => x.AllFlagCount);
+            e.Ignore(x => x.ScopeText);
             e.HasQueryFilter(x => x.OrgId == _orgId);
         });
         b.Entity<KbArticle>().HasQueryFilter(x => x.OrgId == _orgId);
@@ -301,6 +305,14 @@ public class AppDbContext : DbContext
             e.Property(x => x.Name).HasMaxLength(200);
             e.HasIndex(x => new { x.SlaPolicyId, x.Holiday });
             e.HasOne(x => x.SlaPolicy).WithMany().HasForeignKey(x => x.SlaPolicyId);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<SlaScope>(e =>
+        {
+            e.Property(x => x.RefCode).HasMaxLength(50);
+            e.HasIndex(x => new { x.SlaPolicyId, x.Kind });
+            e.Ignore(x => x.KindName);
+            e.HasOne(x => x.SlaPolicy).WithMany(x => x.Scopes).HasForeignKey(x => x.SlaPolicyId);
             e.HasQueryFilter(x => x.OrgId == _orgId);
         });
         b.Entity<ContactChannel>(e =>
