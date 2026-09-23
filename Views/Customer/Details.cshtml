@@ -1,0 +1,83 @@
+@model Customer
+@{
+    ViewData["Title"] = "Chi tiết khách hàng";
+    var groups = (List<CustomerGroup>)ViewBag.Groups;
+    var groupName = groups.FirstOrDefault(g => g.Code == Model.GroupCode)?.Name;
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Khách hàng</a>
+        <h5 class="fw-bold mb-0 mt-1">@Model.Name</h5>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil me-1"></i>Sửa</a>
+        <form asp-action="Toggle" asp-route-id="@Model.Id" method="post" class="d-inline">
+            @Html.AntiForgeryToken()
+            <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-toggle2-on me-1"></i>@(Model.IsActive ? "Ngừng" : "Kích hoạt")</button>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-5">
+        <div class="card mb-3"><div class="card-body">
+            <h6 class="fw-bold mb-3"><i class="bi bi-person-vcard me-1"></i>Hồ sơ khách hàng</h6>
+            <dl class="row mb-0 small">
+                <dt class="col-5 text-muted">Mã hệ thống</dt><dd class="col-7 font-monospace">@Model.Code</dd>
+                <dt class="col-5 text-muted">Mã hóa đơn</dt><dd class="col-7">@(Model.CodeInvoice ?? "—")</dd>
+                <dt class="col-5 text-muted">Tên (EN)</dt><dd class="col-7">@(Model.NameEN ?? "—")</dd>
+                <dt class="col-5 text-muted">Loại khách hàng</dt><dd class="col-7">@Ui.CustomerTypeBadge(Model.Type)</dd>
+                <dt class="col-5 text-muted">Đối tượng</dt><dd class="col-7">@Ui.PartnerTypeName(Model.Partner)</dd>
+                <dt class="col-5 text-muted">Mã số thuế</dt><dd class="col-7">@(Model.TaxCode ?? "—")</dd>
+                <dt class="col-5 text-muted">Nhóm khách hàng</dt><dd class="col-7">@(groupName ?? Model.GroupCode ?? "—")</dd>
+                <dt class="col-5 text-muted">Trạng thái</dt><dd class="col-7">@if(Model.IsActive){<span class="badge bg-success-subtle text-success border-success-subtle">Hoạt động</span>}else{<span class="badge bg-secondary-subtle text-secondary border-secondary-subtle">Ngừng</span>}</dd>
+            </dl>
+        </div></div>
+
+        <div class="card mb-3"><div class="card-body">
+            <h6 class="fw-bold mb-3"><i class="bi bi-geo-alt me-1"></i>Liên hệ</h6>
+            <dl class="row mb-0 small">
+                <dt class="col-5 text-muted">Điện thoại</dt><dd class="col-7">@(Model.Phone ?? "—")</dd>
+                <dt class="col-5 text-muted">Email</dt><dd class="col-7">@(Model.Email ?? "—")</dd>
+                <dt class="col-5 text-muted">Địa chỉ</dt><dd class="col-7">@(Model.Address ?? "—")</dd>
+                <dt class="col-5 text-muted">Tỉnh / Quận</dt><dd class="col-7">@(Model.Province ?? "—") @(Model.District != null ? "/ " + Model.District : "")</dd>
+                <dt class="col-5 text-muted">Ghi chú</dt><dd class="col-7">@(Model.Remark ?? "—")</dd>
+            </dl>
+        </div></div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="card mb-3"><div class="card-body">
+            <h6 class="fw-bold mb-3"><i class="bi bi-person-lines-fill me-1"></i>Người liên hệ <span class="badge bg-light text-dark border">@Model.ContactCount</span></h6>
+            @if(!Model.Contacts.Any()){<div class="text-muted small py-2"><i class="bi bi-inbox me-1"></i>Chưa có người liên hệ</div>}
+            else{
+            <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+                <thead><tr><th>Họ tên</th><th>Chức danh</th><th>Điện thoại</th><th>Email</th></tr></thead>
+                <tbody>
+                    @foreach (var ct in Model.Contacts)
+                    {
+                        <tr><td class="fw-semibold">@ct.Name</td><td class="small">@(ct.Title ?? "—")</td>
+                            <td class="small">@(ct.Phone ?? "—")</td><td class="small text-muted">@(ct.Email ?? "—")</td></tr>
+                    }
+                </tbody>
+            </table></div>}
+        </div></div>
+
+        <div class="card"><div class="card-body">
+            <h6 class="fw-bold mb-3"><i class="bi bi-clock-history me-1"></i>Lịch sử thay đổi</h6>
+            @if(!Model.Histories.Any()){<div class="text-muted small py-2"><i class="bi bi-inbox me-1"></i>Chưa có lịch sử</div>}
+            else{
+            <ul class="list-unstyled mb-0">
+                @foreach (var h in Model.Histories.OrderByDescending(x => x.ChangedAt))
+                {
+                    <li class="d-flex gap-2 py-2 border-bottom">
+                        <i class="bi bi-dot fs-4 text-primary"></i>
+                        <div><div class="small fw-semibold">@h.Action</div>
+                            <div class="small text-muted">@h.Detail</div>
+                            <div class="small text-muted">@h.ChangedAt.ToString("dd/MM/yyyy HH:mm") · @h.ChangedBy</div></div>
+                    </li>
+                }
+            </ul>}
+        </div></div>
+    </div>
+</div>

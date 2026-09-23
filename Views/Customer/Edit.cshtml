@@ -1,0 +1,107 @@
+@model Customer
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Thêm khách hàng" : "Sửa khách hàng";
+    var groups = (List<CustomerGroup>)ViewBag.Groups;
+    var contacts = Model.Contacts.ToList();
+    if (contacts.Count == 0) contacts.Add(new CustomerContact());
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Khách hàng</a>
+        <h5 class="fw-bold mb-0 mt-1">@ViewData["Title"]</h5>
+    </div>
+</div>
+
+<form asp-action="Save" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="Id" value="@Model.Id" />
+    <input type="hidden" name="Code" value="@Model.Code" />
+
+    <div class="card mb-3"><div class="card-body">
+        <h6 class="fw-bold mb-3"><i class="bi bi-person-vcard me-1"></i>Thông tin khách hàng</h6>
+        <div class="row g-3">
+            <div class="col-md-6"><label class="form-label small">Tên khách hàng <span class="text-danger">*</span></label>
+                <input name="Name" value="@Model.Name" class="form-control form-control-sm" placeholder="VD: Công ty ABC / Nguyễn Văn A" required /></div>
+            <div class="col-md-6"><label class="form-label small">Tên (EN)</label>
+                <input name="NameEN" value="@Model.NameEN" class="form-control form-control-sm" /></div>
+            <div class="col-md-4"><label class="form-label small">Loại khách hàng (CustomerType)</label>
+                <select name="Type" class="form-select form-select-sm">
+                    @foreach (CustomerType t in Enum.GetValues<CustomerType>())
+                    {<option value="@t" selected="@(Model.Type==t)">@Ui.CustomerTypeName(t)</option>}
+                </select></div>
+            <div class="col-md-4"><label class="form-label small">Đối tượng (PartnerType)</label>
+                <select name="Partner" class="form-select form-select-sm">
+                    @foreach (PartnerType p in Enum.GetValues<PartnerType>())
+                    {<option value="@p" selected="@(Model.Partner==p)">@Ui.PartnerTypeName(p)</option>}
+                </select></div>
+            <div class="col-md-4"><label class="form-label small">Nhóm khách hàng</label>
+                <select name="GroupCode" class="form-select form-select-sm">
+                    <option value="">— Không —</option>
+                    @foreach (var g in groups)
+                    {<option value="@g.Code" selected="@(Model.GroupCode==g.Code)">@g.Name</option>}
+                </select></div>
+            <div class="col-md-4"><label class="form-label small">Mã số thuế (MST)</label>
+                <input name="TaxCode" value="@Model.TaxCode" class="form-control form-control-sm" /></div>
+            <div class="col-md-4"><label class="form-label small">Mã hóa đơn</label>
+                <input name="CodeInvoice" value="@Model.CodeInvoice" class="form-control form-control-sm" /></div>
+            <div class="col-md-4"><label class="form-label small">Điện thoại</label>
+                <input name="Phone" value="@Model.Phone" class="form-control form-control-sm" /></div>
+            <div class="col-md-6"><label class="form-label small">Email</label>
+                <input name="Email" value="@Model.Email" class="form-control form-control-sm" /></div>
+            <div class="col-md-6"><label class="form-label small">Địa chỉ</label>
+                <input name="Address" value="@Model.Address" class="form-control form-control-sm" /></div>
+            <div class="col-md-6"><label class="form-label small">Tỉnh / Thành</label>
+                <input name="Province" value="@Model.Province" class="form-control form-control-sm" /></div>
+            <div class="col-md-6"><label class="form-label small">Quận / Huyện</label>
+                <input name="District" value="@Model.District" class="form-control form-control-sm" /></div>
+            <div class="col-12"><label class="form-label small">Ghi chú</label>
+                <textarea name="Remark" class="form-control form-control-sm" rows="2">@Model.Remark</textarea></div>
+            <div class="col-12"><div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="IsActive" value="true" id="isActive" @(Model.IsActive ? "checked" : "") />
+                <label class="form-check-label small" for="isActive">Đang hoạt động (FlagActive)</label></div></div>
+        </div>
+    </div></div>
+
+    <div class="card mb-3"><div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold mb-0"><i class="bi bi-person-lines-fill me-1"></i>Người liên hệ</h6>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="addRow()"><i class="bi bi-plus-lg me-1"></i>Thêm người liên hệ</button>
+        </div>
+        <div class="table-responsive"><table class="table align-middle mb-0" id="ctTable">
+            <thead><tr><th style="width:28%">Họ tên</th><th style="width:22%">Chức danh</th><th style="width:22%">Điện thoại</th><th style="width:24%">Email</th><th style="width:40px"></th></tr></thead>
+            <tbody>
+                @foreach (var ct in contacts)
+                {
+                    <tr>
+                        <td><input name="ctName" value="@ct.Name" class="form-control form-control-sm" placeholder="VD: Trần Văn B" /></td>
+                        <td><input name="ctTitle" value="@ct.Title" class="form-control form-control-sm" placeholder="VD: Kế toán" /></td>
+                        <td><input name="ctPhone" value="@ct.Phone" class="form-control form-control-sm" /></td>
+                        <td><input name="ctEmail" value="@ct.Email" class="form-control form-control-sm" /></td>
+                        <td><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('tr').remove()"><i class="bi bi-x-lg"></i></button></td>
+                    </tr>
+                }
+            </tbody>
+        </table></div>
+    </div></div>
+
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary btn-sm"><i class="bi bi-check-lg me-1"></i>Lưu khách hàng</button>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Hủy</a>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+    function addRow() {
+        const tb = document.querySelector('#ctTable tbody');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input name="ctName" class="form-control form-control-sm" placeholder="VD: Trần Văn B" /></td>
+            <td><input name="ctTitle" class="form-control form-control-sm" placeholder="VD: Kế toán" /></td>
+            <td><input name="ctPhone" class="form-control form-control-sm" /></td>
+            <td><input name="ctEmail" class="form-control form-control-sm" /></td>
+            <td><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('tr').remove()"><i class="bi bi-x-lg"></i></button></td>`;
+        tb.appendChild(tr);
+    }
+</script>
+}

@@ -375,3 +375,94 @@ public class SvImprvCriterion : IOrgOwned
         _ => QtyStd > 0 ? $"chuẩn {QtyStd} lần" : "—"
     };
 }
+
+// ── Trung tâm khách hàng (Customer Center / Mst_Customer) ────────────
+// Theo SkyCS: hồ sơ khách hàng (Mst_Customer) là trung tâm dữ liệu CSKH —
+// gắn với nhóm khách hàng (Mst_CustomerGroup), người liên hệ
+// (Mst_CustomerContact) và lịch sử thay đổi (Mst_CustomerHist).
+// (11.BackEnd/V10/idn.SkyCS.Biz/CustomerCenter/Customer.cs)
+
+/// <summary>Loại khách hàng (Mst_Customer.CustomerType).</summary>
+public enum CustomerType { Individual = 0, Business = 1 }
+
+/// <summary>Đối tượng khách hàng (Mst_Customer.PartnerType).</summary>
+public enum PartnerType { Customer = 0, Supplier = 1, Both = 2 }
+
+/// <summary>Nhóm khách hàng (Mst_CustomerGroup) — phân nhóm phục vụ CSKH.</summary>
+public class CustomerGroup : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string Code { get; set; } = "";          // CustomerGrpCode
+    public string Name { get; set; } = "";          // CustomerGrpName
+    public string? Description { get; set; }          // CustomerGrpDesc
+    public bool IsActive { get; set; } = true;        // FlagActive
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+    public List<Customer> Customers { get; set; } = [];
+
+    public int CustomerCount => Customers.Count;
+}
+
+/// <summary>Hồ sơ khách hàng (Mst_Customer) — trung tâm dữ liệu CSKH.</summary>
+public class Customer : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string Code { get; set; } = "";            // CustomerCodeSys — mã hệ thống
+    public string? CodeInvoice { get; set; }           // CustomerCodeInvoice — mã xuất hóa đơn
+    public string Name { get; set; } = "";            // CustomerName
+    public string? NameEN { get; set; }                // CustomerNameEN
+    public CustomerType Type { get; set; } = CustomerType.Individual;  // CustomerType
+    public PartnerType Partner { get; set; } = PartnerType.Customer;   // PartnerType
+    public string? TaxCode { get; set; }               // MST — mã số thuế
+    public string? GroupCode { get; set; }             // CustomerGrpCode — nhóm khách hàng
+    // Liên hệ
+    public string? Phone { get; set; }                 // Mst_CustomerPhone
+    public string? Email { get; set; }                 // Mst_CustomerEmail
+    public string? Address { get; set; }               // địa chỉ liên hệ
+    public string? Province { get; set; }              // ProvinceCodeContact
+    public string? District { get; set; }              // DistrictCodeContact
+    public bool IsActive { get; set; } = true;         // FlagActive
+    public string? Remark { get; set; }                // ghi chú
+    public DateTime? UsedAt { get; set; }              // DTimeUsed
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // CreateDTimeUTC
+    public string CreatedBy { get; set; } = "";        // CreateBy
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;   // LUDTimeUTC
+    public List<CustomerContact> Contacts { get; set; } = [];
+    public List<CustomerHistory> Histories { get; set; } = [];
+
+    // ── tính toán ────────────────────
+    public int ContactCount => Contacts.Count;
+    public string TypeName => Type == CustomerType.Business ? "Doanh nghiệp" : "Cá nhân";
+    public string Initials => string.IsNullOrWhiteSpace(Name) ? "?" : Name.Trim()[0].ToString().ToUpperInvariant();
+}
+
+/// <summary>Người liên hệ của khách hàng (Mst_CustomerContact).</summary>
+public class CustomerContact : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public int CustomerId { get; set; }
+    public string Name { get; set; } = "";            // tên người liên hệ
+    public string? Title { get; set; }                 // chức danh
+    public string? Phone { get; set; }
+    public string? Email { get; set; }
+    public bool IsActive { get; set; } = true;         // FlagActive
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+    public Customer Owner { get; set; } = null!;
+}
+
+/// <summary>Lịch sử thay đổi hồ sơ khách hàng (Mst_CustomerHist).</summary>
+public class CustomerHistory : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public int CustomerId { get; set; }
+    public string Action { get; set; } = "Cập nhật";   // hành động
+    public string? Detail { get; set; }                // JsonCustomerInfoHist — mô tả thay đổi
+    public string ChangedBy { get; set; } = "";        // LUBy
+    public DateTime ChangedAt { get; set; } = DateTime.Now;   // LUDTimeUTC
+    public Customer Owner { get; set; } = null!;
+}

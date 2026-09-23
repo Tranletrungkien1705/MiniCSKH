@@ -26,6 +26,10 @@ public class AppDbContext : DbContext
     public DbSet<SurveyFormField> SurveyFormFields => Set<SurveyFormField>();
     public DbSet<ServiceImprovement> ServiceImprovements => Set<ServiceImprovement>();
     public DbSet<SvImprvCriterion> SvImprvCriteria => Set<SvImprvCriterion>();
+    public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<CustomerContact> CustomerContacts => Set<CustomerContact>();
+    public DbSet<CustomerHistory> CustomerHistories => Set<CustomerHistory>();
+    public DbSet<CustomerGroup> CustomerGroups => Set<CustomerGroup>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -138,6 +142,35 @@ public class AppDbContext : DbContext
             e.Property(x => x.Word).HasMaxLength(300);
             e.Ignore(x => x.RangeText);
             e.HasOne(x => x.ServiceImprovement).WithMany(x => x.Criteria).HasForeignKey(x => x.ServiceImprovementId);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<CustomerGroup>(e =>
+        {
+            e.Property(x => x.Code).HasMaxLength(30);
+            e.Property(x => x.Name).HasMaxLength(200);
+            e.HasIndex(x => x.Code);
+            e.Ignore(x => x.CustomerCount);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<Customer>(e =>
+        {
+            e.Property(x => x.Code).HasMaxLength(30);
+            e.Property(x => x.Name).HasMaxLength(300);
+            e.HasIndex(x => x.Code);
+            e.Ignore(x => x.ContactCount);
+            e.Ignore(x => x.TypeName);
+            e.Ignore(x => x.Initials);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<CustomerContact>(e =>
+        {
+            e.Property(x => x.Name).HasMaxLength(200);
+            e.HasOne(x => x.Owner).WithMany(x => x.Contacts).HasForeignKey(x => x.CustomerId);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<CustomerHistory>(e =>
+        {
+            e.HasOne(x => x.Owner).WithMany(x => x.Histories).HasForeignKey(x => x.CustomerId);
             e.HasQueryFilter(x => x.OrgId == _orgId);
         });
     }

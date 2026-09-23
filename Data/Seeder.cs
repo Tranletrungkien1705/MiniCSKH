@@ -226,6 +226,81 @@ public static class Seeder
             );
             await db.SaveChangesAsync();
         }
+
+        if (!await db.CustomerGroups.AnyAsync())
+        {
+            db.CustomerGroups.AddRange(
+                new CustomerGroup { Code = "GRP-VIP", Name = "Khách VIP", Description = "Khách hàng thân thiết, ưu tiên phục vụ.", IsActive = true },
+                new CustomerGroup { Code = "GRP-DL", Name = "Đại lý / Nhà phân phối", Description = "Kênh bán buôn, đại lý.", IsActive = true },
+                new CustomerGroup { Code = "GRP-LE", Name = "Khách lẻ", Description = "Khách mua lẻ, chưa phân nhóm.", IsActive = true }
+            );
+            await db.SaveChangesAsync();
+        }
+
+        if (!await db.Customers.AnyAsync())
+        {
+            db.Customers.AddRange(
+                new Customer
+                {
+                    Code = "KH0001", Name = "Cửa hàng Minh Anh", Type = CustomerType.Business, Partner = PartnerType.Customer,
+                    TaxCode = "0101234567", GroupCode = "GRP-VIP", Phone = "0901234567", Email = "minhanh@cskh.vn",
+                    Address = "12 Lê Lợi, Q.1", Province = "TP. Hồ Chí Minh", District = "Quận 1",
+                    IsActive = true, Remark = "Khách VIP, thường xuyên mua sỉ.", CreatedBy = "Hệ thống",
+                    CreatedAt = DateTime.Now.AddDays(-30), UpdatedAt = DateTime.Now.AddDays(-2),
+                    Contacts =
+                    [
+                        new CustomerContact { Name = "Nguyễn Thị Minh", Title = "Chủ cửa hàng", Phone = "0901234567", Email = "minh@minhanh.vn" },
+                        new CustomerContact { Name = "Trần Văn Khoa", Title = "Kế toán", Phone = "0901234568" }
+                    ],
+                    Histories =
+                    [
+                        new CustomerHistory { Action = "Tạo mới", Detail = "Khởi tạo hồ sơ khách hàng.", ChangedBy = "Hệ thống", ChangedAt = DateTime.Now.AddDays(-30) },
+                        new CustomerHistory { Action = "Cập nhật", Detail = "Bổ sung mã số thuế và nhóm VIP.", ChangedBy = "Nguyễn Thu Hà", ChangedAt = DateTime.Now.AddDays(-2) }
+                    ]
+                },
+                new Customer
+                {
+                    Code = "KH0002", Name = "Đại lý Phương Nam", Type = CustomerType.Business, Partner = PartnerType.Customer,
+                    TaxCode = "0309876543", GroupCode = "GRP-DL", Phone = "0934567890", Email = "phuongnam@daily.vn",
+                    Address = "45 Nguyễn Huệ, Q.3", Province = "TP. Hồ Chí Minh", District = "Quận 3",
+                    IsActive = true, Remark = "Đại lý khu vực miền Nam.", CreatedBy = "Hệ thống",
+                    CreatedAt = DateTime.Now.AddDays(-20), UpdatedAt = DateTime.Now.AddDays(-5),
+                    Contacts =
+                    [
+                        new CustomerContact { Name = "Lê Phương Nam", Title = "Giám đốc", Phone = "0934567890", Email = "nam@daily.vn" }
+                    ],
+                    Histories =
+                    [
+                        new CustomerHistory { Action = "Tạo mới", Detail = "Khởi tạo hồ sơ khách hàng.", ChangedBy = "Hệ thống", ChangedAt = DateTime.Now.AddDays(-20) }
+                    ]
+                },
+                new Customer
+                {
+                    Code = "KH0003", Name = "Nguyễn Văn A", Type = CustomerType.Individual, Partner = PartnerType.Customer,
+                    GroupCode = "GRP-LE", Phone = "0956789012", Email = "vana@gmail.com",
+                    Address = "78 Trần Hưng Đạo", Province = "Hà Nội", District = "Hoàn Kiếm",
+                    IsActive = true, CreatedBy = "Hệ thống",
+                    CreatedAt = DateTime.Now.AddDays(-10), UpdatedAt = DateTime.Now.AddDays(-10),
+                    Histories =
+                    [
+                        new CustomerHistory { Action = "Tạo mới", Detail = "Khởi tạo hồ sơ khách hàng.", ChangedBy = "Hệ thống", ChangedAt = DateTime.Now.AddDays(-10) }
+                    ]
+                },
+                new Customer
+                {
+                    Code = "KH0004", Name = "Công ty ABC (ngừng hợp tác)", Type = CustomerType.Business, Partner = PartnerType.Customer,
+                    TaxCode = "0107654321", GroupCode = "GRP-LE", Phone = "0945678901", Email = "info@abc.vn",
+                    IsActive = false, Remark = "Đã ngừng hợp tác từ đầu năm.", CreatedBy = "Hệ thống",
+                    CreatedAt = DateTime.Now.AddDays(-60), UpdatedAt = DateTime.Now.AddDays(-15),
+                    Histories =
+                    [
+                        new CustomerHistory { Action = "Tạo mới", Detail = "Khởi tạo hồ sơ khách hàng.", ChangedBy = "Hệ thống", ChangedAt = DateTime.Now.AddDays(-60) },
+                        new CustomerHistory { Action = "Ngừng", Detail = "Đánh dấu ngừng hoạt động.", ChangedBy = "Trần Văn Minh", ChangedAt = DateTime.Now.AddDays(-15) }
+                    ]
+                }
+            );
+            await db.SaveChangesAsync();
+        }
     }
 
     /// <summary>DB Postgres cloud cũ: tạo Orgs + thêm cột OrgId nếu thiếu, backfill về org mặc định. Idempotent.</summary>
@@ -233,7 +308,7 @@ public static class Seeder
     {
         if (!db.Database.IsNpgsql()) return;
         var def = TenantContext.DefaultOrgId;
-        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria" };
+        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups" };
         var sql = new List<string>
         {
             "CREATE TABLE IF NOT EXISTS minicskh.\"Orgs\" (\"Id\" uuid PRIMARY KEY, \"Name\" text NOT NULL DEFAULT '', \"ApiKey\" text NOT NULL DEFAULT '', \"CreatedAt\" timestamp NOT NULL DEFAULT now())",

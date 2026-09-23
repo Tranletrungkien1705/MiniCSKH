@@ -65,6 +65,13 @@ public interface ITicketService
     Task<int> SvImprvSaveAsync(ServiceImprovement model, List<SvImprvCriterion> criteria);
     Task SvImprvToggleAsync(int id);
     Task<SvImprvStats> SvImprvStatsAsync();
+    // Trung tâm khách hàng (Mst_Customer)
+    Task<List<Customer>> CustomersAsync(bool? active, CustomerType? type, string? groupCode, string? q);
+    Task<Customer?> CustomerGetAsync(int id);
+    Task<int> CustomerSaveAsync(Customer model, List<CustomerContact> contacts);
+    Task CustomerToggleAsync(int id);
+    Task<CustomerStats> CustomerStatsAsync();
+    Task<List<CustomerGroup>> CustomerGroupsAsync();
 }
 
 public record SlaStats(int Policies, int TicketsWithSla, int ViolatingFirstRes, int ViolatingResolution);
@@ -74,6 +81,8 @@ public record RatingStats(int Total, int Rated, int Reviewed, int Satisfied, int
 public record SurveyStats(int Total, int Active, int Used, int Fields);
 
 public record SvImprvStats(int Total, int Active, int Used, int Criteria);
+
+public record CustomerStats(int Total, int Active, int Business, int Individual, int Contacts);
 
 public record TicketTypeStats(int Total, int Active, int ETicket, int Campaign);
 
@@ -533,5 +542,75 @@ public class TicketService(AppDbContext db) : ITicketService
             list.Count(s => s.IsActive),
             list.Count(s => s.IsUsed),
             list.Sum(s => s.Criteria.Count));
+    }
+
+    // ── Trung tâm khách hàng (Mst_Customer) ──────────────────────────
+    public async Task<List<Customer>> CustomersAsync(bool? active, CustomerType? type, string? groupCode, string? q)
+    {
+        var query = db.Customers.Include(c => c.Contacts).AsQueryable();
+        if (active.HasValue) query = query.Where(c => c.IsActive == active.Value);
+        if (type.HasValue) query = query.Where(c => c.Type == type.Value);
+        if (!string.IsNullOrWhiteSpace(groupCode)) query = query.Where(c => c.GroupCode == groupCode);
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(c => c.Name.Contains(q) || c.Code.Contains(q) || (c.Phone ?? "").Contains(q) || (c.Email ?? "").Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderByDescending(c => c.UpdatedAt).ToList();
+    }
+
+    public Task<Customer?> CustomerGetAsync(int id) =>
+        db.Customers.Include(c => c.Contacts).Include(c => c.Histories)
+            .FirstOrDefaultAsync(c => c.Id == id);
+
+    public async Task<int> CustomerSaveAsync(Customer model, List<CustomerContact> contacts)
+    {
+        if (model.Id == 0)
+        {
+            if (string.IsNullOrWhiteSpace(model.Code)) model.Code = "KH" + Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
+            model.CreatedAt = model.UpdatedAt = DateTime.Now;
+            foreach (var c in contacts) model.Contacts.Add(c);
+            model.Histories.Add(new CustomerHistory { Action = "Tạo mới", Detail = "Khởi tạo hồ sơ khách hàng.", ChangedBy = model.CreatedBy, ChangedAt = DateTime.Now });
+            db.Customers.Add(model);
+            await db.SaveChangesAsync();
+            return model.Id;
+        }
+        var e = await db.Customers.Include(x => x.Contacts).FirstOrDefaultAsync(x => x.Id == model.Id)
+            ?? throw new KeyNotFoundException();
+        e.Name = model.Name; e.NameEN = model.NameEN; e.Type = model.Type; e.Partner = model.Partner;
+        e.TaxCode = model.TaxCode; e.GroupCode = model.GroupCode; e.Phone = model.Phone; e.Email = model.Email;
+        e.Address = model.Address; e.Province = model.Province; e.District = model.District;
+        e.CodeInvoice = model.CodeInvoice; e.IsActive = model.IsActive; e.Remark = model.Remark;
+        e.UpdatedAt = DateTime.Now;
+        // Thay toàn bộ danh sách người liên hệ (hồ sơ là cấu hình, không giữ lịch sử liên hệ).
+        db.CustomerContacts.RemoveRange(e.Contacts);
+        e.Contacts.Clear();
+        foreach (var c in contacts) e.Contacts.Add(c);
+        db.CustomerHistories.Add(new CustomerHistory { CustomerId = e.Id, Action = "Cập nhật", Detail = "Cập nhật hồ sơ khách hàng.", ChangedBy = model.CreatedBy, ChangedAt = DateTime.Now });
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
+    public async Task CustomerToggleAsync(int id)
+    {
+        var c = await db.Customers.FirstOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException();
+        c.IsActive = !c.IsActive;
+        c.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<CustomerStats> CustomerStatsAsync()
+    {
+        var list = await db.Customers.Include(c => c.Contacts).ToListAsync();
+        return new CustomerStats(
+            list.Count,
+            list.Count(c => c.IsActive),
+            list.Count(c => c.Type == CustomerType.Business),
+            list.Count(c => c.Type == CustomerType.Individual),
+            list.Sum(c => c.Contacts.Count));
+    }
+
+    public async Task<List<CustomerGroup>> CustomerGroupsAsync()
+    {
+        var list = await db.CustomerGroups.Include(g => g.Customers).ToListAsync();
+        return list.OrderBy(g => g.Name).ToList();
     }
 }

@@ -1,0 +1,78 @@
+@model List<Customer>
+@{
+    ViewData["Title"] = "Khách hàng";
+    var stats = (CustomerStats)ViewBag.Stats;
+    var active = (bool?)ViewBag.Active;
+    var type = (CustomerType?)ViewBag.Type;
+    var group = (string?)ViewBag.Group;
+    var q = (string?)ViewBag.Q;
+    var groups = (List<CustomerGroup>)ViewBag.Groups;
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div><h5 class="fw-bold mb-0"><i class="bi bi-people me-2"></i>Trung tâm khách hàng</h5>
+        <small class="text-muted">Hồ sơ khách hàng, người liên hệ và lịch sử thay đổi (Mst_Customer)</small></div>
+    <a asp-action="Create" class="btn btn-primary btn-sm"><i class="bi bi-person-plus me-1"></i>Thêm khách hàng</a>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Tổng khách hàng</div><div class="fs-3 fw-bold">@stats.Total</div></div>
+        <i class="bi bi-people fs-2 text-primary opacity-50"></i></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Đang hoạt động</div><div class="fs-3 fw-bold text-success">@stats.Active</div></div>
+        <i class="bi bi-toggle-on fs-2 text-success opacity-50"></i></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Doanh nghiệp</div><div class="fs-3 fw-bold text-info">@stats.Business</div></div>
+        <i class="bi bi-building fs-2 text-info opacity-50"></i></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Người liên hệ</div><div class="fs-3 fw-bold text-warning">@stats.Contacts</div></div>
+        <i class="bi bi-person-lines-fill fs-2 text-warning opacity-50"></i></div></div></div>
+</div>
+
+<form method="get" class="card p-3 mb-3"><div class="row g-2 align-items-end">
+    <div class="col-auto"><label class="form-label small mb-1">Loại khách hàng</label>
+        <select name="type" class="form-select form-select-sm">
+            <option value="">Tất cả</option>
+            @foreach (CustomerType t in Enum.GetValues<CustomerType>())
+            {<option value="@t" selected="@(type==t)">@Ui.CustomerTypeName(t)</option>}
+        </select></div>
+    <div class="col-auto"><label class="form-label small mb-1">Nhóm khách hàng</label>
+        <select name="group" class="form-select form-select-sm">
+            <option value="">Tất cả</option>
+            @foreach (var g in groups)
+            {<option value="@g.Code" selected="@(group==g.Code)">@g.Name</option>}
+        </select></div>
+    <div class="col-auto"><label class="form-label small mb-1">Trạng thái</label>
+        <select name="active" class="form-select form-select-sm">
+            <option value="">Tất cả</option>
+            <option value="true" selected="@(active==true)">Đang hoạt động</option>
+            <option value="false" selected="@(active==false)">Ngừng</option>
+        </select></div>
+    <div class="col"><label class="form-label small mb-1">Tìm</label><input name="q" value="@q" class="form-control form-control-sm" placeholder="Tên / mã / SĐT / email" /></div>
+    <div class="col-auto"><button class="btn btn-outline-primary btn-sm">Lọc</button> <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Xóa</a></div>
+</div></form>
+
+<div class="card"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
+    <thead><tr><th>Mã</th><th>Khách hàng</th><th>Loại</th><th>Liên hệ</th><th>Nhóm</th><th>Trạng thái</th></tr></thead>
+    <tbody>
+        @if(!Model.Any()){<tr><td colspan="6" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>Chưa có khách hàng</td></tr>}
+        @foreach (var c in Model)
+        {
+            <tr style="cursor:pointer" onclick="location.href='/Customer/Details/@c.Id'">
+                <td class="font-monospace small fw-semibold">@c.Code</td>
+                <td>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="rounded-circle bg-primary-subtle text-primary d-inline-flex align-items-center justify-content-center fw-bold" style="width:32px;height:32px">@c.Initials</span>
+                        <div><div class="fw-semibold">@c.Name</div>
+                            @if(!string.IsNullOrWhiteSpace(c.TaxCode)){<div class="small text-muted">MST: @c.TaxCode</div>}</div>
+                    </div>
+                </td>
+                <td><i class="bi @Ui.CustomerTypeIcon(c.Type) me-1 text-muted"></i>@Ui.CustomerTypeBadge(c.Type)</td>
+                <td class="small">@if(!string.IsNullOrWhiteSpace(c.Phone)){<div><i class="bi bi-telephone me-1 text-muted"></i>@c.Phone</div>}
+                    @if(!string.IsNullOrWhiteSpace(c.Email)){<div class="text-muted"><i class="bi bi-envelope me-1"></i>@c.Email</div>}</td>
+                <td>@if(!string.IsNullOrWhiteSpace(c.GroupCode)){<span class="badge bg-light text-dark border">@c.GroupCode</span>}</td>
+                <td>@if(c.IsActive){<span class="badge bg-success-subtle text-success border-success-subtle">Hoạt động</span>}else{<span class="badge bg-secondary-subtle text-secondary border-secondary-subtle">Ngừng</span>}</td>
+            </tr>
+        }
+    </tbody>
+</table></div></div>

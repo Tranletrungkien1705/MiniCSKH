@@ -123,4 +123,17 @@ public static class Ui
     };
     public static string BusinessTypeBadge(BusinessType b) =>
         $"<span class='badge bg-{BusinessTypeColor(b)}-subtle text-{BusinessTypeColor(b)} border-{BusinessTypeColor(b)}-subtle'>{BusinessTypeName(b)}</span>";
+
+    // ── Trung tâm khách hàng (Mst_Customer) ──
+    public static string CustomerTypeName(CustomerType t) => t switch
+    { CustomerType.Individual => "Cá nhân", CustomerType.Business => "Doanh nghiệp", _ => t.ToString() };
+    public static string CustomerTypeColor(CustomerType t) => t switch
+    { CustomerType.Individual => "info", CustomerType.Business => "primary", _ => "secondary" };
+    public static string CustomerTypeIcon(CustomerType t) => t switch
+    { CustomerType.Individual => "bi-person", CustomerType.Business => "bi-building", _ => "bi-tag" };
+    public static string CustomerTypeBadge(CustomerType t) =>
+        $"<span class='badge bg-{CustomerTypeColor(t)}-subtle text-{CustomerTypeColor(t)} border-{CustomerTypeColor(t)}-subtle'>{CustomerTypeName(t)}</span>";
+
+    public static string PartnerTypeName(PartnerType p) => p switch
+    { PartnerType.Customer => "Khách hàng", PartnerType.Supplier => "Nhà cung cấp", PartnerType.Both => "Cả hai", _ => p.ToString() };
 }
