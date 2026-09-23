@@ -408,6 +408,19 @@ public static class Ui
         _ => "bi-broadcast"
     };
 
+    // ── Đối tượng khách hàng (Mst_PartnerType) ──
+    public static string PartnerTypeActiveBadge(bool active) => active
+        ? "<span class='badge bg-success-subtle text-success border-success-subtle'>Đang dùng</span>"
+        : "<span class='badge bg-secondary-subtle text-secondary border-secondary-subtle'>Ngừng dùng</span>";
+    /// <summary>Biểu tượng theo đối tượng khách hàng (dựa vào mã).</summary>
+    public static string PartnerTypeIcon(string code) => code.ToUpperInvariant() switch
+    {
+        "CUSTOMER" or "KH" => "bi-person-heart",
+        "SUPPLIER" or "NCC" => "bi-truck",
+        "BOTH" or "CAHAI" => "bi-people",
+        _ => "bi-person-badge"
+    };
+
     // ── Quản lý thông báo (Mst_NotifyType / Mst_ManageNotify / Map_UserInNotifyType) ──
     public static string NotifyActiveBadge(bool active) => active
         ? "<span class='badge bg-success-subtle text-success border-success-subtle'>Bật mặc định</span>"

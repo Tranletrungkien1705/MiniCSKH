@@ -803,6 +803,19 @@ public static class Seeder
             );
             await db.SaveChangesAsync();
         }
+
+        if (!await db.PartnerTypeCatalogs.AnyAsync())
+        {
+            // Đối tượng khách hàng (Mst_PartnerType) — vai trò đối tác: Khách hàng / Nhà cung cấp / Cả hai.
+            // Hồ sơ khách hàng (Mst_Customer.PartnerType) tham chiếu mã này.
+            db.PartnerTypeCatalogs.AddRange(
+                new PartnerTypeCatalog { Code = "CUSTOMER", Name = "Khách hàng", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-60), UpdatedAt = DateTime.Now.AddDays(-10) },
+                new PartnerTypeCatalog { Code = "SUPPLIER", Name = "Nhà cung cấp", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-60), UpdatedAt = DateTime.Now.AddDays(-10) },
+                new PartnerTypeCatalog { Code = "BOTH", Name = "Cả hai (KH & NCC)", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-55), UpdatedAt = DateTime.Now.AddDays(-8) },
+                new PartnerTypeCatalog { Code = "PT-CU", Name = "Đối tượng cũ (ngừng dùng)", IsActive = false, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-90), UpdatedAt = DateTime.Now.AddDays(-60) }
+            );
+            await db.SaveChangesAsync();
+        }
     }
 
     /// <summary>DB Postgres cloud cũ: tạo Orgs + thêm cột OrgId nếu thiếu, backfill về org mặc định. Idempotent.</summary>
@@ -810,7 +823,7 @@ public static class Seeder
     {
         if (!db.Database.IsNpgsql()) return;
         var def = TenantContext.DefaultOrgId;
-        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags", "ReceiveNotifies", "Addresses", "SlaWorkingDays", "SlaHolidays", "SlaScopes", "ContactChannels", "TicketCustomTypes", "TicketCustomTypeMaps", "Taxpayers", "CampaignTypes", "CampaignTypeColumns", "CampaignFeedbacks", "GovIDTypes", "Countries", "SatisfactionRatings", "ChannelTypes", "TicketTypeDepartments", "KbCategories" };
+        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags", "ReceiveNotifies", "Addresses", "SlaWorkingDays", "SlaHolidays", "SlaScopes", "ContactChannels", "TicketCustomTypes", "TicketCustomTypeMaps", "Taxpayers", "CampaignTypes", "CampaignTypeColumns", "CampaignFeedbacks", "GovIDTypes", "Countries", "SatisfactionRatings", "ChannelTypes", "TicketTypeDepartments", "KbCategories", "PartnerTypeCatalogs" };
         var sql = new List<string>
         {
             "CREATE TABLE IF NOT EXISTS minicskh.\"Orgs\" (\"Id\" uuid PRIMARY KEY, \"Name\" text NOT NULL DEFAULT '', \"ApiKey\" text NOT NULL DEFAULT '', \"CreatedAt\" timestamp NOT NULL DEFAULT now())",

@@ -1454,3 +1454,26 @@ public class KbCategory : IOrgOwned
     /// <summary>Slug hiển thị: dùng Slug nếu có, ngược lại sinh từ tên.</summary>
     public string SlugText => !string.IsNullOrWhiteSpace(Slug) ? Slug! : Tag.MakeSlug(Name);
 }
+
+// ── Đối tượng khách hàng (Mst_PartnerType) ───────────────────────────
+// Theo SkyCS: đối tượng khách hàng (Mst_PartnerType) là master data quy định
+// vai trò của một đối tác trong hệ thống — Khách hàng / Nhà cung cấp / Cả hai.
+// Mỗi dòng có mã (PartnerType), tên hiển thị (PartnerTypeName) và trạng thái
+// (FlagActive). Hồ sơ khách hàng (Mst_Customer.PartnerType) tham chiếu mã này.
+// (11.BackEnd/V10/idn.SkyCS.Biz/Master.cs, `Mst_PartnerType_Get`;
+//  model 12.Dev.Common/idn.SkyCS.Common/Models/Mst_PartnerType.cs;
+//  controller 13.ClientGate/V20/idn.SkyCS.WebAPI/Controllers/MstPartnerTypeController.cs;
+//  cột xác nhận qua TblMst_PartnerType trong Const.Main.cs)
+
+/// <summary>Đối tượng khách hàng (Mst_PartnerType) — vai trò đối tác: KH / NCC / Cả hai.</summary>
+public class PartnerTypeCatalog : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string Code { get; set; } = "";              // PartnerType — mã đối tượng
+    public string Name { get; set; } = "";              // PartnerTypeName — tên đối tượng
+    public bool IsActive { get; set; } = true;          // FlagActive
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // LogLUDTimeUTC
+    public string CreatedBy { get; set; } = "";         // LogLUBy
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+}

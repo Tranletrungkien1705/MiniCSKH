@@ -1,0 +1,44 @@
+@model PartnerTypeCatalog
+@{
+    ViewData["Title"] = "Chi tiết đối tượng khách hàng";
+}
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Đối tượng khách hàng</a>
+        <h5 class="fw-bold mb-1 mt-1"><i class="bi @Ui.PartnerTypeIcon(Model.Code) me-1"></i><span class="font-monospace">@Model.Code</span>
+            @Html.Raw(Ui.PartnerTypeActiveBadge(Model.IsActive))</h5>
+        <div class="text-muted small">@Model.Name · tạo @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil me-1"></i>Sửa</a>
+        <form asp-action="Toggle" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <button class="btn btn-sm @(Model.IsActive?"btn-outline-secondary":"btn-primary")">
+                <i class="bi bi-toggle-@(Model.IsActive?"off":"on") me-1"></i>@(Model.IsActive?"Ngừng dùng":"Kích hoạt")</button>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Mã đối tượng</div><div class="fs-5 fw-bold font-monospace">@Model.Code</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Tên đối tượng</div><div class="fs-6 fw-bold">@Model.Name</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Người tạo</div><div class="fs-6 fw-bold">@(string.IsNullOrWhiteSpace(Model.CreatedBy) ? "—" : Model.CreatedBy)</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Cập nhật</div><div class="fs-5 fw-bold">@Model.UpdatedAt.ToString("dd/MM/yyyy")</div></div></div></div>
+</div>
+
+<div class="card"><div class="card-body">
+    <h6 class="fw-bold mb-3"><i class="bi bi-card-text me-1"></i>Thông tin đối tượng</h6>
+    <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+        <thead><tr><th>Thuộc tính</th><th>Giá trị</th></tr></thead>
+        <tbody>
+            <tr><td><i class="bi bi-upc me-1"></i>Mã (PartnerType)</td><td class="font-monospace">@Model.Code</td></tr>
+            <tr><td><i class="bi bi-tag me-1"></i>Tên (PartnerTypeName)</td><td>@Model.Name</td></tr>
+            <tr><td><i class="bi bi-toggle-on me-1"></i>Trạng thái (FlagActive)</td><td>@Html.Raw(Ui.PartnerTypeActiveBadge(Model.IsActive))</td></tr>
+        </tbody>
+    </table></div>
+</div></div>
