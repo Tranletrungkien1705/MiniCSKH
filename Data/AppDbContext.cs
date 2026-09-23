@@ -53,6 +53,7 @@ public class AppDbContext : DbContext
     public DbSet<CampaignFeedback> CampaignFeedbacks => Set<CampaignFeedback>();
     public DbSet<GovIDType> GovIDTypes => Set<GovIDType>();
     public DbSet<Country> Countries => Set<Country>();
+    public DbSet<SatisfactionRating> SatisfactionRatings => Set<SatisfactionRating>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -401,6 +402,14 @@ public class AppDbContext : DbContext
             e.Property(x => x.PostCode).HasMaxLength(20);
             e.HasIndex(x => x.Code);
             e.Ignore(x => x.PostCodeText);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<SatisfactionRating>(e =>
+        {
+            e.Property(x => x.Code).HasMaxLength(50);
+            e.Property(x => x.Name).HasMaxLength(200);
+            e.HasIndex(x => x.Code);
+            e.Ignore(x => x.IsPositive);
             e.HasQueryFilter(x => x.OrgId == _orgId);
         });
     }

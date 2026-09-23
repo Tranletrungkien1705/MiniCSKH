@@ -176,6 +176,12 @@ public interface ITicketService
     Task<int> CountrySaveAsync(Country model);
     Task CountryToggleAsync(int id);
     Task<CountryStats> CountryStatsAsync();
+    // Mức đánh giá hài lòng (Mst_SatisfactionRating)
+    Task<List<SatisfactionRating>> SatisfactionRatingsAsync(bool? active, string? q);
+    Task<SatisfactionRating?> SatisfactionRatingGetAsync(int id);
+    Task<int> SatisfactionRatingSaveAsync(SatisfactionRating model);
+    Task SatisfactionRatingToggleAsync(int id);
+    Task<SatisfactionRatingStats> SatisfactionRatingStatsAsync();
 }
 
 public record SlaStats(int Policies, int TicketsWithSla, int ViolatingFirstRes, int ViolatingResolution);
@@ -221,6 +227,8 @@ public record CampaignTypeStats(int Total, int Active, int WithColumns, int With
 public record GovIDTypeStats(int Total, int Active, int Inactive, int WithRemark);
 
 public record CountryStats(int Total, int Active, int Inactive, int WithPostCode);
+
+public record SatisfactionRatingStats(int Total, int Active, int Inactive, int Positive);
 
 public record TicketTypeStats(int Total, int Active, int ETicket, int Campaign);
 
@@ -1775,5 +1783,54 @@ public class TicketService(AppDbContext db) : ITicketService
             list.Count(c => c.IsActive),
             list.Count(c => !c.IsActive),
             list.Count(c => !string.IsNullOrWhiteSpace(c.PostCode)));
+    }
+
+    // ── Mức đánh giá hài lòng (Mst_SatisfactionRating) ───────
+    public async Task<List<SatisfactionRating>> SatisfactionRatingsAsync(bool? active, string? q)
+    {
+        var query = db.SatisfactionRatings.AsQueryable();
+        if (active.HasValue) query = query.Where(s => s.IsActive == active.Value);
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(s => s.Code.Contains(q) || s.Name.Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderBy(s => s.Order).ThenBy(s => s.Code).ToList();
+    }
+
+    public Task<SatisfactionRating?> SatisfactionRatingGetAsync(int id) =>
+        db.SatisfactionRatings.FirstOrDefaultAsync(s => s.Id == id);
+
+    public async Task<int> SatisfactionRatingSaveAsync(SatisfactionRating model)
+    {
+        if (model.Id == 0)
+        {
+            if (string.IsNullOrWhiteSpace(model.Code)) model.Code = "SAT-" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+            model.CreatedAt = model.UpdatedAt = DateTime.Now;
+            db.SatisfactionRatings.Add(model);
+            await db.SaveChangesAsync();
+            return model.Id;
+        }
+        var e = await db.SatisfactionRatings.FirstOrDefaultAsync(x => x.Id == model.Id) ?? throw new KeyNotFoundException();
+        e.Code = model.Code; e.Name = model.Name; e.Order = model.Order; e.Remark = model.Remark;
+        e.IsActive = model.IsActive; e.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
+    public async Task SatisfactionRatingToggleAsync(int id)
+    {
+        var s = await db.SatisfactionRatings.FirstOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException();
+        s.IsActive = !s.IsActive;
+        s.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<SatisfactionRatingStats> SatisfactionRatingStatsAsync()
+    {
+        var list = await db.SatisfactionRatings.ToListAsync();
+        return new SatisfactionRatingStats(
+            list.Count,
+            list.Count(s => s.IsActive),
+            list.Count(s => !s.IsActive),
+            list.Count(s => s.IsPositive));
     }
 }

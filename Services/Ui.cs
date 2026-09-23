@@ -367,4 +367,29 @@ public static class Ui
         "SG" => "bi-globe-asia-australia",
         _ => "bi-globe"
     };
+
+    // ── Mức đánh giá hài lòng (Mst_SatisfactionRating) ──
+    public static string SatRatingActiveBadge(bool active) => active
+        ? "<span class='badge bg-success-subtle text-success border-success-subtle'>Đang dùng</span>"
+        : "<span class='badge bg-secondary-subtle text-secondary border-secondary-subtle'>Ngừng dùng</span>";
+    /// <summary>Biểu tượng theo mức đánh giá (dựa vào mã).</summary>
+    public static string SatRatingIcon(string code) => code.ToUpperInvariant() switch
+    {
+        "SAT5" or "RAT5" => "bi-emoji-laughing",
+        "SAT4" or "RAT4" => "bi-emoji-smile",
+        "SAT3" or "RAT3" => "bi-emoji-neutral",
+        "SAT2" or "RAT2" => "bi-emoji-frown",
+        "SAT1" or "RAT1" => "bi-emoji-angry",
+        _ => "bi-star"
+    };
+    /// <summary>Màu badge theo mức đánh giá (dựa vào mã).</summary>
+    public static string SatRatingBadge(string code) => code.ToUpperInvariant() switch
+    {
+        "SAT5" or "RAT5" => "<span class='badge bg-success-subtle text-success border-success-subtle'>Rất hài lòng</span>",
+        "SAT4" or "RAT4" => "<span class='badge bg-info-subtle text-info border-info-subtle'>Hài lòng</span>",
+        "SAT3" or "RAT3" => "<span class='badge bg-warning-subtle text-warning border-warning-subtle'>Bình thường</span>",
+        "SAT2" or "RAT2" => "<span class='badge bg-danger-subtle text-danger border-danger-subtle'>Không hài lòng</span>",
+        "SAT1" or "RAT1" => "<span class='badge bg-danger text-white'>Rất không hài lòng</span>",
+        _ => "<span class='badge bg-light text-dark border'>Khác</span>"
+    };
 }

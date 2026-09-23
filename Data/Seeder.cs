@@ -744,6 +744,21 @@ public static class Seeder
             );
             await db.SaveChangesAsync();
         }
+
+        if (!await db.SatisfactionRatings.AnyAsync())
+        {
+            // Mức đánh giá hài lòng (Mst_SatisfactionRating) — các mức độ hài lòng chuẩn
+            // để agent chọn khi ghi nhận kết quả chăm sóc (ET_Ticket.SatRatingCode).
+            db.SatisfactionRatings.AddRange(
+                new SatisfactionRating { Code = "SAT5", Name = "Rất hài lòng", Order = 1, Remark = "Khách rất hài lòng với dịch vụ.", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-60), UpdatedAt = DateTime.Now.AddDays(-10) },
+                new SatisfactionRating { Code = "SAT4", Name = "Hài lòng", Order = 2, Remark = "Khách hài lòng với dịch vụ.", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-60), UpdatedAt = DateTime.Now.AddDays(-10) },
+                new SatisfactionRating { Code = "SAT3", Name = "Bình thường", Order = 3, Remark = "Khách thấy bình thường, không có ý kiến.", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-55), UpdatedAt = DateTime.Now.AddDays(-8) },
+                new SatisfactionRating { Code = "SAT2", Name = "Không hài lòng", Order = 4, Remark = "Khách chưa hài lòng, cần cải thiện.", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-50), UpdatedAt = DateTime.Now.AddDays(-5) },
+                new SatisfactionRating { Code = "SAT1", Name = "Rất không hài lòng", Order = 5, Remark = "Khách rất không hài lòng, cần xử lý gấp.", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-50), UpdatedAt = DateTime.Now.AddDays(-5) },
+                new SatisfactionRating { Code = "SAT-CU", Name = "Mức cũ (ngừng dùng)", Order = 9, Remark = "Đã thay thế bằng thang 5 mức.", IsActive = false, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-90), UpdatedAt = DateTime.Now.AddDays(-60) }
+            );
+            await db.SaveChangesAsync();
+        }
     }
 
     /// <summary>DB Postgres cloud cũ: tạo Orgs + thêm cột OrgId nếu thiếu, backfill về org mặc định. Idempotent.</summary>
@@ -751,7 +766,7 @@ public static class Seeder
     {
         if (!db.Database.IsNpgsql()) return;
         var def = TenantContext.DefaultOrgId;
-        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags", "ReceiveNotifies", "Addresses", "SlaWorkingDays", "SlaHolidays", "SlaScopes", "ContactChannels", "TicketCustomTypes", "TicketCustomTypeMaps", "Taxpayers", "CampaignTypes", "CampaignTypeColumns", "CampaignFeedbacks", "GovIDTypes" };
+        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags", "ReceiveNotifies", "Addresses", "SlaWorkingDays", "SlaHolidays", "SlaScopes", "ContactChannels", "TicketCustomTypes", "TicketCustomTypeMaps", "Taxpayers", "CampaignTypes", "CampaignTypeColumns", "CampaignFeedbacks", "GovIDTypes", "Countries", "SatisfactionRatings" };
         var sql = new List<string>
         {
             "CREATE TABLE IF NOT EXISTS minicskh.\"Orgs\" (\"Id\" uuid PRIMARY KEY, \"Name\" text NOT NULL DEFAULT '', \"ApiKey\" text NOT NULL DEFAULT '', \"CreatedAt\" timestamp NOT NULL DEFAULT now())",

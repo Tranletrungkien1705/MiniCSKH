@@ -1250,3 +1250,35 @@ public class Country : IOrgOwned
     /// <summary>Mã bưu chính hiển thị (dùng cho view).</summary>
     public string PostCodeText => string.IsNullOrWhiteSpace(PostCode) ? "—" : PostCode!;
 }
+
+// ── Mức đánh giá hài lòng (Mst_SatisfactionRating) ───────────────────
+// Theo SkyCS: "mức đánh giá hài lòng" (Mst_SatisfactionRating) là master data
+// quy định các MỨC độ hài lòng chuẩn (Rất hài lòng / Hài lòng / Bình thường /
+// Không hài lòng / Rất không hài lòng…) để agent chọn khi ghi nhận kết quả
+// chăm sóc. eTicket gắn mức này qua ET_Ticket.SatRatingCode ("Mã Đánh giá mức
+// độ hài lòng") và chiến dịch khảo sát cũng tham chiếu. Mỗi mức có mã
+// (SatRatingCode), tên (SatRatingName), thứ tự hiển thị (OrdIdx), ghi chú và
+// trạng thái hoạt động (FlagActive).
+// (11.BackEnd/V10/idn.SkyCS.Biz/Master.cs, `Mst_SatisfactionRating_Get`/
+//  `Mst_SatisfactionRating_CheckDB`; model 12.Dev.Common/idn.SkyCS.Common/
+//  Models/Mst_SatisfactionRating.cs; controller 13.ClientGate/V20/idn.SkyCS.WebAPI/
+//  Controllers/MstSatisfactionRatingController.cs)
+
+/// <summary>Mức đánh giá hài lòng (Mst_SatisfactionRating) — mức độ hài lòng chuẩn.</summary>
+public class SatisfactionRating : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string Code { get; set; } = "";              // SatRatingCode — mã mức đánh giá
+    public string Name { get; set; } = "";              // SatRatingName — tên mức đánh giá
+    public int Order { get; set; }                       // OrdIdx — thứ tự hiển thị
+    public string? Remark { get; set; }                  // Remark — ghi chú
+    public bool IsActive { get; set; } = true;           // FlagActive
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // LogLUDTimeUTC
+    public string CreatedBy { get; set; } = "";          // LogLUBy
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+    // ── tính toán ────────────────────
+    /// <summary>Mức đánh giá tích cực (Rất hài lòng / Hài lòng) — dùng cho thống kê.</summary>
+    public bool IsPositive => Code.ToUpperInvariant() is "SAT5" or "SAT4" or "RAT5" or "RAT4";
+}
