@@ -40,9 +40,18 @@ public interface ITicketService
     Task<CampaignCustomer?> CampaignCustomerGetAsync(int id);
     Task CampaignCustomerSaveAsync(int customerId, int? agentId, CampaignCustomerStatus status, string? feedback, string? remark);
     Task<(int total, int running, int doneCustomers, int pendingCustomers)> CampaignStatsAsync();
+    // Đánh giá phiếu (eTicket Rating)
+    Task<List<TicketRating>> RatingsAsync(RateType? type, RateResult? result, string? q);
+    Task<TicketRating?> RatingGetAsync(int id);
+    Task<List<TicketRating>> RatingsByTicketAsync(int ticketId);
+    Task<int> RateTicketAsync(int ticketId, int score, RateResult result, string? comment, string ratedBy);
+    Task ReviewRatingAsync(int ratingId, string reviewedBy, string? reviewNote);
+    Task<RatingStats> RatingStatsAsync();
 }
 
 public record SlaStats(int Policies, int TicketsWithSla, int ViolatingFirstRes, int ViolatingResolution);
+
+public record RatingStats(int Total, int Rated, int Reviewed, int Satisfied, int Unsatisfied, double AvgScore);
 
 public class TicketService(AppDbContext db) : ITicketService
 {
@@ -59,7 +68,7 @@ public class TicketService(AppDbContext db) : ITicketService
     }
 
     public Task<Ticket?> GetAsync(int id) =>
-        db.Tickets.Include(t => t.AssignedAgent).Include(t => t.Category).Include(t => t.SlaPolicy).Include(t => t.Comments)
+        db.Tickets.Include(t => t.AssignedAgent).Include(t => t.Category).Include(t => t.SlaPolicy).Include(t => t.Comments).Include(t => t.Ratings)
             .FirstOrDefaultAsync(t => t.Id == id);
 
     public async Task<int> CreateAsync(Ticket t)
@@ -268,5 +277,74 @@ public class TicketService(AppDbContext db) : ITicketService
             campaigns.Count(c => c.Status == CampaignStatus.Started),
             customers.Count(c => c.Status == CampaignCustomerStatus.Done),
             customers.Count(c => c.Status == CampaignCustomerStatus.Pending));
+    }
+
+    // ── Đánh giá phiếu (eTicket Rating) ──────────────────────────────
+    public async Task<List<TicketRating>> RatingsAsync(RateType? type, RateResult? result, string? q)
+    {
+        var query = db.Ratings.Include(r => r.Ticket).AsQueryable();
+        if (type.HasValue) query = query.Where(r => r.RateType == type.Value);
+        if (result.HasValue) query = query.Where(r => r.Result == result.Value);
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(r => r.Ticket.Code.Contains(q) || r.Ticket.Subject.Contains(q) || r.RatedBy.Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderByDescending(r => r.RatedAt).ToList();
+    }
+
+    public Task<TicketRating?> RatingGetAsync(int id) =>
+        db.Ratings.Include(r => r.Ticket).FirstOrDefaultAsync(r => r.Id == id);
+
+    public async Task<List<TicketRating>> RatingsByTicketAsync(int ticketId)
+    {
+        var list = await db.Ratings.Where(r => r.TicketId == ticketId).ToListAsync();
+        return list.OrderByDescending(r => r.RatedAt).ToList();
+    }
+
+    public async Task<int> RateTicketAsync(int ticketId, int score, RateResult result, string? comment, string ratedBy)
+    {
+        var t = await db.Tickets.FirstOrDefaultAsync(x => x.Id == ticketId) ?? throw new KeyNotFoundException();
+        // Theo SkyCS: chỉ đánh giá khi cờ FlagRated chưa bật (0/null).
+        if (t.FlagRated) throw new InvalidOperationException("Phiếu đã được đánh giá.");
+        var round = await db.Ratings.CountAsync(r => r.TicketId == ticketId) + 1;
+        var rating = new TicketRating
+        {
+            TicketId = ticketId,
+            RateRound = round,
+            RateType = RateType.Rate,
+            Status = RateStatus.Rated,
+            Result = result,
+            Score = Math.Clamp(score, 1, 5),
+            Comment = comment,
+            RatedBy = string.IsNullOrWhiteSpace(ratedBy) ? "Khách hàng" : ratedBy,
+            RatedAt = DateTime.Now
+        };
+        db.Ratings.Add(rating);
+        t.FlagRated = true;   // ET_Ticket.FlagRated = '1'
+        await db.SaveChangesAsync();
+        return rating.Id;
+    }
+
+    public async Task ReviewRatingAsync(int ratingId, string reviewedBy, string? reviewNote)
+    {
+        var r = await db.Ratings.FirstOrDefaultAsync(x => x.Id == ratingId) ?? throw new KeyNotFoundException();
+        r.RateType = RateType.Review;
+        r.Status = RateStatus.Reviewed;
+        r.ReviewedBy = string.IsNullOrWhiteSpace(reviewedBy) ? "Agent" : reviewedBy;
+        r.ReviewNote = reviewNote;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<RatingStats> RatingStatsAsync()
+    {
+        var all = await db.Ratings.ToListAsync();
+        var rated = all.Where(r => r.RateType == RateType.Rate).ToList();
+        var avg = rated.Count > 0 ? Math.Round(rated.Average(r => r.Score), 2) : 0;
+        return new RatingStats(
+            all.Count,
+            rated.Count,
+            all.Count(r => r.Status == RateStatus.Reviewed),
+            rated.Count(r => r.Result == RateResult.Satisfied),
+            rated.Count(r => r.Result == RateResult.Unsatisfied),
+            avg);
     }
 }

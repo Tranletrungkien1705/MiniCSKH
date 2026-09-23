@@ -129,6 +129,24 @@ public static class Seeder
             );
             await db.SaveChangesAsync();
         }
+
+        if (!await db.Ratings.AnyAsync())
+        {
+            var tickets = await db.Tickets.OrderBy(t => t.Id).ToListAsync();
+            if (tickets.Count >= 2)
+            {
+                // Phiếu đã giải quyết/đóng được khách đánh giá (RATE); một số đã được agent kiểm soát (REVIEW).
+                var t1 = tickets.FirstOrDefault(t => t.Status == TicketStatus.Resolved) ?? tickets[0];
+                var t2 = tickets.FirstOrDefault(t => t.Status == TicketStatus.Closed) ?? tickets[^1];
+                t1.FlagRated = true;
+                t2.FlagRated = true;
+                db.Ratings.AddRange(
+                    new TicketRating { TicketId = t1.Id, FormCode = "SAT-STD", RateRound = 1, RateType = RateType.Rate, Status = RateStatus.Rated, Result = RateResult.Satisfied, Score = 5, Comment = "Xử lý nhanh, nhân viên nhiệt tình.", RatedBy = t1.CustomerName, RatedAt = DateTime.Now.AddDays(-1) },
+                    new TicketRating { TicketId = t2.Id, FormCode = "SAT-STD", RateRound = 1, RateType = RateType.Review, Status = RateStatus.Reviewed, Result = RateResult.Neutral, Score = 3, Comment = "Tạm ổn nhưng chờ hơi lâu.", RatedBy = t2.CustomerName, ReviewedBy = "Trần Văn Minh", ReviewNote = "Đã nhắc nhở agent về thời gian phản hồi.", RatedAt = DateTime.Now.AddDays(-2) }
+                );
+                await db.SaveChangesAsync();
+            }
+        }
     }
 
     /// <summary>DB Postgres cloud cũ: tạo Orgs + thêm cột OrgId nếu thiếu, backfill về org mặc định. Idempotent.</summary>
@@ -136,7 +154,7 @@ public static class Seeder
     {
         if (!db.Database.IsNpgsql()) return;
         var def = TenantContext.DefaultOrgId;
-        var tables = new[] { "Agents", "Categories", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers" };
+        var tables = new[] { "Agents", "Categories", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings" };
         var sql = new List<string>
         {
             "CREATE TABLE IF NOT EXISTS minicskh.\"Orgs\" (\"Id\" uuid PRIMARY KEY, \"Name\" text NOT NULL DEFAULT '', \"ApiKey\" text NOT NULL DEFAULT '', \"CreatedAt\" timestamp NOT NULL DEFAULT now())",

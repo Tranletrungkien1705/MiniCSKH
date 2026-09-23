@@ -65,4 +65,15 @@ public static class Ui
     };
     public static string CustStatusBadge(CampaignCustomerStatus s) =>
         $"<span class='badge bg-{CustStatusColor(s)}-subtle text-{CustStatusColor(s)} border-{CustStatusColor(s)}-subtle'>{CustStatusName(s)}</span>";
+
+    // ── Đánh giá phiếu (Rating) ──────
+    public static string RateTypeName(RateType t) => t == RateType.Rate ? "Đánh giá" : "Kiểm soát";
+    public static string RateStatusName(RateStatus s) => s switch
+    { RateStatus.None => "Chưa đánh giá", RateStatus.Rated => "Đã đánh giá", RateStatus.Reviewed => "Đã kiểm soát", _ => s.ToString() };
+    public static string RateResultName(RateResult r) => r switch
+    { RateResult.Satisfied => "Hài lòng", RateResult.Neutral => "Bình thường", RateResult.Unsatisfied => "Không hài lòng", _ => r.ToString() };
+    public static string RateResultColor(RateResult r) => r switch
+    { RateResult.Satisfied => "success", RateResult.Neutral => "warning", RateResult.Unsatisfied => "danger", _ => "secondary" };
+    public static string RateResultBadge(RateResult r) =>
+        $"<span class='badge bg-{RateResultColor(r)}-subtle text-{RateResultColor(r)} border-{RateResultColor(r)}-subtle'>{RateResultName(r)}</span>";
 }

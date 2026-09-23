@@ -1,0 +1,68 @@
+@model TicketRating
+@{
+    ViewData["Title"] = "Đánh giá phiếu";
+    var t = (Ticket)ViewBag.Ticket;
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div><h5 class="fw-bold mb-0"><i class="bi bi-star me-2"></i>Đánh giá phiếu @t.Code</h5>
+        <small class="text-muted">@t.Subject</small></div>
+    <a asp-controller="Ticket" asp-action="Details" asp-route-id="@t.Id" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Quay lại</a>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card"><div class="card-body">
+            <form asp-action="Rate" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="ticketId" value="@t.Id" />
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Mức độ hài lòng</label>
+                    <div class="d-flex gap-3">
+                        @foreach (RateResult r in Enum.GetValues<RateResult>())
+                        {
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="result" value="@r" id="res_@r" checked="@(r == RateResult.Satisfied)" />
+                                <label class="form-check-label" for="res_@r">@Ui.RateResultName(r)</label>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Điểm đánh giá (1–5 sao)</label>
+                    <select name="score" class="form-select">
+                        @for (int s = 5; s >= 1; s--)
+                        {
+                            <option value="@s" selected="@(s == 5)">@(new string('★', s))@(new string('☆', 5 - s)) — @s/5</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Người đánh giá</label>
+                    <input name="ratedBy" class="form-control" value="@t.CustomerName" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Nhận xét</label>
+                    <textarea name="comment" class="form-control" rows="3" placeholder="Chia sẻ cảm nhận về chất lượng hỗ trợ…"></textarea>
+                </div>
+
+                <button class="btn btn-primary"><i class="bi bi-send-check me-1"></i>Gửi đánh giá</button>
+            </form>
+        </div></div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card"><div class="card-body">
+            <div class="text-muted small text-uppercase mb-2">Thông tin phiếu</div>
+            <div class="fw-bold">@t.Code — @t.Subject</div>
+            <div class="small mt-2">Khách hàng: <b>@t.CustomerName</b></div>
+            <div class="small">Kênh: @Ui.ChannelName(t.Channel)</div>
+            <div class="small">Trạng thái: @Html.Raw(Ui.StatusBadge(t.Status))</div>
+            @if(t.ResolvedAt.HasValue){<div class="small">Giải quyết: @t.ResolvedAt.Value.ToString("dd/MM/yyyy HH:mm")</div>}
+            <div class="alert alert-info small mt-3 mb-0"><i class="bi bi-info-circle me-1"></i>Mỗi phiếu chỉ đánh giá một lần. Sau khi gửi, phiếu được đánh dấu đã đánh giá.</div>
+        </div></div>
+    </div>
+</div>

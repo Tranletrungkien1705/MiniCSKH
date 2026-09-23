@@ -1,0 +1,69 @@
+@model List<TicketRating>
+@{
+    ViewData["Title"] = "Đánh giá phiếu";
+    var stats = (RatingStats)ViewBag.Stats;
+    var type = (RateType?)ViewBag.Type;
+    var result = (RateResult?)ViewBag.Result;
+    var q = (string?)ViewBag.Q;
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div><h5 class="fw-bold mb-0"><i class="bi bi-star me-2"></i>Đánh giá phiếu</h5>
+        <small class="text-muted">Khách đánh giá phiếu đã xử lý &amp; agent kiểm soát lại</small></div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Lượt đánh giá</div><div class="fs-3 fw-bold">@stats.Rated</div></div>
+        <i class="bi bi-star fs-2 text-warning opacity-50"></i></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Điểm TB</div><div class="fs-3 fw-bold text-primary">@stats.AvgScore.ToString("0.0")<span class="fs-6 text-muted">/5</span></div></div>
+        <i class="bi bi-graph-up fs-2 text-primary opacity-50"></i></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Hài lòng</div><div class="fs-3 fw-bold text-success">@stats.Satisfied</div></div>
+        <i class="bi bi-emoji-smile fs-2 text-success opacity-50"></i></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Không hài lòng</div><div class="fs-3 fw-bold text-danger">@stats.Unsatisfied</div></div>
+        <i class="bi bi-emoji-frown fs-2 text-danger opacity-50"></i></div></div></div>
+</div>
+
+<div class="card mb-3"><div class="card-body">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-md-3"><label class="form-label small text-muted mb-1">Loại</label>
+            <select name="type" class="form-select form-select-sm">
+                <option value="">— Tất cả —</option>
+                @foreach (RateType t in Enum.GetValues<RateType>()){<option value="@t" selected="@(type==t)">@Ui.RateTypeName(t)</option>}
+            </select></div>
+        <div class="col-md-3"><label class="form-label small text-muted mb-1">Kết quả</label>
+            <select name="result" class="form-select form-select-sm">
+                <option value="">— Tất cả —</option>
+                @foreach (RateResult r in Enum.GetValues<RateResult>()){<option value="@r" selected="@(result==r)">@Ui.RateResultName(r)</option>}
+            </select></div>
+        <div class="col-md-4"><label class="form-label small text-muted mb-1">Tìm kiếm</label>
+            <input name="q" value="@q" class="form-control form-control-sm" placeholder="Mã phiếu / tiêu đề / người đánh giá" /></div>
+        <div class="col-md-2"><button class="btn btn-primary btn-sm w-100"><i class="bi bi-search me-1"></i>Lọc</button></div>
+    </form>
+</div></div>
+
+<div class="card"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
+    <thead><tr><th>Phiếu</th><th>Người đánh giá</th><th>Điểm</th><th>Kết quả</th><th>Loại</th><th>Trạng thái</th><th>Thời điểm</th><th></th></tr></thead>
+    <tbody>
+        @if(!Model.Any()){<tr><td colspan="8" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>Chưa có đánh giá nào</td></tr>}
+        @foreach (var r in Model)
+        {
+            <tr>
+                <td><a asp-controller="Ticket" asp-action="Details" asp-route-id="@r.TicketId" class="fw-semibold text-decoration-none">@r.Ticket.Code</a>
+                    <div class="small text-muted">@r.Ticket.Subject</div></td>
+                <td>@r.RatedBy</td>
+                <td><span class="text-warning">@r.Stars</span> <span class="small text-muted">@r.Score/5</span></td>
+                <td>@Html.Raw(Ui.RateResultBadge(r.Result))</td>
+                <td><span class="badge bg-secondary-subtle text-secondary border-secondary-subtle">@Ui.RateTypeName(r.RateType)</span></td>
+                <td>@Ui.RateStatusName(r.Status)</td>
+                <td class="small text-muted">@r.RatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                <td class="text-end">
+                    @if(r.Status != RateStatus.Reviewed){<a asp-action="Review" asp-route-id="@r.Id" class="btn btn-outline-primary btn-sm"><i class="bi bi-shield-check me-1"></i>Kiểm soát</a>}
+                    else{<span class="small text-muted"><i class="bi bi-check2-all me-1"></i>@r.ReviewedBy</span>}
+                </td>
+            </tr>
+        }
+    </tbody>
+</table></div></div>

@@ -65,6 +65,7 @@ public class Ticket : IOrgOwned
     public int? CategoryId { get; set; }
     public int? AssignedAgentId { get; set; }
     public int? SlaPolicyId { get; set; }         // chính sách SLA áp dụng
+    public bool FlagRated { get; set; }           // cờ đã đánh giá (ET_Ticket.FlagRated)
     public DateTime CreatedAt { get; set; } = DateTime.Now;
     public DateTime? DueAt { get; set; }          // hạn SLA
     public DateTime? FirstResponseAt { get; set; }
@@ -75,6 +76,7 @@ public class Ticket : IOrgOwned
     public Agent? AssignedAgent { get; set; }
     public SlaPolicy? SlaPolicy { get; set; }
     public List<TicketComment> Comments { get; set; } = [];
+    public List<TicketRating> Ratings { get; set; } = [];
 
     // ── tính toán ────────────────────────────────────────────────────
     public bool IsOpen => Status is not (TicketStatus.Resolved or TicketStatus.Closed or TicketStatus.Cancelled);
@@ -193,4 +195,41 @@ public class CampaignCustomer : IOrgOwned
 
     public Campaign Campaign { get; set; } = null!;
     public Agent? Agent { get; set; }
+}
+
+// ── Đánh giá phiếu (eTicket Rating / ET_TicketRated) ─────────────────
+// Khách đánh giá phiếu đã xử lý (RATE); agent kiểm soát lại đánh giá (REVIEW).
+// Theo SkyCS: ET_TicketRated (RateType RATE/REVIEW, RatedJsonInfo JSON chứa RATESTATUS/RATERESULT)
+// và cờ ET_Ticket.FlagRated (0/null = chưa đánh giá, 1 = đã đánh giá).
+
+/// <summary>Loại bản ghi đánh giá (SkyCS RateType).</summary>
+public enum RateType { Rate = 0, Review = 1 }
+
+/// <summary>Trạng thái đánh giá (RATESTATUS).</summary>
+public enum RateStatus { None = 0, Rated = 1, Reviewed = 2 }
+
+/// <summary>Kết quả đánh giá (RATERESULT).</summary>
+public enum RateResult { Satisfied = 0, Neutral = 1, Unsatisfied = 2 }
+
+/// <summary>Một lần đánh giá phiếu (ET_TicketRated). Mỗi phiếu lưu lịch sử nhiều lần đánh giá.</summary>
+public class TicketRating : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public int TicketId { get; set; }
+    public string FormCode { get; set; } = "SAT-STD";   // HstIdx — mã mẫu đánh giá
+    public int RateRound { get; set; } = 1;             // HstRate — lần đánh giá
+    public RateType RateType { get; set; } = RateType.Rate;
+    public RateStatus Status { get; set; } = RateStatus.Rated;   // RATESTATUS
+    public RateResult Result { get; set; } = RateResult.Satisfied; // RATERESULT
+    public int Score { get; set; } = 5;                 // điểm 1..5 (sao)
+    public string? Comment { get; set; }                // nội dung đánh giá
+    public string RatedBy { get; set; } = "";           // người đánh giá (RATEUSER)
+    public string? ReviewedBy { get; set; }             // agent kiểm soát (REVIEW)
+    public string? ReviewNote { get; set; }             // ghi chú kiểm soát
+    public DateTime RatedAt { get; set; } = DateTime.Now;
+
+    public Ticket Ticket { get; set; } = null!;
+
+    public string Stars => new string('★', Math.Clamp(Score, 0, 5)) + new string('☆', 5 - Math.Clamp(Score, 0, 5));
 }

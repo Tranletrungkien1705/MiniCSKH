@@ -20,6 +20,7 @@ public class AppDbContext : DbContext
     public DbSet<CallLog> Calls => Set<CallLog>();
     public DbSet<Campaign> Campaigns => Set<Campaign>();
     public DbSet<CampaignCustomer> CampaignCustomers => Set<CampaignCustomer>();
+    public DbSet<TicketRating> Ratings => Set<TicketRating>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -81,6 +82,13 @@ public class AppDbContext : DbContext
         {
             e.HasOne(x => x.Campaign).WithMany(x => x.Customers).HasForeignKey(x => x.CampaignId);
             e.HasOne(x => x.Agent).WithMany().HasForeignKey(x => x.AgentId);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<TicketRating>(e =>
+        {
+            e.Property(x => x.FormCode).HasMaxLength(30);
+            e.Ignore(x => x.Stars);
+            e.HasOne(x => x.Ticket).WithMany(x => x.Ratings).HasForeignKey(x => x.TicketId);
             e.HasQueryFilter(x => x.OrgId == _orgId);
         });
     }

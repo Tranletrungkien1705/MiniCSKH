@@ -102,5 +102,36 @@
                 @if(Model.ViolatesSla){<div class="small text-danger mt-2"><i class="bi bi-info-circle me-1"></i>@(Model.ViolatesFirstResponse?"Không đáp ứng SLA phản hồi đầu tiên. ":"")@(Model.ViolatesResolution?"Không đáp ứng SLA thời gian xử lý.":"")</div>}
             </div></div>
         }
+
+        <div class="card mt-3"><div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="text-muted small text-uppercase"><i class="bi bi-star me-1"></i>Đánh giá phiếu</div>
+                @if(Model.FlagRated){<span class="badge bg-success-subtle text-success border-success-subtle"><i class="bi bi-check-circle me-1"></i>Đã đánh giá</span>}
+                else{<span class="badge bg-secondary-subtle text-secondary border-secondary-subtle">Chưa đánh giá</span>}
+            </div>
+            @if(Model.Ratings.Any())
+            {
+                @foreach(var r in Model.Ratings.OrderByDescending(x => x.RatedAt))
+                {
+                    <div class="border-top pt-2 mt-2">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-warning">@r.Stars</span>
+                            @Html.Raw(Ui.RateResultBadge(r.Result))
+                        </div>
+                        <div class="small text-muted">@r.RatedBy · @r.RatedAt.ToString("dd/MM HH:mm") · @Ui.RateTypeName(r.RateType)</div>
+                        @if(!string.IsNullOrEmpty(r.Comment)){<div class="small">@r.Comment</div>}
+                        @if(r.Status == RateStatus.Reviewed){<div class="small text-success"><i class="bi bi-shield-check me-1"></i>Kiểm soát bởi @r.ReviewedBy</div>}
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="small text-muted mb-2">Phiếu chưa được khách đánh giá.</div>
+            }
+            @if(!Model.FlagRated)
+            {
+                <a asp-controller="Rating" asp-action="Rate" asp-route-ticketId="@Model.Id" class="btn btn-outline-primary btn-sm mt-2"><i class="bi bi-star me-1"></i>Đánh giá phiếu</a>
+            }
+        </div></div>
     </div>
 </div>
