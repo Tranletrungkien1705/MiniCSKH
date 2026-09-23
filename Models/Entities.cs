@@ -554,3 +554,47 @@ public class ReminderRule : IOrgOwned
         }
     }
 }
+
+// ── Danh mục phiếu (Mst_TicketStatus / Mst_TicketPriority / ──────────
+//    Mst_TicketSource / Mst_ReceptionChannel) ────────────────────────
+// Theo SkyCS: các bảng danh mục dùng chung cho eTicket đều có cùng bộ cột
+// (mã, tên cho agent, tên cho khách, FlagUseType, FlagActive, Remark).
+// Gộp 4 danh mục vào 1 bảng với Kind để dễ nhìn và quản trị tập trung.
+// (11.BackEnd/V10/idn.SkyCS.Biz/Master.cs, `Mst_TicketStatus_Save`/`_Get`,
+//  `Mst_TicketPriority_Save`, `Mst_TicketSource_Save`, `Mst_ReceptionChannel_Save`)
+
+/// <summary>Loại danh mục phiếu (bảng gốc bên SkyCS).</summary>
+public enum TicketCatalogKind { Status = 0, Priority = 1, Source = 2, ReceptionChannel = 3 }
+
+/// <summary>Phạm vi sử dụng (Mst_*.FlagUseType — TYPE1/TYPE2/TYPE3).</summary>
+public enum CatalogUseType { Type1 = 0, Type2 = 1, Type3 = 2 }
+
+/// <summary>
+/// Một dòng danh mục phiếu (gộp Mst_TicketStatus/TicketPriority/TicketSource/ReceptionChannel).
+/// Mỗi danh mục có mã (Code), tên hiển thị cho agent và cho khách hàng.
+/// </summary>
+public class TicketCatalog : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public TicketCatalogKind Kind { get; set; } = TicketCatalogKind.Status;  // bảng gốc
+    public string Code { get; set; } = "";            // TicketStatus/TicketPriority/TicketSource/ReceptionChannel
+    public string AgentName { get; set; } = "";        // Agent*Name — tên cho agent
+    public string CustomerName { get; set; } = "";     // Customer*Name — tên cho khách
+    public CatalogUseType UseType { get; set; } = CatalogUseType.Type2;  // FlagUseType
+    public bool IsActive { get; set; } = true;         // FlagActive
+    public string? Remark { get; set; }                // Remark
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // LogLUDTimeUTC
+    public string CreatedBy { get; set; } = "";        // LogLUBy
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+    // ── tính toán ────────────────────
+    public string KindName => Kind switch
+    {
+        TicketCatalogKind.Status => "Trạng thái phiếu",
+        TicketCatalogKind.Priority => "Mức ưu tiên",
+        TicketCatalogKind.Source => "Nguồn phiếu",
+        TicketCatalogKind.ReceptionChannel => "Kênh tiếp nhận",
+        _ => Kind.ToString()
+    };
+}

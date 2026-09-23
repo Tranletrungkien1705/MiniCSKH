@@ -364,6 +364,37 @@ public static class Seeder
             );
             await db.SaveChangesAsync();
         }
+
+        if (!await db.TicketCatalogs.AnyAsync())
+        {
+            // Giá trị mẫu theo seed thật của SkyCS (20231122.ScriptSkyCS.sql).
+            db.TicketCatalogs.AddRange(
+                // Trạng thái phiếu (Mst_TicketStatus)
+                new TicketCatalog { Kind = TicketCatalogKind.Status, Code = "NEW", AgentName = "Mới", CustomerName = "Mới", UseType = CatalogUseType.Type2, IsActive = true, CreatedBy = "Hệ thống" },
+                new TicketCatalog { Kind = TicketCatalogKind.Status, Code = "OPEN", AgentName = "Đang mở", CustomerName = "Đang mở", UseType = CatalogUseType.Type1, IsActive = true, CreatedBy = "Hệ thống" },
+                new TicketCatalog { Kind = TicketCatalogKind.Status, Code = "PROCESSING", AgentName = "Đang xử lý", CustomerName = "Đang xử lý", UseType = CatalogUseType.Type2, IsActive = true, CreatedBy = "Hệ thống" },
+                new TicketCatalog { Kind = TicketCatalogKind.Status, Code = "RESOLVED", AgentName = "Đã giải quyết", CustomerName = "Đã giải quyết", UseType = CatalogUseType.Type2, IsActive = true, CreatedBy = "Hệ thống" },
+                new TicketCatalog { Kind = TicketCatalogKind.Status, Code = "CLOSED", AgentName = "Đã đóng", CustomerName = "Đã đóng", UseType = CatalogUseType.Type1, IsActive = true, CreatedBy = "Hệ thống" },
+                new TicketCatalog { Kind = TicketCatalogKind.Status, Code = "WAITINGONCUSTOMER", AgentName = "Chờ khách phản hồi", CustomerName = "Đang chờ bạn trả lời", UseType = CatalogUseType.Type2, IsActive = true, CreatedBy = "Hệ thống" },
+                new TicketCatalog { Kind = TicketCatalogKind.Status, Code = "WAITINGON3RD", AgentName = "Chờ bên thứ 3", CustomerName = "Chờ bên thứ 3", UseType = CatalogUseType.Type2, IsActive = true, CreatedBy = "Hệ thống" },
+                // Mức ưu tiên (Mst_TicketPriority)
+                new TicketCatalog { Kind = TicketCatalogKind.Priority, Code = "LOW", AgentName = "Thấp", CustomerName = "Thấp", UseType = CatalogUseType.Type2, IsActive = true, CreatedBy = "Hệ thống" },
+                new TicketCatalog { Kind = TicketCatalogKind.Priority, Code = "NORMAL", AgentName = "Trung bình", CustomerName = "Trung bình", UseType = CatalogUseType.Type2, IsActive = true, CreatedBy = "Hệ thống" },
+                new TicketCatalog { Kind = TicketCatalogKind.Priority, Code = "HIGH", AgentName = "Cao", CustomerName = "Cao", UseType = CatalogUseType.Type2, IsActive = true, CreatedBy = "Hệ thống" },
+                new TicketCatalog { Kind = TicketCatalogKind.Priority, Code = "URGENT", AgentName = "Gấp", CustomerName = "Gấp", UseType = CatalogUseType.Type2, IsActive = true, CreatedBy = "Hệ thống" },
+                // Nguồn phiếu (Mst_TicketSource)
+                new TicketCatalog { Kind = TicketCatalogKind.Source, Code = "WEB", AgentName = "Cổng web", CustomerName = "Cổng web", UseType = CatalogUseType.Type2, IsActive = true, CreatedBy = "Hệ thống" },
+                new TicketCatalog { Kind = TicketCatalogKind.Source, Code = "MISSEDCALL", AgentName = "Cuộc gọi nhỡ", CustomerName = "Cuộc gọi nhỡ", UseType = CatalogUseType.Type1, IsActive = true, CreatedBy = "Hệ thống" },
+                new TicketCatalog { Kind = TicketCatalogKind.Source, Code = "MANUAL", AgentName = "Tạo thủ công", CustomerName = "Tạo thủ công", UseType = CatalogUseType.Type2, IsActive = false, Remark = "Nguồn cũ, đã ngừng dùng.", CreatedBy = "Hệ thống" },
+                // Kênh tiếp nhận (Mst_ReceptionChannel)
+                new TicketCatalog { Kind = TicketCatalogKind.ReceptionChannel, Code = "FACEBOOK", AgentName = "Facebook", CustomerName = "Facebook", UseType = CatalogUseType.Type2, IsActive = true, CreatedBy = "Hệ thống" },
+                new TicketCatalog { Kind = TicketCatalogKind.ReceptionChannel, Code = "ZALO", AgentName = "Zalo", CustomerName = "Zalo", UseType = CatalogUseType.Type2, IsActive = true, CreatedBy = "Hệ thống" },
+                new TicketCatalog { Kind = TicketCatalogKind.ReceptionChannel, Code = "EMAIL", AgentName = "Email", CustomerName = "Email", UseType = CatalogUseType.Type2, IsActive = true, CreatedBy = "Hệ thống" },
+                new TicketCatalog { Kind = TicketCatalogKind.ReceptionChannel, Code = "SMS", AgentName = "SMS", CustomerName = "SMS", UseType = CatalogUseType.Type2, IsActive = true, CreatedBy = "Hệ thống" },
+                new TicketCatalog { Kind = TicketCatalogKind.ReceptionChannel, Code = "CALL", AgentName = "Điện thoại", CustomerName = "Điện thoại", UseType = CatalogUseType.Type2, IsActive = true, CreatedBy = "Hệ thống" }
+            );
+            await db.SaveChangesAsync();
+        }
     }
 
     /// <summary>DB Postgres cloud cũ: tạo Orgs + thêm cột OrgId nếu thiếu, backfill về org mặc định. Idempotent.</summary>
@@ -371,7 +402,7 @@ public static class Seeder
     {
         if (!db.Database.IsNpgsql()) return;
         var def = TenantContext.DefaultOrgId;
-        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules" };
+        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs" };
         var sql = new List<string>
         {
             "CREATE TABLE IF NOT EXISTS minicskh.\"Orgs\" (\"Id\" uuid PRIMARY KEY, \"Name\" text NOT NULL DEFAULT '', \"ApiKey\" text NOT NULL DEFAULT '', \"CreatedAt\" timestamp NOT NULL DEFAULT now())",

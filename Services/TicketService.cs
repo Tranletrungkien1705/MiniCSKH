@@ -84,6 +84,12 @@ public interface ITicketService
     Task<int> ReminderRuleSaveAsync(ReminderRule model);
     Task ReminderRuleToggleAsync(int id);
     Task<ReminderStats> ReminderStatsAsync();
+    // Danh mục phiếu (Mst_TicketStatus/TicketPriority/TicketSource/ReceptionChannel)
+    Task<List<TicketCatalog>> TicketCatalogsAsync(TicketCatalogKind? kind, bool? active, string? q);
+    Task<TicketCatalog?> TicketCatalogGetAsync(int id);
+    Task<int> TicketCatalogSaveAsync(TicketCatalog model);
+    Task TicketCatalogToggleAsync(int id);
+    Task<TicketCatalogStats> TicketCatalogStatsAsync();
 }
 
 public record SlaStats(int Policies, int TicketsWithSla, int ViolatingFirstRes, int ViolatingResolution);
@@ -99,6 +105,8 @@ public record CustomerStats(int Total, int Active, int Business, int Individual,
 public record AllocateStats(int Total, int Active, int AssignAgent, int AllMissedCall, int Agents);
 
 public record ReminderStats(int Total, int Active, int System, int Email, int Sms, int Zalo);
+
+public record TicketCatalogStats(int Total, int Active, int Status, int Priority, int Source, int ReceptionChannel);
 
 public record TicketTypeStats(int Total, int Active, int ETicket, int Campaign);
 
@@ -744,5 +752,57 @@ public class TicketService(AppDbContext db) : ITicketService
             list.Count(r => r.NotifyEmail),
             list.Count(r => r.NotifySms),
             list.Count(r => r.NotifyZalo));
+    }
+
+    // ── Danh mục phiếu (Mst_TicketStatus/TicketPriority/TicketSource/ReceptionChannel) ──
+    public async Task<List<TicketCatalog>> TicketCatalogsAsync(TicketCatalogKind? kind, bool? active, string? q)
+    {
+        var query = db.TicketCatalogs.AsQueryable();
+        if (kind.HasValue) query = query.Where(c => c.Kind == kind.Value);
+        if (active.HasValue) query = query.Where(c => c.IsActive == active.Value);
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(c => c.Code.Contains(q) || c.AgentName.Contains(q) || c.CustomerName.Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderBy(c => c.Kind).ThenBy(c => c.Code).ToList();
+    }
+
+    public Task<TicketCatalog?> TicketCatalogGetAsync(int id) =>
+        db.TicketCatalogs.FirstOrDefaultAsync(c => c.Id == id);
+
+    public async Task<int> TicketCatalogSaveAsync(TicketCatalog model)
+    {
+        if (model.Id == 0)
+        {
+            if (string.IsNullOrWhiteSpace(model.Code)) model.Code = "CAT-" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+            model.CreatedAt = model.UpdatedAt = DateTime.Now;
+            db.TicketCatalogs.Add(model);
+            await db.SaveChangesAsync();
+            return model.Id;
+        }
+        var e = await db.TicketCatalogs.FirstOrDefaultAsync(x => x.Id == model.Id) ?? throw new KeyNotFoundException();
+        e.Kind = model.Kind; e.Code = model.Code; e.AgentName = model.AgentName; e.CustomerName = model.CustomerName;
+        e.UseType = model.UseType; e.IsActive = model.IsActive; e.Remark = model.Remark; e.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
+    public async Task TicketCatalogToggleAsync(int id)
+    {
+        var c = await db.TicketCatalogs.FirstOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException();
+        c.IsActive = !c.IsActive;
+        c.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<TicketCatalogStats> TicketCatalogStatsAsync()
+    {
+        var list = await db.TicketCatalogs.ToListAsync();
+        return new TicketCatalogStats(
+            list.Count,
+            list.Count(c => c.IsActive),
+            list.Count(c => c.Kind == TicketCatalogKind.Status),
+            list.Count(c => c.Kind == TicketCatalogKind.Priority),
+            list.Count(c => c.Kind == TicketCatalogKind.Source),
+            list.Count(c => c.Kind == TicketCatalogKind.ReceptionChannel));
     }
 }

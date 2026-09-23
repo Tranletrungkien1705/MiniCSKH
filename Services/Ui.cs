@@ -171,4 +171,29 @@ public static class Ui
     };
     public static string RemindChannelBadge(RemindChannel c) =>
         $"<span class='badge bg-{RemindChannelColor(c)}-subtle text-{RemindChannelColor(c)} border-{RemindChannelColor(c)}-subtle'><i class='bi {RemindChannelIcon(c)} me-1'></i>{RemindChannelName(c)}</span>";
+
+    // ── Danh mục phiếu (Mst_TicketStatus/TicketPriority/TicketSource/ReceptionChannel) ──
+    public static string CatalogKindName(TicketCatalogKind k) => k switch
+    {
+        TicketCatalogKind.Status => "Trạng thái phiếu", TicketCatalogKind.Priority => "Mức ưu tiên",
+        TicketCatalogKind.Source => "Nguồn phiếu", TicketCatalogKind.ReceptionChannel => "Kênh tiếp nhận", _ => k.ToString()
+    };
+    public static string CatalogKindColor(TicketCatalogKind k) => k switch
+    {
+        TicketCatalogKind.Status => "primary", TicketCatalogKind.Priority => "warning",
+        TicketCatalogKind.Source => "info", TicketCatalogKind.ReceptionChannel => "success", _ => "secondary"
+    };
+    public static string CatalogKindIcon(TicketCatalogKind k) => k switch
+    {
+        TicketCatalogKind.Status => "bi-flag", TicketCatalogKind.Priority => "bi-exclamation-triangle",
+        TicketCatalogKind.Source => "bi-signpost-split", TicketCatalogKind.ReceptionChannel => "bi-inboxes", _ => "bi-tag"
+    };
+    public static string CatalogKindBadge(TicketCatalogKind k) =>
+        $"<span class='badge bg-{CatalogKindColor(k)}-subtle text-{CatalogKindColor(k)} border-{CatalogKindColor(k)}-subtle'><i class='bi {CatalogKindIcon(k)} me-1'></i>{CatalogKindName(k)}</span>";
+
+    public static string CatalogUseTypeName(CatalogUseType t) => t switch
+    {
+        CatalogUseType.Type1 => "Loại 1 (TYPE1)", CatalogUseType.Type2 => "Loại 2 (TYPE2)",
+        CatalogUseType.Type3 => "Loại 3 (TYPE3)", _ => t.ToString()
+    };
 }

@@ -33,6 +33,7 @@ public class AppDbContext : DbContext
     public DbSet<AllocateRule> AllocateRules => Set<AllocateRule>();
     public DbSet<AllocateAgent> AllocateAgents => Set<AllocateAgent>();
     public DbSet<ReminderRule> ReminderRules => Set<ReminderRule>();
+    public DbSet<TicketCatalog> TicketCatalogs => Set<TicketCatalog>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -195,6 +196,15 @@ public class AppDbContext : DbContext
             e.HasIndex(x => x.EstablishId);
             e.Ignore(x => x.ChannelCount);
             e.Ignore(x => x.Channels);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<TicketCatalog>(e =>
+        {
+            e.Property(x => x.Code).HasMaxLength(50);
+            e.Property(x => x.AgentName).HasMaxLength(200);
+            e.Property(x => x.CustomerName).HasMaxLength(200);
+            e.HasIndex(x => new { x.Kind, x.Code });
+            e.Ignore(x => x.KindName);
             e.HasQueryFilter(x => x.OrgId == _orgId);
         });
     }
