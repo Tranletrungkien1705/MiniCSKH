@@ -120,6 +120,12 @@ public interface ITicketService
     Task<int> ReceiveNotifySaveAsync(ReceiveNotify model);
     Task ReceiveNotifyDeleteAsync(int id);
     Task<ReceiveNotifyStats> ReceiveNotifyStatsAsync();
+    // Danh mục địa chỉ (Mst_Province/Mst_District/Mst_Ward)
+    Task<List<Address>> AddressesAsync(AddressLevel? level, bool? active, string? parentCode, string? q);
+    Task<Address?> AddressGetAsync(int id);
+    Task<int> AddressSaveAsync(Address model);
+    Task AddressToggleAsync(int id);
+    Task<AddressStats> AddressStatsAsync();
 }
 
 public record SlaStats(int Policies, int TicketsWithSla, int ViolatingFirstRes, int ViolatingResolution);
@@ -147,6 +153,8 @@ public record AreaStats(int Total, int Active, int Root, int Child, int MaxLevel
 public record TagStats(int Total, int Active, int WithSlug, int Inactive);
 
 public record ReceiveNotifyStats(int Total, int WithName, int WithRemark, int DistinctAgents);
+
+public record AddressStats(int Total, int Active, int Provinces, int Districts, int Wards);
 
 public record TicketTypeStats(int Total, int Active, int ETicket, int Campaign);
 
@@ -1103,5 +1111,58 @@ public class TicketService(AppDbContext db) : ITicketService
             list.Count(r => !string.IsNullOrWhiteSpace(r.AgentName)),
             list.Count(r => !string.IsNullOrWhiteSpace(r.Remark)),
             list.Select(r => r.AgentCode).Distinct().Count());
+    }
+
+    // ── Danh mục địa chỉ (Mst_Province/Mst_District/Mst_Ward) ────────
+    public async Task<List<Address>> AddressesAsync(AddressLevel? level, bool? active, string? parentCode, string? q)
+    {
+        var query = db.Addresses.AsQueryable();
+        if (level.HasValue) query = query.Where(a => a.Level == level.Value);
+        if (active.HasValue) query = query.Where(a => a.IsActive == active.Value);
+        if (!string.IsNullOrWhiteSpace(parentCode)) query = query.Where(a => a.ParentCode == parentCode);
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(a => a.Code.Contains(q) || a.Name.Contains(q) || (a.ParentCode ?? "").Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderBy(a => a.Level).ThenBy(a => a.Code).ToList();
+    }
+
+    public Task<Address?> AddressGetAsync(int id) =>
+        db.Addresses.FirstOrDefaultAsync(a => a.Id == id);
+
+    public async Task<int> AddressSaveAsync(Address model)
+    {
+        if (model.Id == 0)
+        {
+            if (string.IsNullOrWhiteSpace(model.Code)) model.Code = "AD-" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+            model.CreatedAt = model.UpdatedAt = DateTime.Now;
+            db.Addresses.Add(model);
+            await db.SaveChangesAsync();
+            return model.Id;
+        }
+        var e = await db.Addresses.FirstOrDefaultAsync(x => x.Id == model.Id) ?? throw new KeyNotFoundException();
+        e.Level = model.Level; e.Code = model.Code; e.Name = model.Name; e.ParentCode = model.ParentCode;
+        e.PostCode = model.PostCode; e.CountryCode = model.CountryCode;
+        e.IsActive = model.IsActive; e.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
+    public async Task AddressToggleAsync(int id)
+    {
+        var a = await db.Addresses.FirstOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException();
+        a.IsActive = !a.IsActive;
+        a.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<AddressStats> AddressStatsAsync()
+    {
+        var list = await db.Addresses.ToListAsync();
+        return new AddressStats(
+            list.Count,
+            list.Count(a => a.IsActive),
+            list.Count(a => a.Level == AddressLevel.Province),
+            list.Count(a => a.Level == AddressLevel.District),
+            list.Count(a => a.Level == AddressLevel.Ward));
     }
 }

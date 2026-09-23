@@ -227,4 +227,21 @@ public static class Ui
     // ── Người nhận thông báo phiếu (Mst_EstablishReceiveNotifyETicket) ──
     public static string AgentBadge(string code, string? name) =>
         $"<span class='badge bg-primary-subtle text-primary border-primary-subtle'><i class='bi bi-person-badge me-1'></i>{(string.IsNullOrWhiteSpace(name) ? code : name)}</span>";
+
+    // ── Danh mục địa chỉ (Mst_Province/Mst_District/Mst_Ward) ──
+    public static string AddressLevelName(AddressLevel l) => l switch
+    {
+        AddressLevel.Province => "Tỉnh / Thành phố", AddressLevel.District => "Quận / Huyện",
+        AddressLevel.Ward => "Phường / Xã", _ => l.ToString()
+    };
+    public static string AddressLevelColor(AddressLevel l) => l switch
+    {
+        AddressLevel.Province => "primary", AddressLevel.District => "info", AddressLevel.Ward => "success", _ => "secondary"
+    };
+    public static string AddressLevelIcon(AddressLevel l) => l switch
+    {
+        AddressLevel.Province => "bi-building", AddressLevel.District => "bi-geo-alt", AddressLevel.Ward => "bi-pin-map", _ => "bi-tag"
+    };
+    public static string AddressLevelBadge(AddressLevel l) =>
+        $"<span class='badge bg-{AddressLevelColor(l)}-subtle text-{AddressLevelColor(l)} border-{AddressLevelColor(l)}-subtle'><i class='bi {AddressLevelIcon(l)} me-1'></i>{AddressLevelName(l)}</span>";
 }

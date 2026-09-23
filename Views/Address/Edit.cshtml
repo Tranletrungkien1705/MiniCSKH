@@ -1,0 +1,47 @@
+@model Address
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Thêm địa chỉ" : "Sửa địa chỉ";
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Danh mục địa chỉ</a>
+        <h5 class="fw-bold mb-0 mt-1">@ViewData["Title"]</h5>
+    </div>
+</div>
+
+<form asp-action="Save" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="Id" value="@Model.Id" />
+
+    <div class="card mb-3"><div class="card-body">
+        <h6 class="fw-bold mb-3"><i class="bi bi-info-circle me-1"></i>Thông tin địa chỉ</h6>
+        <div class="row g-3">
+            <div class="col-md-4"><label class="form-label small">Cấp địa chỉ <span class="text-danger">*</span></label>
+                <select name="Level" class="form-select form-select-sm">
+                    <option value="0" selected="@(Model.Level==AddressLevel.Province)">Tỉnh / Thành phố (Mst_Province)</option>
+                    <option value="1" selected="@(Model.Level==AddressLevel.District)">Quận / Huyện (Mst_District)</option>
+                    <option value="2" selected="@(Model.Level==AddressLevel.Ward)">Phường / Xã (Mst_Ward)</option>
+                </select></div>
+            <div class="col-md-4"><label class="form-label small">Mã địa chỉ (Code) <span class="text-danger">*</span></label>
+                <input name="Code" value="@Model.Code" class="form-control form-control-sm" placeholder="VD: 01" required />
+                <div class="form-text">Để trống sẽ tự sinh mã.</div></div>
+            <div class="col-md-4"><label class="form-label small">Tên địa chỉ (Name) <span class="text-danger">*</span></label>
+                <input name="Name" value="@Model.Name" class="form-control form-control-sm" placeholder="VD: TP. Hà Nội" required /></div>
+            <div class="col-md-4"><label class="form-label small">Cấp trên (ParentCode)</label>
+                <input name="ParentCode" value="@Model.ParentCode" class="form-control form-control-sm" placeholder="ProvinceCode (Quận) / DistrictCode (Phường)" />
+                <div class="form-text">Bắt buộc với Quận/Huyện và Phường/Xã.</div></div>
+            <div class="col-md-4"><label class="form-label small">Mã bưu chính (PostCode)</label>
+                <input name="PostCode" value="@Model.PostCode" class="form-control form-control-sm" placeholder="Mã bưu chính" /></div>
+            <div class="col-md-4"><label class="form-label small">Mã quốc gia (CountryCode)</label>
+                <input name="CountryCode" value="@Model.CountryCode" class="form-control form-control-sm" placeholder="VD: VN" /></div>
+            <div class="col-12"><div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="IsActive" value="true" id="isActive" @(Model.IsActive ? "checked" : "") />
+                <label class="form-check-label small" for="isActive">Đang dùng (FlagActive)</label></div></div>
+        </div>
+    </div></div>
+
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary btn-sm"><i class="bi bi-check-lg me-1"></i>Lưu địa chỉ</button>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Hủy</a>
+    </div>
+</form>

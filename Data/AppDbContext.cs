@@ -40,6 +40,7 @@ public class AppDbContext : DbContext
     public DbSet<Area> Areas => Set<Area>();
     public DbSet<Tag> Tags => Set<Tag>();
     public DbSet<ReceiveNotify> ReceiveNotifies => Set<ReceiveNotify>();
+    public DbSet<Address> Addresses => Set<Address>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -267,6 +268,18 @@ public class AppDbContext : DbContext
             e.Property(x => x.AgentName).HasMaxLength(200);
             e.HasIndex(x => x.AgentCode);
             e.Ignore(x => x.DisplayName);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<Address>(e =>
+        {
+            e.Property(x => x.Code).HasMaxLength(50);
+            e.Property(x => x.Name).HasMaxLength(200);
+            e.Property(x => x.ParentCode).HasMaxLength(50);
+            e.Property(x => x.PostCode).HasMaxLength(20);
+            e.Property(x => x.CountryCode).HasMaxLength(20);
+            e.HasIndex(x => new { x.Level, x.Code });
+            e.Ignore(x => x.LevelName);
+            e.Ignore(x => x.IsRoot);
             e.HasQueryFilter(x => x.OrgId == _orgId);
         });
     }

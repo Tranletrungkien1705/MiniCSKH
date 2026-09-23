@@ -486,6 +486,29 @@ public static class Seeder
             );
             await db.SaveChangesAsync();
         }
+
+        if (!await db.Addresses.AnyAsync())
+        {
+            // Danh mục địa chỉ 3 cấp (Mst_Province/Mst_District/Mst_Ward) — mẫu demo.
+            db.Addresses.AddRange(
+                // Tỉnh / Thành phố (Mst_Province)
+                new Address { Level = AddressLevel.Province, Code = "01", Name = "TP. Hà Nội", PostCode = "100000", CountryCode = "VN", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-60), UpdatedAt = DateTime.Now.AddDays(-10) },
+                new Address { Level = AddressLevel.Province, Code = "79", Name = "TP. Hồ Chí Minh", PostCode = "700000", CountryCode = "VN", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-60), UpdatedAt = DateTime.Now.AddDays(-8) },
+                new Address { Level = AddressLevel.Province, Code = "48", Name = "TP. Đà Nẵng", PostCode = "500000", CountryCode = "VN", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-55), UpdatedAt = DateTime.Now.AddDays(-6) },
+                new Address { Level = AddressLevel.Province, Code = "92", Name = "TP. Cần Thơ (ngừng dùng)", PostCode = "900000", CountryCode = "VN", IsActive = false, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-90), UpdatedAt = DateTime.Now.AddDays(-40) },
+                // Quận / Huyện (Mst_District)
+                new Address { Level = AddressLevel.District, Code = "001", Name = "Quận Hoàn Kiếm", ParentCode = "01", PostCode = "110000", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-50), UpdatedAt = DateTime.Now.AddDays(-5) },
+                new Address { Level = AddressLevel.District, Code = "002", Name = "Quận Ba Đình", ParentCode = "01", PostCode = "111000", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-50), UpdatedAt = DateTime.Now.AddDays(-5) },
+                new Address { Level = AddressLevel.District, Code = "760", Name = "Quận 1", ParentCode = "79", PostCode = "710000", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-48), UpdatedAt = DateTime.Now.AddDays(-4) },
+                new Address { Level = AddressLevel.District, Code = "761", Name = "Quận 3", ParentCode = "79", PostCode = "711000", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-48), UpdatedAt = DateTime.Now.AddDays(-4) },
+                // Phường / Xã (Mst_Ward)
+                new Address { Level = AddressLevel.Ward, Code = "00001", Name = "Phường Hàng Bạc", ParentCode = "001", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-40), UpdatedAt = DateTime.Now.AddDays(-3) },
+                new Address { Level = AddressLevel.Ward, Code = "00002", Name = "Phường Hàng Đào", ParentCode = "001", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-40), UpdatedAt = DateTime.Now.AddDays(-3) },
+                new Address { Level = AddressLevel.Ward, Code = "00003", Name = "Phường Bến Nghé", ParentCode = "760", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-38), UpdatedAt = DateTime.Now.AddDays(-2) },
+                new Address { Level = AddressLevel.Ward, Code = "00004", Name = "Phường Cũ (ngừng dùng)", ParentCode = "760", IsActive = false, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-80), UpdatedAt = DateTime.Now.AddDays(-50) }
+            );
+            await db.SaveChangesAsync();
+        }
     }
 
     /// <summary>DB Postgres cloud cũ: tạo Orgs + thêm cột OrgId nếu thiếu, backfill về org mặc định. Idempotent.</summary>
@@ -493,7 +516,7 @@ public static class Seeder
     {
         if (!db.Database.IsNpgsql()) return;
         var def = TenantContext.DefaultOrgId;
-        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags", "ReceiveNotifies" };
+        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags", "ReceiveNotifies", "Addresses" };
         var sql = new List<string>
         {
             "CREATE TABLE IF NOT EXISTS minicskh.\"Orgs\" (\"Id\" uuid PRIMARY KEY, \"Name\" text NOT NULL DEFAULT '', \"ApiKey\" text NOT NULL DEFAULT '', \"CreatedAt\" timestamp NOT NULL DEFAULT now())",

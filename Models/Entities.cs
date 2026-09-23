@@ -779,3 +779,45 @@ public class ReceiveNotify : IOrgOwned
     // ── tính toán ────────────────────
     public string DisplayName => string.IsNullOrWhiteSpace(AgentName) ? AgentCode : AgentName!;
 }
+
+// ── Danh mục địa chỉ (Mst_Province / Mst_District / Mst_Ward) ────────
+// Theo SkyCS: danh mục địa chỉ hành chính 3 cấp — Tỉnh/Thành (Mst_Province),
+// Quận/Huyện (Mst_District, thuộc 1 tỉnh) và Phường/Xã (Mst_Ward, thuộc 1
+// quận/huyện). Là master data nền cho địa chỉ khách hàng (Mst_Customer.
+// ProvinceCode/DistrictCode) và giao hàng.
+// (11.BackEnd/V10/idn.SkyCS.Biz/Master.cs, `Mst_Province_Get`/`Mst_District_Get`/
+//  `Mst_Ward_Get`; models 12.Dev.Common/idn.SkyCS.Common/Models/Mst_Province.cs,
+//  Mst_District.cs, CustomerCentrer/Mst_Ward.cs)
+
+/// <summary>Cấp địa chỉ hành chính (bảng gốc bên SkyCS).</summary>
+public enum AddressLevel { Province = 0, District = 1, Ward = 2 }
+
+/// <summary>
+/// Một dòng danh mục địa chỉ (gộp Mst_Province/Mst_District/Mst_Ward).
+/// Mỗi cấp có mã riêng; District/Ward gắn mã cấp trên (ParentCode) để tạo phân cấp.
+/// </summary>
+public class Address : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public AddressLevel Level { get; set; } = AddressLevel.Province;  // bảng gốc
+    public string Code { get; set; } = "";              // ProvinceCode/DistrictCode/WardCode
+    public string Name { get; set; } = "";              // ProvinceName/DistrictName/WardName
+    public string? ParentCode { get; set; }             // ProvinceCode (District) / DistrictCode (Ward)
+    public string? PostCode { get; set; }               // PostCode (Province/District)
+    public string? CountryCode { get; set; }            // CountryCode (Province)
+    public bool IsActive { get; set; } = true;          // FlagActive
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // LogLUDTimeUTC
+    public string CreatedBy { get; set; } = "";         // LogLUBy
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+    // ── tính toán ────────────────────
+    public string LevelName => Level switch
+    {
+        AddressLevel.Province => "Tỉnh / Thành phố",
+        AddressLevel.District => "Quận / Huyện",
+        AddressLevel.Ward => "Phường / Xã",
+        _ => Level.ToString()
+    };
+    public bool IsRoot => Level == AddressLevel.Province;
+}
