@@ -170,6 +170,12 @@ public interface ITicketService
     Task<int> GovIDTypeSaveAsync(GovIDType model);
     Task GovIDTypeToggleAsync(int id);
     Task<GovIDTypeStats> GovIDTypeStatsAsync();
+    // Quốc gia (Mst_Country)
+    Task<List<Country>> CountriesAsync(bool? active, string? q);
+    Task<Country?> CountryGetAsync(int id);
+    Task<int> CountrySaveAsync(Country model);
+    Task CountryToggleAsync(int id);
+    Task<CountryStats> CountryStatsAsync();
 }
 
 public record SlaStats(int Policies, int TicketsWithSla, int ViolatingFirstRes, int ViolatingResolution);
@@ -213,6 +219,8 @@ public record TaxpayerStats(int Total, int Active, int Registered, int Cancelled
 public record CampaignTypeStats(int Total, int Active, int WithColumns, int WithFeedbacks, int Columns, int Feedbacks);
 
 public record GovIDTypeStats(int Total, int Active, int Inactive, int WithRemark);
+
+public record CountryStats(int Total, int Active, int Inactive, int WithPostCode);
 
 public record TicketTypeStats(int Total, int Active, int ETicket, int Campaign);
 
@@ -1718,5 +1726,54 @@ public class TicketService(AppDbContext db) : ITicketService
             list.Count(t => t.IsActive),
             list.Count(t => !t.IsActive),
             list.Count(t => !string.IsNullOrWhiteSpace(t.Remark)));
+    }
+
+    // ── Quốc gia (Mst_Country) ───────────────────────
+    public async Task<List<Country>> CountriesAsync(bool? active, string? q)
+    {
+        var query = db.Countries.AsQueryable();
+        if (active.HasValue) query = query.Where(c => c.IsActive == active.Value);
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(c => c.Code.Contains(q) || c.Name.Contains(q) || (c.PostCode ?? "").Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderBy(c => c.Code).ToList();
+    }
+
+    public Task<Country?> CountryGetAsync(int id) =>
+        db.Countries.FirstOrDefaultAsync(c => c.Id == id);
+
+    public async Task<int> CountrySaveAsync(Country model)
+    {
+        if (model.Id == 0)
+        {
+            if (string.IsNullOrWhiteSpace(model.Code)) model.Code = "CTRY-" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+            model.CreatedAt = model.UpdatedAt = DateTime.Now;
+            db.Countries.Add(model);
+            await db.SaveChangesAsync();
+            return model.Id;
+        }
+        var e = await db.Countries.FirstOrDefaultAsync(x => x.Id == model.Id) ?? throw new KeyNotFoundException();
+        e.Code = model.Code; e.Name = model.Name; e.PostCode = model.PostCode;
+        e.IsActive = model.IsActive; e.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
+    public async Task CountryToggleAsync(int id)
+    {
+        var c = await db.Countries.FirstOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException();
+        c.IsActive = !c.IsActive;
+        c.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<CountryStats> CountryStatsAsync()
+    {
+        var list = await db.Countries.ToListAsync();
+        return new CountryStats(
+            list.Count,
+            list.Count(c => c.IsActive),
+            list.Count(c => !c.IsActive),
+            list.Count(c => !string.IsNullOrWhiteSpace(c.PostCode)));
     }
 }

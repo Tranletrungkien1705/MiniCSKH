@@ -1,0 +1,55 @@
+@model List<Country>
+@{
+    ViewData["Title"] = "Quốc gia";
+    var stats = (CountryStats)ViewBag.Stats;
+    var active = (bool?)ViewBag.Active;
+    var q = (string?)ViewBag.Q;
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div><h5 class="fw-bold mb-0"><i class="bi bi-globe me-2"></i>Quốc gia</h5>
+        <small class="text-muted">Danh mục quốc gia/vùng lãnh thổ kèm mã bưu chính (Mst_Country)</small></div>
+    <a asp-action="Create" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Thêm quốc gia</a>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Tổng quốc gia</div><div class="fs-3 fw-bold">@stats.Total</div></div>
+        <i class="bi bi-globe fs-2 text-primary opacity-50"></i></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Đang dùng</div><div class="fs-3 fw-bold text-success">@stats.Active</div></div>
+        <i class="bi bi-check-circle fs-2 text-success opacity-50"></i></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Ngừng dùng</div><div class="fs-3 fw-bold text-secondary">@stats.Inactive</div></div>
+        <i class="bi bi-slash-circle fs-2 text-secondary opacity-50"></i></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Có mã bưu chính</div><div class="fs-3 fw-bold text-info">@stats.WithPostCode</div></div>
+        <i class="bi bi-mailbox fs-2 text-info opacity-50"></i></div></div></div>
+</div>
+
+<form method="get" class="card p-3 mb-3"><div class="row g-2 align-items-end">
+    <div class="col"><label class="form-label small mb-1">Tìm</label><input name="q" value="@q" class="form-control form-control-sm" placeholder="Mã / tên quốc gia / mã bưu chính" /></div>
+    <div class="col-auto"><label class="form-label small mb-1">Trạng thái</label>
+        <select name="active" class="form-select form-select-sm">
+            <option value="">— Tất cả —</option>
+            <option value="true" selected="@(active==true)">Đang dùng</option>
+            <option value="false" selected="@(active==false)">Ngừng dùng</option>
+        </select></div>
+    <div class="col-auto"><button class="btn btn-outline-primary btn-sm">Lọc</button> <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Xóa</a></div>
+</div></form>
+
+<div class="card"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
+    <thead><tr><th>Mã</th><th>Tên quốc gia</th><th>Mã bưu chính</th><th>Trạng thái</th><th></th></tr></thead>
+    <tbody>
+        @if(!Model.Any()){<tr><td colspan="5" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>Chưa có quốc gia</td></tr>}
+        @foreach (var c in Model)
+        {
+            <tr style="cursor:pointer" onclick="location.href='/Country/Details/@c.Id'">
+                <td><span class="font-monospace small fw-semibold"><i class="bi @Ui.CountryIcon(c.Code) me-1"></i>@c.Code</span></td>
+                <td class="fw-semibold">@c.Name</td>
+                <td class="small">@c.PostCodeText</td>
+                <td>@Html.Raw(Ui.CountryActiveBadge(c.IsActive))</td>
+                <td class="text-end"><a asp-action="Edit" asp-route-id="@c.Id" class="btn btn-outline-primary btn-sm" onclick="event.stopPropagation()"><i class="bi bi-pencil me-1"></i>Sửa</a></td>
+            </tr>
+        }
+    </tbody>
+</table></div></div>

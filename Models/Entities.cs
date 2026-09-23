@@ -1221,3 +1221,32 @@ public class GovIDType : IOrgOwned
     public string CreatedBy { get; set; } = "";         // LogLUBy
     public DateTime UpdatedAt { get; set; } = DateTime.Now;
 }
+
+// ── Quốc gia (Mst_Country) ───────────────────────────
+// Theo SkyCS: "quốc gia" (Mst_Country) là master data nền của Trung tâm
+// khách hàng — danh mục quốc gia/vùng lãnh thổ kèm mã bưu chính mặc định.
+// Được tham chiếu bởi địa chỉ hành chính (Mst_Province.CountryCode) và
+// hồ sơ khách hàng. Mỗi quốc gia có mã (CountryCode), tên (CountryName),
+// mã bưu chính (PostCode) và trạng thái hoạt động (FlagActive).
+// (11.BackEnd/V10/idn.SkyCS.Biz/Master.cs, `Mst_Country_Get`;
+//  model 12.Dev.Common/idn.SkyCS.Common/Models/Mst_Country.cs;
+//  controller 13.ClientGate/V20/idn.SkyCS.WebAPI/Controllers/MstCountryController.cs;
+//  cột xác nhận qua TblMst_Country trong Const.Main.cs)
+
+/// <summary>Quốc gia (Mst_Country) — danh mục quốc gia/vùng lãnh thổ, có mã bưu chính.</summary>
+public class Country : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string Code { get; set; } = "";              // CountryCode — mã quốc gia
+    public string Name { get; set; } = "";              // CountryName — tên quốc gia
+    public string? PostCode { get; set; }               // PostCode — mã bưu chính mặc định
+    public bool IsActive { get; set; } = true;          // FlagActive
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // LogLUDTimeUTC
+    public string CreatedBy { get; set; } = "";         // LogLUBy
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+    // ── tính toán ────────────────────
+    /// <summary>Mã bưu chính hiển thị (dùng cho view).</summary>
+    public string PostCodeText => string.IsNullOrWhiteSpace(PostCode) ? "—" : PostCode!;
+}

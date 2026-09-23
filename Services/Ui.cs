@@ -352,4 +352,19 @@ public static class Ui
         "BANGLAIXE" => "bi-car-front",
         _ => "bi-card-text"
     };
+
+    // ── Quốc gia (Mst_Country) ──
+    public static string CountryActiveBadge(bool active) => active
+        ? "<span class='badge bg-success-subtle text-success border-success-subtle'>Đang dùng</span>"
+        : "<span class='badge bg-secondary-subtle text-secondary border-secondary-subtle'>Ngừng dùng</span>";
+    public static string CountryIcon(string code) => code.ToUpperInvariant() switch
+    {
+        "VN" => "bi-flag",
+        "US" => "bi-globe-americas",
+        "JP" => "bi-globe-asia-australia",
+        "KR" => "bi-globe-asia-australia",
+        "CN" => "bi-globe-asia-australia",
+        "SG" => "bi-globe-asia-australia",
+        _ => "bi-globe"
+    };
 }
