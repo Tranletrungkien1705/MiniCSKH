@@ -1,0 +1,86 @@
+@model CampaignType
+@{
+    ViewData["Title"] = "Chi tiết loại chiến dịch";
+    var usage = (int)ViewBag.Usage;
+}
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Loại chiến dịch</a>
+        <h5 class="fw-bold mb-1 mt-1">@Model.Name
+            @if(Model.IsActive){<span class="badge bg-success-subtle text-success border-success-subtle">Đang dùng</span>}
+            else{<span class="badge bg-secondary-subtle text-secondary border-secondary-subtle">Ngừng dùng</span>}</h5>
+        <div class="text-muted small"><span class="font-monospace">@Model.Code</span> · tạo @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil me-1"></i>Sửa</a>
+        <form asp-action="Toggle" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <button class="btn btn-sm @(Model.IsActive?"btn-outline-secondary":"btn-primary")">
+                <i class="bi bi-toggle-@(Model.IsActive?"off":"on") me-1"></i>@(Model.IsActive?"Ngừng dùng":"Kích hoạt")</button>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Trường tùy chỉnh</div><div class="fs-3 fw-bold">@Model.ColumnCount</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Bắt buộc</div><div class="fs-3 fw-bold text-warning">@Model.RequiredColumnCount</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Phản hồi KH</div><div class="fs-3 fw-bold text-info">@Model.FeedbackCount</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Chiến dịch đang dùng</div><div class="fs-3 fw-bold @(usage>0?"text-primary":"text-muted")">@usage</div></div></div></div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.Description))
+{
+    <div class="alert alert-light border"><i class="bi bi-info-circle me-1"></i>@Model.Description</div>
+}
+@if (usage > 0)
+{
+    <div class="alert alert-warning border"><i class="bi bi-exclamation-triangle me-1"></i>
+        Loại chiến dịch này đang được <b>@usage</b> chiến dịch sử dụng — không thể xóa (theo SkyCS <span class="font-monospace">Mst_CampaignType_SaveX</span>).</div>
+}
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card"><div class="card-body">
+            <h6 class="fw-bold mb-3"><i class="bi bi-input-cursor-text me-1"></i>Trường tùy chỉnh (Mst_CustomColumnCampaignType)</h6>
+            <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+                <thead><tr><th style="width:50px">#</th><th>Trường</th><th>Kiểu</th><th>Bắt buộc</th></tr></thead>
+                <tbody>
+                    @if(!Model.Columns.Any()){<tr><td colspan="4" class="text-center text-muted py-4">Chưa có trường tùy chỉnh</td></tr>}
+                    @foreach (var c in Model.Columns.OrderBy(x => x.Order))
+                    {
+                        <tr>
+                            <td class="text-muted">@c.Order</td>
+                            <td><i class="bi @Ui.SurveyFieldTypeIcon(c.FieldType) me-1 text-muted"></i>@c.Name
+                                <div class="small text-muted font-monospace">@c.Code</div></td>
+                            <td><span class="badge bg-light text-dark border">@Ui.SurveyFieldTypeName(c.FieldType)</span></td>
+                            <td>@if(c.IsRequired){<i class="bi bi-check-circle-fill text-warning"></i>}else{<span class="text-muted">—</span>}</td>
+                        </tr>
+                    }
+                </tbody>
+            </table></div>
+        </div></div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card"><div class="card-body">
+            <h6 class="fw-bold mb-3"><i class="bi bi-chat-left-quote me-1"></i>Phản hồi khách hàng (Mst_CustomerFeedBack)</h6>
+            <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Mã</th><th>Tên phản hồi</th></tr></thead>
+                <tbody>
+                    @if(!Model.Feedbacks.Any()){<tr><td colspan="2" class="text-center text-muted py-4">Chưa có phản hồi</td></tr>}
+                    @foreach (var f in Model.Feedbacks)
+                    {
+                        <tr>
+                            <td><span class="font-monospace small">@f.Code</span></td>
+                            <td><i class="bi bi-chat-dots me-1 text-muted"></i>@f.Name</td>
+                        </tr>
+                    }
+                </tbody>
+            </table></div>
+        </div></div>
+    </div>
+</div>

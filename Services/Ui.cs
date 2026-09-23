@@ -335,4 +335,9 @@ public static class Ui
     };
     public static string TctStatusBadge(TctStatus s) =>
         $"<span class='badge bg-{TctStatusColor(s)}-subtle text-{TctStatusColor(s)} border-{TctStatusColor(s)}-subtle'><i class='bi {TctStatusIcon(s)} me-1'></i>{TctStatusName(s)}</span>";
+
+    // ── Loại chiến dịch (Mst_CampaignType) ──
+    public static string CampaignTypeActiveBadge(bool active) => active
+        ? "<span class='badge bg-success-subtle text-success border-success-subtle'>Đang dùng</span>"
+        : "<span class='badge bg-secondary-subtle text-secondary border-secondary-subtle'>Ngừng dùng</span>";
 }

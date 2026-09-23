@@ -157,6 +157,13 @@ public interface ITicketService
     Task<int> TaxpayerSaveAsync(Taxpayer model);
     Task TaxpayerToggleAsync(int id);
     Task<TaxpayerStats> TaxpayerStatsAsync();
+    // Loại chiến dịch (Mst_CampaignType)
+    Task<List<CampaignType>> CampaignTypesAsync(bool? active, string? q);
+    Task<CampaignType?> CampaignTypeGetAsync(int id);
+    Task<int> CampaignTypeSaveAsync(CampaignType model, List<CampaignTypeColumn> columns, List<CampaignFeedback> feedbacks);
+    Task CampaignTypeToggleAsync(int id);
+    Task<CampaignTypeStats> CampaignTypeStatsAsync();
+    Task<int> CampaignTypeUsageAsync(string code);
 }
 
 public record SlaStats(int Policies, int TicketsWithSla, int ViolatingFirstRes, int ViolatingResolution);
@@ -196,6 +203,8 @@ public record ContactChannelStats(int Total, int Active, int AgentOnly, int Both
 public record TicketCustomTypeStats(int Total, int Active, int AgentOnly, int Both, int CustomerOnly, int MappedTypes);
 
 public record TaxpayerStats(int Total, int Active, int Registered, int Cancelled, int WithContact);
+
+public record CampaignTypeStats(int Total, int Active, int WithColumns, int WithFeedbacks, int Columns, int Feedbacks);
 
 public record TicketTypeStats(int Total, int Active, int ETicket, int Campaign);
 
@@ -1588,4 +1597,69 @@ public class TicketService(AppDbContext db) : ITicketService
             list.Count(t => t.TctStatus == TctStatus.Cancelled),
             list.Count(t => !string.IsNullOrWhiteSpace(t.ContactName)));
     }
+
+    // ── Loại chiến dịch (Mst_CampaignType) ───────────────────────────
+    public async Task<List<CampaignType>> CampaignTypesAsync(bool? active, string? q)
+    {
+        var query = db.CampaignTypes.Include(t => t.Columns).Include(t => t.Feedbacks).AsQueryable();
+        if (active.HasValue) query = query.Where(t => t.IsActive == active.Value);
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(t => t.Code.Contains(q) || t.Name.Contains(q) || (t.Description ?? "").Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderBy(t => t.Code).ToList();
+    }
+
+    public Task<CampaignType?> CampaignTypeGetAsync(int id) =>
+        db.CampaignTypes.Include(t => t.Columns).Include(t => t.Feedbacks).FirstOrDefaultAsync(t => t.Id == id);
+
+    public async Task<int> CampaignTypeSaveAsync(CampaignType model, List<CampaignTypeColumn> columns, List<CampaignFeedback> feedbacks)
+    {
+        if (model.Id == 0)
+        {
+            if (string.IsNullOrWhiteSpace(model.Code)) model.Code = "CT-" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+            model.CreatedAt = model.UpdatedAt = DateTime.Now;
+            foreach (var c in columns) model.Columns.Add(c);
+            foreach (var f in feedbacks) model.Feedbacks.Add(f);
+            db.CampaignTypes.Add(model);
+            await db.SaveChangesAsync();
+            return model.Id;
+        }
+        var e = await db.CampaignTypes.Include(x => x.Columns).Include(x => x.Feedbacks)
+            .FirstOrDefaultAsync(x => x.Id == model.Id) ?? throw new KeyNotFoundException();
+        e.Code = model.Code; e.Name = model.Name; e.Description = model.Description;
+        e.Remark = model.Remark; e.IsActive = model.IsActive; e.UpdatedAt = DateTime.Now;
+        // Thay toàn bộ trường tùy chỉnh + phản hồi (loại chiến dịch là cấu hình, không giữ lịch sử).
+        db.CampaignTypeColumns.RemoveRange(e.Columns);
+        e.Columns.Clear();
+        foreach (var c in columns) e.Columns.Add(c);
+        db.CampaignFeedbacks.RemoveRange(e.Feedbacks);
+        e.Feedbacks.Clear();
+        foreach (var f in feedbacks) e.Feedbacks.Add(f);
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
+    public async Task CampaignTypeToggleAsync(int id)
+    {
+        var t = await db.CampaignTypes.FirstOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException();
+        t.IsActive = !t.IsActive;
+        t.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<CampaignTypeStats> CampaignTypeStatsAsync()
+    {
+        var list = await db.CampaignTypes.Include(t => t.Columns).Include(t => t.Feedbacks).ToListAsync();
+        return new CampaignTypeStats(
+            list.Count,
+            list.Count(t => t.IsActive),
+            list.Count(t => t.Columns.Count > 0),
+            list.Count(t => t.Feedbacks.Count > 0),
+            list.Sum(t => t.Columns.Count),
+            list.Sum(t => t.Feedbacks.Count));
+    }
+
+    /// <summary>Số chiến dịch đang dùng loại này (theo Cpn_Campaign.CampaignTypeCode) — dùng để chặn xóa.</summary>
+    public Task<int> CampaignTypeUsageAsync(string code) =>
+        db.Campaigns.CountAsync(c => c.CampaignType == code);
 }

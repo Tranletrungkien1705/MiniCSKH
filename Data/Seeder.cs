@@ -139,6 +139,54 @@ public static class Seeder
             await db.SaveChangesAsync();
         }
 
+        if (!await db.CampaignTypes.AnyAsync())
+        {
+            db.CampaignTypes.AddRange(
+                new CampaignType
+                {
+                    Code = "TELESALES", Name = "Telesales / Chăm sóc",
+                    Description = "Gọi ra chăm sóc, hỏi thăm và upsell cho khách hàng hiện hữu.",
+                    IsActive = true, CreatedBy = "Hệ thống",
+                    Columns =
+                    [
+                        new CampaignTypeColumn { Code = "C1", Name = "Ngân sách dự kiến", FieldType = SurveyFieldType.Number, Order = 1, IsRequired = true },
+                        new CampaignTypeColumn { Code = "C2", Name = "Sản phẩm quan tâm", FieldType = SurveyFieldType.Text, Order = 2 },
+                        new CampaignTypeColumn { Code = "C3", Name = "Ngày hẹn gọi lại", FieldType = SurveyFieldType.Date, Order = 3 }
+                    ],
+                    Feedbacks =
+                    [
+                        new CampaignFeedback { Code = "FB1", Name = "Đồng ý mua thêm" },
+                        new CampaignFeedback { Code = "FB2", Name = "Hẹn gọi lại sau" },
+                        new CampaignFeedback { Code = "FB3", Name = "Không có nhu cầu" }
+                    ]
+                },
+                new CampaignType
+                {
+                    Code = "SURVEY", Name = "Khảo sát hài lòng",
+                    Description = "Gọi khảo sát mức độ hài lòng sau khi đóng phiếu hỗ trợ.",
+                    IsActive = true, CreatedBy = "Hệ thống",
+                    Columns =
+                    [
+                        new CampaignTypeColumn { Code = "C1", Name = "Mức độ hài lòng", FieldType = SurveyFieldType.Rating, Order = 1, IsRequired = true },
+                        new CampaignTypeColumn { Code = "C2", Name = "Nhận xét thêm", FieldType = SurveyFieldType.Text, Order = 2 }
+                    ],
+                    Feedbacks =
+                    [
+                        new CampaignFeedback { Code = "FB1", Name = "Rất hài lòng" },
+                        new CampaignFeedback { Code = "FB2", Name = "Bình thường" },
+                        new CampaignFeedback { Code = "FB3", Name = "Không hài lòng" }
+                    ]
+                },
+                new CampaignType
+                {
+                    Code = "CT-OLD", Name = "Loại cũ (ngừng dùng)",
+                    Description = "Loại chiến dịch đã ngừng sử dụng.",
+                    IsActive = false, CreatedBy = "Hệ thống"
+                }
+            );
+            await db.SaveChangesAsync();
+        }
+
         if (!await db.Ratings.AnyAsync())
         {
             var tickets = await db.Tickets.OrderBy(t => t.Id).ToListAsync();
@@ -689,7 +737,7 @@ public static class Seeder
     {
         if (!db.Database.IsNpgsql()) return;
         var def = TenantContext.DefaultOrgId;
-        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags", "ReceiveNotifies", "Addresses", "SlaWorkingDays", "SlaHolidays", "SlaScopes", "ContactChannels", "TicketCustomTypes", "TicketCustomTypeMaps", "Taxpayers" };
+        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags", "ReceiveNotifies", "Addresses", "SlaWorkingDays", "SlaHolidays", "SlaScopes", "ContactChannels", "TicketCustomTypes", "TicketCustomTypeMaps", "Taxpayers", "CampaignTypes", "CampaignTypeColumns", "CampaignFeedbacks" };
         var sql = new List<string>
         {
             "CREATE TABLE IF NOT EXISTS minicskh.\"Orgs\" (\"Id\" uuid PRIMARY KEY, \"Name\" text NOT NULL DEFAULT '', \"ApiKey\" text NOT NULL DEFAULT '', \"CreatedAt\" timestamp NOT NULL DEFAULT now())",

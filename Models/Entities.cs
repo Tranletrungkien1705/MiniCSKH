@@ -1126,4 +1126,73 @@ public class Taxpayer : IOrgOwned
     /// <summary>Địa chỉ đầy đủ (địa chỉ + tỉnh/huyện) dùng cho view.</summary>
     public string AddressText => string.Join(", ", new[] { Address, DistrictCode, ProvinceCode }
         .Where(s => !string.IsNullOrWhiteSpace(s)));
+}// ── Loại chiến dịch (Mst_CampaignType) ───────────────────────────────
+// Theo SkyCS: "loại chiến dịch" (Mst_CampaignType) là master data phân loại
+// chiến dịch gọi ra (Cpn_Campaign.CampaignTypeCode). Mỗi loại gắn:
+//  • danh sách trường tùy chỉnh (Mst_CustomColumnCampaignType → Mst_CampaignColumnConfig)
+//    để cấu hình bố cục nhập liệu cho chiến dịch thuộc loại đó;
+//  • danh sách phản hồi khách hàng (Mst_CustomerFeedBack) — các lựa chọn phản hồi
+//    chuẩn khi agent ghi nhận kết quả gọi.
+// Khi xóa loại chiến dịch, SkyCS chặn nếu đang có chiến dịch dùng loại đó.
+// (11.BackEnd/V10/idn.SkyCS.Biz/Campaign.cs, `Mst_CampaignType_Get`/`_SaveX`;
+//  models 12.Dev.Common/idn.SkyCS.Common/Models/Mst_CampaignType.cs,
+//  Mst_CustomColumnCampaignType.cs, Mst_CustomerFeedBack.cs)
+
+/// <summary>Loại chiến dịch (Mst_CampaignType) — phân loại chiến dịch gọi ra.</summary>
+public class CampaignType : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string Code { get; set; } = "";              // CampaignTypeCode — mã loại chiến dịch
+    public string Name { get; set; } = "";              // CampaignTypeName — tên loại chiến dịch
+    public string? Description { get; set; }             // CampaignTypeDesc — mô tả
+    public string? Remark { get; set; }                  // Remark
+    public bool IsActive { get; set; } = true;           // FlagActive
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // LogLUDTimeUTC
+    public string CreatedBy { get; set; } = "";          // LogLUBy
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+    public List<CampaignTypeColumn> Columns { get; set; } = [];
+    public List<CampaignFeedback> Feedbacks { get; set; } = [];
+
+    // ── tính toán ────────────────────────────────────────────────────
+    public int ColumnCount => Columns.Count;
+    public int RequiredColumnCount => Columns.Count(c => c.IsRequired);
+    public int FeedbackCount => Feedbacks.Count;
+}
+
+/// <summary>
+/// Trường tùy chỉnh của loại chiến dịch (Mst_CustomColumnCampaignType).
+/// Mỗi dòng gắn 1 trường cấu hình (Mst_CampaignColumnConfig) vào loại chiến dịch,
+/// kèm thứ tự hiển thị (Idx) và cờ bắt buộc (FlagRequired).
+/// </summary>
+public class CampaignTypeColumn : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public int CampaignTypeId { get; set; }
+    public string Code { get; set; } = "";              // CampaignColCfgCodeSys — mã trường cấu hình
+    public string Name { get; set; } = "";              // CampaignColCfgName — tên trường
+    public SurveyFieldType FieldType { get; set; } = SurveyFieldType.Text;  // CampaignColCfgDataType
+    public int Order { get; set; }                       // Idx — thứ tự hiển thị
+    public bool IsRequired { get; set; }                 // FlagRequired
+    public bool IsActive { get; set; } = true;           // FlagActive
+
+    public CampaignType CampaignType { get; set; } = null!;
+}
+
+/// <summary>
+/// Phản hồi khách hàng chuẩn của loại chiến dịch (Mst_CustomerFeedBack).
+/// Là các lựa chọn phản hồi agent chọn khi ghi nhận kết quả gọi.
+/// </summary>
+public class CampaignFeedback : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public int CampaignTypeId { get; set; }
+    public string Code { get; set; } = "";              // CusFBCode — mã phản hồi
+    public string Name { get; set; } = "";              // CusFBName — tên phản hồi
+    public bool IsActive { get; set; } = true;           // FlagActive
+
+    public CampaignType CampaignType { get; set; } = null!;
 }
