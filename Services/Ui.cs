@@ -218,4 +218,9 @@ public static class Ui
     public static string AreaLevelColor(int level) => level <= 1 ? "primary" : level == 2 ? "info" : "secondary";
     public static string AreaLevelBadge(int level) =>
         $"<span class='badge bg-{AreaLevelColor(level)}-subtle text-{AreaLevelColor(level)} border-{AreaLevelColor(level)}-subtle'>{AreaLevelName(level)}</span>";
+
+    // ── Thẻ (Mst_Tag) ──
+    public static string TagActiveBadge(bool active) => active
+        ? "<span class='badge bg-success-subtle text-success border-success-subtle'>Đang dùng</span>"
+        : "<span class='badge bg-secondary-subtle text-secondary border-secondary-subtle'>Ngừng dùng</span>";
 }

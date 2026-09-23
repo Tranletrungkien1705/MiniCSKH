@@ -108,6 +108,12 @@ public interface ITicketService
     Task<int> AreaSaveAsync(Area model);
     Task AreaToggleAsync(int id);
     Task<AreaStats> AreaStatsAsync();
+    // Thẻ (Mst_Tag)
+    Task<List<Tag>> TagsAsync(bool? active, string? q);
+    Task<Tag?> TagGetAsync(int id);
+    Task<int> TagSaveAsync(Tag model);
+    Task TagToggleAsync(int id);
+    Task<TagStats> TagStatsAsync();
 }
 
 public record SlaStats(int Policies, int TicketsWithSla, int ViolatingFirstRes, int ViolatingResolution);
@@ -131,6 +137,8 @@ public record DepartmentStats(int Total, int Active, int Root, int AutoDiv, int 
 public record PaymentTermStats(int Total, int Active, int Sale, int Purchase, int WithCredit);
 
 public record AreaStats(int Total, int Active, int Root, int Child, int MaxLevel);
+
+public record TagStats(int Total, int Active, int WithSlug, int Inactive);
 
 public record TicketTypeStats(int Total, int Active, int ETicket, int Campaign);
 
@@ -990,5 +998,56 @@ public class TicketService(AppDbContext db) : ITicketService
             list.Count(a => a.IsRoot),
             list.Count(a => !a.IsRoot),
             list.Count == 0 ? 0 : list.Max(a => a.Level));
+    }
+
+    // ── Thẻ (Mst_Tag) ────────────────────────────────────────────────
+    public async Task<List<Tag>> TagsAsync(bool? active, string? q)
+    {
+        var query = db.Tags.AsQueryable();
+        if (active.HasValue) query = query.Where(t => t.IsActive == active.Value);
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(t => t.Code.Contains(q) || t.Name.Contains(q) || (t.Description ?? "").Contains(q) || (t.Slug ?? "").Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderBy(t => t.Name).ThenBy(t => t.Code).ToList();
+    }
+
+    public Task<Tag?> TagGetAsync(int id) =>
+        db.Tags.FirstOrDefaultAsync(t => t.Id == id);
+
+    public async Task<int> TagSaveAsync(Tag model)
+    {
+        if (model.Id == 0)
+        {
+            if (string.IsNullOrWhiteSpace(model.Code)) model.Code = "TAG" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+            if (string.IsNullOrWhiteSpace(model.Slug)) model.Slug = Tag.MakeSlug(model.Name);
+            model.CreatedAt = model.UpdatedAt = DateTime.Now;
+            db.Tags.Add(model);
+            await db.SaveChangesAsync();
+            return model.Id;
+        }
+        var e = await db.Tags.FirstOrDefaultAsync(x => x.Id == model.Id) ?? throw new KeyNotFoundException();
+        e.Code = model.Code; e.Name = model.Name; e.Description = model.Description;
+        e.Slug = string.IsNullOrWhiteSpace(model.Slug) ? Tag.MakeSlug(model.Name) : model.Slug;
+        e.IsActive = model.IsActive; e.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
+    public async Task TagToggleAsync(int id)
+    {
+        var t = await db.Tags.FirstOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException();
+        t.IsActive = !t.IsActive;
+        t.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<TagStats> TagStatsAsync()
+    {
+        var list = await db.Tags.ToListAsync();
+        return new TagStats(
+            list.Count,
+            list.Count(t => t.IsActive),
+            list.Count(t => !string.IsNullOrWhiteSpace(t.Slug)),
+            list.Count(t => !t.IsActive));
     }
 }

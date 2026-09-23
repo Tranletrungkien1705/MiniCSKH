@@ -38,6 +38,7 @@ public class AppDbContext : DbContext
     public DbSet<DepartmentMember> DepartmentMembers => Set<DepartmentMember>();
     public DbSet<PaymentTerm> PaymentTerms => Set<PaymentTerm>();
     public DbSet<Area> Areas => Set<Area>();
+    public DbSet<Tag> Tags => Set<Tag>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -248,6 +249,15 @@ public class AppDbContext : DbContext
             e.HasIndex(x => x.Code);
             e.Ignore(x => x.IsRoot);
             e.Ignore(x => x.LevelName);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<Tag>(e =>
+        {
+            e.Property(x => x.Code).HasMaxLength(50);
+            e.Property(x => x.Name).HasMaxLength(200);
+            e.Property(x => x.Slug).HasMaxLength(200);
+            e.HasIndex(x => x.Code);
+            e.Ignore(x => x.SlugText);
             e.HasQueryFilter(x => x.OrgId == _orgId);
         });
     }

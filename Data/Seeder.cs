@@ -464,6 +464,18 @@ public static class Seeder
             );
             await db.SaveChangesAsync();
         }
+
+        if (!await db.Tags.AnyAsync())
+        {
+            db.Tags.AddRange(
+                new Tag { Code = "TAG-KHIEUNAI", Name = "Khiếu nại", Description = "Nội dung liên quan đến phản ánh, khiếu nại của khách hàng.", Slug = "khieu-nai", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-40), UpdatedAt = DateTime.Now.AddDays(-5) },
+                new Tag { Code = "TAG-HOADON", Name = "Hóa đơn", Description = "Câu hỏi về hóa đơn, chứng từ, mã số thuế.", Slug = "hoa-don", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-35), UpdatedAt = DateTime.Now.AddDays(-3) },
+                new Tag { Code = "TAG-BAOHANH", Name = "Bảo hành", Description = "Yêu cầu bảo hành, đổi trả sản phẩm.", Slug = "bao-hanh", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-30), UpdatedAt = DateTime.Now.AddDays(-2) },
+                new Tag { Code = "TAG-VIP", Name = "Khách VIP", Description = "Nội dung ưu tiên dành cho nhóm khách VIP.", Slug = "khach-vip", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-20), UpdatedAt = DateTime.Now.AddDays(-1) },
+                new Tag { Code = "TAG-CU", Name = "Thẻ cũ (ngừng dùng)", Description = "Đã thay thế bằng TAG-KHIEUNAI.", Slug = "the-cu", IsActive = false, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-90), UpdatedAt = DateTime.Now.AddDays(-60) }
+            );
+            await db.SaveChangesAsync();
+        }
     }
 
     /// <summary>DB Postgres cloud cũ: tạo Orgs + thêm cột OrgId nếu thiếu, backfill về org mặc định. Idempotent.</summary>
@@ -471,7 +483,7 @@ public static class Seeder
     {
         if (!db.Database.IsNpgsql()) return;
         var def = TenantContext.DefaultOrgId;
-        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas" };
+        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags" };
         var sql = new List<string>
         {
             "CREATE TABLE IF NOT EXISTS minicskh.\"Orgs\" (\"Id\" uuid PRIMARY KEY, \"Name\" text NOT NULL DEFAULT '', \"ApiKey\" text NOT NULL DEFAULT '', \"CreatedAt\" timestamp NOT NULL DEFAULT now())",

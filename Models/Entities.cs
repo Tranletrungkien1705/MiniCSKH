@@ -712,3 +712,46 @@ public class Area : IOrgOwned
     public bool IsRoot => string.IsNullOrWhiteSpace(ParentCode);
     public string LevelName => Level <= 1 ? "Cấp 1" : $"Cấp {Level}";
 }
+
+// ── Thẻ (Tag) — Mst_Tag ──────────────────────────────────────────────
+// Theo SkyCS: thẻ (Mst_Tag) là nhãn dùng chung để gắn/phân loại nội dung
+// CSKH (bài viết Knowledge Base, phiếu hỗ trợ). Mỗi thẻ có mã (TagID),
+// tên hiển thị (TagName), mô tả (TagDesc) và slug (Slug — dùng cho URL/tìm kiếm).
+// (11.BackEnd/V10/idn.SkyCS.Biz/Master.cs, `Mst_Tag_Get`/`Mst_Tag_Create`;
+//  model 12.Dev.Common/idn.SkyCS.Common/Models/Mst_Tag.cs;
+//  controller 13.ClientGate/V20/idn.SkyCS.WebAPI/Controllers/MstTagController.cs)
+
+/// <summary>Thẻ (Mst_Tag) — nhãn dùng chung để gắn/phân loại nội dung CSKH.</summary>
+public class Tag : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string Code { get; set; } = "";              // TagID — mã thẻ
+    public string Name { get; set; } = "";              // TagName — tên thẻ
+    public string? Description { get; set; }             // TagDesc — mô tả
+    public string? Slug { get; set; }                    // Slug — đường dẫn rút gọn
+    public bool IsActive { get; set; } = true;           // FlagActive
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // LogLUDTimeUTC
+    public string CreatedBy { get; set; } = "";          // LogLUBy
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+    // ── tính toán ────────────────────
+    /// <summary>Slug hiển thị: dùng Slug nếu có, ngược lại sinh từ tên.</summary>
+    public string SlugText => !string.IsNullOrWhiteSpace(Slug) ? Slug! : MakeSlug(Name);
+
+    /// <summary>Sinh slug từ tên (bỏ dấu tiếng Việt, thay khoảng trắng bằng '-').</summary>
+    public static string MakeSlug(string s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return "";
+        var norm = s.Trim().ToLowerInvariant().Normalize(System.Text.NormalizationForm.FormD);
+        var sb = new System.Text.StringBuilder();
+        foreach (var ch in norm)
+        {
+            if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(ch) == System.Globalization.UnicodeCategory.NonSpacingMark) continue;
+            if (ch == 'đ') { sb.Append('d'); continue; }
+            if (char.IsLetterOrDigit(ch)) sb.Append(ch);
+            else if (ch is ' ' or '-' or '_' or '/') sb.Append('-');
+        }
+        return sb.ToString().Trim('-');
+    }
+}
