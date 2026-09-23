@@ -1,0 +1,57 @@
+@model List<Area>
+@{
+    ViewData["Title"] = "Vùng thị trường";
+    var stats = (AreaStats)ViewBag.Stats;
+    var active = (bool?)ViewBag.Active;
+    var q = (string?)ViewBag.Q;
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div><h5 class="fw-bold mb-0"><i class="bi bi-geo-alt me-2"></i>Vùng thị trường</h5>
+        <small class="text-muted">Phân vùng khách hàng theo khu vực, có phân cấp (Mst_Area)</small></div>
+    <a asp-action="Create" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Thêm vùng</a>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Tổng vùng</div><div class="fs-3 fw-bold">@stats.Total</div></div>
+        <i class="bi bi-geo-alt fs-2 text-primary opacity-50"></i></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Đang dùng</div><div class="fs-3 fw-bold text-success">@stats.Active</div></div>
+        <i class="bi bi-toggle-on fs-2 text-success opacity-50"></i></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Vùng gốc / vùng con</div><div class="fs-3 fw-bold text-info">@stats.Root / @stats.Child</div></div>
+        <i class="bi bi-diagram-3 fs-2 text-info opacity-50"></i></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Cấp sâu nhất</div><div class="fs-3 fw-bold text-warning">@stats.MaxLevel</div></div>
+        <i class="bi bi-layers fs-2 text-warning opacity-50"></i></div></div></div>
+</div>
+
+<form method="get" class="card p-3 mb-3"><div class="row g-2 align-items-end">
+    <div class="col-auto"><label class="form-label small mb-1">Trạng thái</label>
+        <select name="active" class="form-select form-select-sm">
+            <option value="">Tất cả</option>
+            <option value="true" selected="@(active==true)">Đang dùng</option>
+            <option value="false" selected="@(active==false)">Ngừng dùng</option>
+        </select></div>
+    <div class="col"><label class="form-label small mb-1">Tìm</label><input name="q" value="@q" class="form-control form-control-sm" placeholder="Mã / tên / mô tả vùng" /></div>
+    <div class="col-auto"><button class="btn btn-outline-primary btn-sm">Lọc</button> <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Xóa</a></div>
+</div></form>
+
+<div class="card"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
+    <thead><tr><th>Mã</th><th>Tên vùng</th><th>Cấp</th><th>Vùng cấp trên</th><th>Đơn vị KD</th><th>Trạng thái</th></tr></thead>
+    <tbody>
+        @if(!Model.Any()){<tr><td colspan="6" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>Chưa có vùng thị trường</td></tr>}
+        @foreach (var a in Model)
+        {
+            <tr style="cursor:pointer" onclick="location.href='/Area/Details/@a.Id'">
+                <td><span class="font-monospace small fw-semibold">@a.Code</span>
+                    @if(!string.IsNullOrWhiteSpace(a.Description)){<div class="small text-muted">@a.Description</div>}</td>
+                <td class="fw-semibold">@a.Name</td>
+                <td>@Html.Raw(Ui.AreaLevelBadge(a.Level))</td>
+                <td>@if(!string.IsNullOrWhiteSpace(a.ParentCode)){<span class="font-monospace small">@a.ParentCode</span>}else{<span class="text-muted small">— (vùng gốc)</span>}</td>
+                <td class="small">@(string.IsNullOrWhiteSpace(a.BUCode) ? "—" : a.BUCode)</td>
+                <td>@if(a.IsActive){<span class="badge bg-success-subtle text-success border-success-subtle">Đang dùng</span>}else{<span class="badge bg-secondary-subtle text-secondary border-secondary-subtle">Ngừng dùng</span>}</td>
+            </tr>
+        }
+    </tbody>
+</table></div></div>

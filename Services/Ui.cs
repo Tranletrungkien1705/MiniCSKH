@@ -212,4 +212,10 @@ public static class Ui
     { PTType.Sale => "bi-cart-check", PTType.Purchase => "bi-bag-check", _ => "bi-tag" };
     public static string PTTypeBadge(PTType t) =>
         $"<span class='badge bg-{PTTypeColor(t)}-subtle text-{PTTypeColor(t)} border-{PTTypeColor(t)}-subtle'><i class='bi {PTTypeIcon(t)} me-1'></i>{PTTypeName(t)}</span>";
+
+    // ── Vùng thị trường (Mst_Area) ──
+    public static string AreaLevelName(int level) => level <= 1 ? "Cấp 1" : $"Cấp {level}";
+    public static string AreaLevelColor(int level) => level <= 1 ? "primary" : level == 2 ? "info" : "secondary";
+    public static string AreaLevelBadge(int level) =>
+        $"<span class='badge bg-{AreaLevelColor(level)}-subtle text-{AreaLevelColor(level)} border-{AreaLevelColor(level)}-subtle'>{AreaLevelName(level)}</span>";
 }

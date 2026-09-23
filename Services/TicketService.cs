@@ -102,6 +102,12 @@ public interface ITicketService
     Task<int> PaymentTermSaveAsync(PaymentTerm model);
     Task PaymentTermToggleAsync(int id);
     Task<PaymentTermStats> PaymentTermStatsAsync();
+    // Vùng thị trường (Mst_Area)
+    Task<List<Area>> AreasAsync(bool? active, string? q);
+    Task<Area?> AreaGetAsync(int id);
+    Task<int> AreaSaveAsync(Area model);
+    Task AreaToggleAsync(int id);
+    Task<AreaStats> AreaStatsAsync();
 }
 
 public record SlaStats(int Policies, int TicketsWithSla, int ViolatingFirstRes, int ViolatingResolution);
@@ -123,6 +129,8 @@ public record TicketCatalogStats(int Total, int Active, int Status, int Priority
 public record DepartmentStats(int Total, int Active, int Root, int AutoDiv, int Members);
 
 public record PaymentTermStats(int Total, int Active, int Sale, int Purchase, int WithCredit);
+
+public record AreaStats(int Total, int Active, int Root, int Child, int MaxLevel);
 
 public record TicketTypeStats(int Total, int Active, int ETicket, int Campaign);
 
@@ -930,5 +938,57 @@ public class TicketService(AppDbContext db) : ITicketService
             list.Count(p => p.Type == PTType.Sale),
             list.Count(p => p.Type == PTType.Purchase),
             list.Count(p => p.CreditLimit > 0));
+    }
+
+    // ── Vùng thị trường (Mst_Area) ───────────────────
+    public async Task<List<Area>> AreasAsync(bool? active, string? q)
+    {
+        var query = db.Areas.AsQueryable();
+        if (active.HasValue) query = query.Where(a => a.IsActive == active.Value);
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(a => a.Code.Contains(q) || a.Name.Contains(q) || (a.Description ?? "").Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderBy(a => a.Level).ThenBy(a => a.Code).ToList();
+    }
+
+    public Task<Area?> AreaGetAsync(int id) =>
+        db.Areas.FirstOrDefaultAsync(a => a.Id == id);
+
+    public async Task<int> AreaSaveAsync(Area model)
+    {
+        if (model.Id == 0)
+        {
+            if (string.IsNullOrWhiteSpace(model.Code)) model.Code = "AR-" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+            model.CreatedAt = model.UpdatedAt = DateTime.Now;
+            db.Areas.Add(model);
+            await db.SaveChangesAsync();
+            return model.Id;
+        }
+        var e = await db.Areas.FirstOrDefaultAsync(x => x.Id == model.Id) ?? throw new KeyNotFoundException();
+        e.Code = model.Code; e.ParentCode = model.ParentCode; e.Name = model.Name;
+        e.Description = model.Description; e.Level = model.Level;
+        e.BUCode = model.BUCode; e.BUPattern = model.BUPattern;
+        e.IsActive = model.IsActive; e.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
+    public async Task AreaToggleAsync(int id)
+    {
+        var a = await db.Areas.FirstOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException();
+        a.IsActive = !a.IsActive;
+        a.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<AreaStats> AreaStatsAsync()
+    {
+        var list = await db.Areas.ToListAsync();
+        return new AreaStats(
+            list.Count,
+            list.Count(a => a.IsActive),
+            list.Count(a => a.IsRoot),
+            list.Count(a => !a.IsRoot),
+            list.Count == 0 ? 0 : list.Max(a => a.Level));
     }
 }

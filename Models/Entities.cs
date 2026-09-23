@@ -683,3 +683,32 @@ public class PaymentTerm : IOrgOwned
     public string CreditLimitText => CreditLimit <= 0 ? "Không giới hạn" : CreditLimit.ToString("#,##0");
     public string DepositText => DepositPercent <= 0 ? "—" : $"{DepositPercent:0.##}%";
 }
+
+// ── Vùng thị trường (Mst_Area) ───────────────────────────────────────
+// Theo SkyCS: vùng thị trường (Mst_Area) là master data của Trung tâm khách hàng,
+// phân cấp theo AreaCodeParent (vùng → tỉnh → khu vực) và gắn khách hàng vào vùng
+// qua Mst_CustomerInArea. Dùng để phân vùng phục vụ, báo cáo theo khu vực.
+// (11.BackEnd/V10/idn.SkyCS.Biz/Master.cs, `Mst_Area_Get`/`_SaveX`;
+//  model 12.Dev.Common/idn.SkyCS.Common/Models/CustomerCentrer/Mst_Area.cs)
+
+/// <summary>Vùng thị trường (Mst_Area) — master data phân vùng khách hàng, có phân cấp.</summary>
+public class Area : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string Code { get; set; } = "";              // AreaCode — mã vùng
+    public string? ParentCode { get; set; }              // AreaCodeParent — mã vùng cấp trên
+    public string Name { get; set; } = "";              // AreaName — tên vùng
+    public string? Description { get; set; }             // AreaDesc — mô tả
+    public int Level { get; set; } = 1;                  // AreaLevel — cấp vùng
+    public string? BUCode { get; set; }                  // AreaBUCode — mã đơn vị kinh doanh
+    public string? BUPattern { get; set; }               // AreaBUPattern — mẫu đơn vị kinh doanh
+    public bool IsActive { get; set; } = true;           // FlagActive
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // LogLUDTimeUTC
+    public string CreatedBy { get; set; } = "";          // LogLUBy
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+    // ── tính toán ────────────────────
+    public bool IsRoot => string.IsNullOrWhiteSpace(ParentCode);
+    public string LevelName => Level <= 1 ? "Cấp 1" : $"Cấp {Level}";
+}
