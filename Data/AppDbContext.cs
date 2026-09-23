@@ -34,6 +34,8 @@ public class AppDbContext : DbContext
     public DbSet<AllocateAgent> AllocateAgents => Set<AllocateAgent>();
     public DbSet<ReminderRule> ReminderRules => Set<ReminderRule>();
     public DbSet<TicketCatalog> TicketCatalogs => Set<TicketCatalog>();
+    public DbSet<Department> Departments => Set<Department>();
+    public DbSet<DepartmentMember> DepartmentMembers => Set<DepartmentMember>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -205,6 +207,23 @@ public class AppDbContext : DbContext
             e.Property(x => x.CustomerName).HasMaxLength(200);
             e.HasIndex(x => new { x.Kind, x.Code });
             e.Ignore(x => x.KindName);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<Department>(e =>
+        {
+            e.Property(x => x.Code).HasMaxLength(50);
+            e.Property(x => x.Name).HasMaxLength(200);
+            e.HasIndex(x => x.Code);
+            e.Ignore(x => x.MemberCount);
+            e.Ignore(x => x.IsRoot);
+            e.Ignore(x => x.LevelName);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<DepartmentMember>(e =>
+        {
+            e.Property(x => x.UserCode).HasMaxLength(50);
+            e.Property(x => x.FullName).HasMaxLength(200);
+            e.HasOne(x => x.Department).WithMany(x => x.Members).HasForeignKey(x => x.DepartmentId);
             e.HasQueryFilter(x => x.OrgId == _orgId);
         });
     }

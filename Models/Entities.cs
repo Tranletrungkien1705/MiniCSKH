@@ -598,3 +598,52 @@ public class TicketCatalog : IOrgOwned
         _ => Kind.ToString()
     };
 }
+
+// ── Phòng ban (Mst_Department) ───────────────────────────────────────
+// Theo SkyCS: phòng ban là đơn vị tổ chức nhận và xử lý eTicket, có phân cấp
+// (DepartmentCodeParent) và cờ phân chia tự động đều cho thành viên (FlagAutoDiv).
+// Là master data nền cho phân bổ phiếu (Mst_EstablishAllocateETicket.DepartmentCode)
+// và gán agent theo phòng ban (Sys_UserMapDepartment).
+// (11.BackEnd/V10/idn.SkyCS.Biz/Master.cs, `Mst_Department_Get`/`_Update`;
+//  model 12.Dev.Common/idn.SkyCS.Common/Models/Mst_Department.cs)
+
+/// <summary>Phòng ban (Mst_Department) — đơn vị tổ chức nhận/xử lý phiếu, có phân cấp.</summary>
+public class Department : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string Code { get; set; } = "";              // DepartmentCode — mã phòng ban
+    public string? ParentCode { get; set; }              // DepartmentCodeParent — mã phòng ban cấp trên
+    public string Name { get; set; } = "";              // DepartmentName — tên phòng ban
+    public string? Description { get; set; }             // DepartmentDesc — mô tả
+    public int Level { get; set; } = 1;                  // DepartmentLevel — cấp phòng ban
+    public string? TaxCode { get; set; }                 // MST — mã số thuế
+    public bool AutoDiv { get; set; }                    // FlagAutoDiv — chia đều tự động cho thành viên
+    public bool IsActive { get; set; } = true;           // FlagActive
+    public int Order { get; set; }                       // OrderIdx — thứ tự hiển thị
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // LogLUDTimeUTC
+    public string CreatedBy { get; set; } = "";          // LogLUBy
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+    public List<DepartmentMember> Members { get; set; } = [];
+
+    // ── tính toán ────────────────────
+    public int MemberCount => Members.Count;
+    public bool IsRoot => string.IsNullOrWhiteSpace(ParentCode);
+    public string LevelName => Level <= 1 ? "Cấp 1" : $"Cấp {Level}";
+}
+
+/// <summary>Thành viên (agent) thuộc phòng ban (Sys_UserMapDepartment).</summary>
+public class DepartmentMember : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public int DepartmentId { get; set; }
+    public string UserCode { get; set; } = "";          // UserCode — mã nhân viên (Sys_User.UserCode)
+    public string FullName { get; set; } = "";          // FullName — tên hiển thị
+    public string? Email { get; set; }                   // Email
+    public string? Phone { get; set; }                   // PhoneNo
+    public bool IsActive { get; set; } = true;           // FlagActive
+
+    public Department Department { get; set; } = null!;
+}

@@ -1,0 +1,61 @@
+@model Department
+@{
+    ViewData["Title"] = "Chi tiết phòng ban";
+}
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Phòng ban</a>
+        <h5 class="fw-bold mb-1 mt-1">@Model.Name <span class="font-monospace text-muted">@Model.Code</span>
+            @Html.Raw(Ui.DepartmentLevelBadge(Model.Level))
+            @if(Model.IsActive){<span class="badge bg-success-subtle text-success border-success-subtle">Đang dùng</span>}
+            else{<span class="badge bg-secondary-subtle text-secondary border-secondary-subtle">Ngừng dùng</span>}</h5>
+        <div class="text-muted small">@(string.IsNullOrWhiteSpace(Model.ParentCode) ? "Phòng ban gốc" : $"Cấp trên: {Model.ParentCode}") · tạo @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil me-1"></i>Sửa</a>
+        <form asp-action="Toggle" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <button class="btn btn-sm @(Model.IsActive?"btn-outline-secondary":"btn-primary")">
+                <i class="bi bi-toggle-@(Model.IsActive?"off":"on") me-1"></i>@(Model.IsActive?"Ngừng dùng":"Kích hoạt")</button>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Mã phòng ban</div><div class="fs-5 fw-bold font-monospace">@Model.Code</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Cấp phòng ban</div><div class="fs-6 fw-bold">@Ui.DepartmentLevelName(Model.Level)</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Chia đều tự động</div><div class="fs-6 fw-bold">@(Model.AutoDiv ? "Bật (FlagAutoDiv)" : "Tắt")</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Thành viên</div><div class="fs-5 fw-bold">@Model.MemberCount</div></div></div></div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.Description) || !string.IsNullOrWhiteSpace(Model.TaxCode))
+{
+    <div class="alert alert-light border">
+        @if (!string.IsNullOrWhiteSpace(Model.Description)) { <div><i class="bi bi-info-circle me-1"></i>@Model.Description</div> }
+        @if (!string.IsNullOrWhiteSpace(Model.TaxCode)) { <div class="small text-muted mt-1"><i class="bi bi-receipt me-1"></i>MST: @Model.TaxCode</div> }
+    </div>
+}
+
+<div class="card"><div class="card-body">
+    <h6 class="fw-bold mb-3"><i class="bi bi-people me-1"></i>Thành viên phòng ban</h6>
+    <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+        <thead><tr><th>Mã nhân viên</th><th>Họ tên</th><th>Email</th><th>Điện thoại</th></tr></thead>
+        <tbody>
+            @if(!Model.Members.Any()){<tr><td colspan="4" class="text-center text-muted py-4"><i class="bi bi-person-x fs-4 d-block mb-2"></i>Chưa có thành viên</td></tr>}
+            @foreach (var m in Model.Members)
+            {
+                <tr>
+                    <td><span class="font-monospace small fw-semibold">@m.UserCode</span></td>
+                    <td>@m.FullName</td>
+                    <td class="text-muted small">@(string.IsNullOrWhiteSpace(m.Email) ? "—" : m.Email)</td>
+                    <td class="text-muted small">@(string.IsNullOrWhiteSpace(m.Phone) ? "—" : m.Phone)</td>
+                </tr>
+            }
+        </tbody>
+    </table></div>
+</div></div>

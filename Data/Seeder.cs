@@ -395,6 +395,51 @@ public static class Seeder
             );
             await db.SaveChangesAsync();
         }
+
+        if (!await db.Departments.AnyAsync())
+        {
+            db.Departments.AddRange(
+                new Department
+                {
+                    Code = "PB-CSKH", Name = "Phòng Chăm sóc khách hàng", Level = 1, AutoDiv = true,
+                    Description = "Đầu mối tiếp nhận và điều phối phiếu CSKH.", IsActive = true, Order = 1,
+                    CreatedAt = DateTime.Now.AddDays(-40), UpdatedAt = DateTime.Now.AddDays(-3), CreatedBy = "Hệ thống",
+                    Members =
+                    [
+                        new DepartmentMember { UserCode = "ha.nguyen", FullName = "Nguyễn Thu Hà", Email = "ha@cskh.vn", Phone = "0901234567" },
+                        new DepartmentMember { UserCode = "lan.le", FullName = "Lê Thị Lan", Email = "lan@cskh.vn", Phone = "0923456789" }
+                    ]
+                },
+                new Department
+                {
+                    Code = "PB-KYTHUAT", Name = "Phòng Kỹ thuật", ParentCode = "PB-CSKH", Level = 2, AutoDiv = true,
+                    Description = "Xử lý sự cố kỹ thuật, bảo hành.", IsActive = true, Order = 2,
+                    CreatedAt = DateTime.Now.AddDays(-35), UpdatedAt = DateTime.Now.AddDays(-2), CreatedBy = "Hệ thống",
+                    Members =
+                    [
+                        new DepartmentMember { UserCode = "minh.tran", FullName = "Trần Văn Minh", Email = "minh@cskh.vn", Phone = "0912345678" },
+                        new DepartmentMember { UserCode = "ha.nguyen", FullName = "Nguyễn Thu Hà", Email = "ha@cskh.vn" }
+                    ]
+                },
+                new Department
+                {
+                    Code = "PB-TONGDAI", Name = "Phòng Tổng đài", ParentCode = "PB-CSKH", Level = 2, AutoDiv = false,
+                    Description = "Tiếp nhận cuộc gọi đến/đi.", IsActive = true, Order = 3,
+                    CreatedAt = DateTime.Now.AddDays(-30), UpdatedAt = DateTime.Now.AddDays(-5), CreatedBy = "Hệ thống",
+                    Members =
+                    [
+                        new DepartmentMember { UserCode = "lan.le", FullName = "Lê Thị Lan", Email = "lan@cskh.vn", Phone = "0923456789" }
+                    ]
+                },
+                new Department
+                {
+                    Code = "PB-CU", Name = "Phòng Cũ (ngừng dùng)", Level = 1, AutoDiv = false,
+                    Description = "Đã sáp nhập, ngừng sử dụng.", IsActive = false, Order = 9,
+                    CreatedAt = DateTime.Now.AddDays(-90), UpdatedAt = DateTime.Now.AddDays(-60), CreatedBy = "Hệ thống"
+                }
+            );
+            await db.SaveChangesAsync();
+        }
     }
 
     /// <summary>DB Postgres cloud cũ: tạo Orgs + thêm cột OrgId nếu thiếu, backfill về org mặc định. Idempotent.</summary>
@@ -402,7 +447,7 @@ public static class Seeder
     {
         if (!db.Database.IsNpgsql()) return;
         var def = TenantContext.DefaultOrgId;
-        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs" };
+        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers" };
         var sql = new List<string>
         {
             "CREATE TABLE IF NOT EXISTS minicskh.\"Orgs\" (\"Id\" uuid PRIMARY KEY, \"Name\" text NOT NULL DEFAULT '', \"ApiKey\" text NOT NULL DEFAULT '', \"CreatedAt\" timestamp NOT NULL DEFAULT now())",

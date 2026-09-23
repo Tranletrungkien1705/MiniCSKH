@@ -90,6 +90,12 @@ public interface ITicketService
     Task<int> TicketCatalogSaveAsync(TicketCatalog model);
     Task TicketCatalogToggleAsync(int id);
     Task<TicketCatalogStats> TicketCatalogStatsAsync();
+    // Phòng ban (Mst_Department)
+    Task<List<Department>> DepartmentsAsync(bool? active, string? q);
+    Task<Department?> DepartmentGetAsync(int id);
+    Task<int> DepartmentSaveAsync(Department model, List<DepartmentMember> members);
+    Task DepartmentToggleAsync(int id);
+    Task<DepartmentStats> DepartmentStatsAsync();
 }
 
 public record SlaStats(int Policies, int TicketsWithSla, int ViolatingFirstRes, int ViolatingResolution);
@@ -107,6 +113,8 @@ public record AllocateStats(int Total, int Active, int AssignAgent, int AllMisse
 public record ReminderStats(int Total, int Active, int System, int Email, int Sms, int Zalo);
 
 public record TicketCatalogStats(int Total, int Active, int Status, int Priority, int Source, int ReceptionChannel);
+
+public record DepartmentStats(int Total, int Active, int Root, int AutoDiv, int Members);
 
 public record TicketTypeStats(int Total, int Active, int ETicket, int Campaign);
 
@@ -804,5 +812,63 @@ public class TicketService(AppDbContext db) : ITicketService
             list.Count(c => c.Kind == TicketCatalogKind.Priority),
             list.Count(c => c.Kind == TicketCatalogKind.Source),
             list.Count(c => c.Kind == TicketCatalogKind.ReceptionChannel));
+    }
+
+    // ── Phòng ban (Mst_Department) ───────────────────────────────────
+    public async Task<List<Department>> DepartmentsAsync(bool? active, string? q)
+    {
+        var query = db.Departments.Include(d => d.Members).AsQueryable();
+        if (active.HasValue) query = query.Where(d => d.IsActive == active.Value);
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(d => d.Code.Contains(q) || d.Name.Contains(q) || (d.Description ?? "").Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderBy(d => d.Level).ThenBy(d => d.Order).ThenBy(d => d.Code).ToList();
+    }
+
+    public Task<Department?> DepartmentGetAsync(int id) =>
+        db.Departments.Include(d => d.Members).FirstOrDefaultAsync(d => d.Id == id);
+
+    public async Task<int> DepartmentSaveAsync(Department model, List<DepartmentMember> members)
+    {
+        if (model.Id == 0)
+        {
+            if (string.IsNullOrWhiteSpace(model.Code)) model.Code = "PB-" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+            model.CreatedAt = model.UpdatedAt = DateTime.Now;
+            foreach (var m in members) model.Members.Add(m);
+            db.Departments.Add(model);
+            await db.SaveChangesAsync();
+            return model.Id;
+        }
+        var e = await db.Departments.Include(x => x.Members).FirstOrDefaultAsync(x => x.Id == model.Id)
+            ?? throw new KeyNotFoundException();
+        e.Code = model.Code; e.ParentCode = model.ParentCode; e.Name = model.Name;
+        e.Description = model.Description; e.Level = model.Level; e.TaxCode = model.TaxCode;
+        e.AutoDiv = model.AutoDiv; e.IsActive = model.IsActive; e.Order = model.Order;
+        e.UpdatedAt = DateTime.Now;
+        // Thay toàn bộ danh sách thành viên (phòng ban là cấu hình, không giữ lịch sử thành viên).
+        db.DepartmentMembers.RemoveRange(e.Members);
+        e.Members.Clear();
+        foreach (var m in members) e.Members.Add(m);
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
+    public async Task DepartmentToggleAsync(int id)
+    {
+        var d = await db.Departments.FirstOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException();
+        d.IsActive = !d.IsActive;
+        d.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<DepartmentStats> DepartmentStatsAsync()
+    {
+        var list = await db.Departments.Include(d => d.Members).ToListAsync();
+        return new DepartmentStats(
+            list.Count,
+            list.Count(d => d.IsActive),
+            list.Count(d => d.IsRoot),
+            list.Count(d => d.AutoDiv),
+            list.Sum(d => d.Members.Count));
     }
 }

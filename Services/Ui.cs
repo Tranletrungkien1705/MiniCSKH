@@ -196,4 +196,10 @@ public static class Ui
         CatalogUseType.Type1 => "Loại 1 (TYPE1)", CatalogUseType.Type2 => "Loại 2 (TYPE2)",
         CatalogUseType.Type3 => "Loại 3 (TYPE3)", _ => t.ToString()
     };
+
+    // ── Phòng ban (Mst_Department) ──
+    public static string DepartmentLevelName(int level) => level <= 1 ? "Cấp 1" : $"Cấp {level}";
+    public static string DepartmentLevelColor(int level) => level <= 1 ? "primary" : level == 2 ? "info" : "secondary";
+    public static string DepartmentLevelBadge(int level) =>
+        $"<span class='badge bg-{DepartmentLevelColor(level)}-subtle text-{DepartmentLevelColor(level)} border-{DepartmentLevelColor(level)}-subtle'>{DepartmentLevelName(level)}</span>";
 }
