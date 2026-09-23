@@ -1,0 +1,3 @@
+# DEEPEN-LOG — MiniCSKH
+
+- 2026-09-23 · feat: Chiến dịch gọi ra (Campaign) — port từ SkyCS `Cpn_Campaign_*` (11.BackEnd/V10/idn.SkyCS.Biz/Campaign.cs). Thêm entity `Campaign`/`CampaignCustomer` + enum `CampaignStatus`/`CampaignCustomerStatus`, vòng đời Pending→Approve→Started⇄Paused→Finish (theo `TConst.CampaignStatus`), danh sách khách + kết quả gọi (Done/Failed/NoAnswer/CallAgain/DoNotCall theo `CampaignCustomerCallStatus`), tiến độ %, controller + 3 view (Index/Details/Create), seed 2 chiến dịch demo, nav "Chiến dịch". Build Release 0 error; verify render Index/Details/Create + chuyển trạng thái Pending→Approved qua browser (0 console error). Commit 65c84dc.
