@@ -1,0 +1,19 @@
+@model Ticket
+@{ Layout = null; }
+<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Đã gửi yêu cầu</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" />
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>body{margin:0;font-family:"Be Vietnam Pro",sans-serif;background:#faf9fd;color:#1e1b2e}
+.box{max-width:520px;margin:60px auto;background:#fff;border:1px solid #eee;border-radius:16px;padding:40px;text-align:center;box-shadow:0 12px 30px rgba(2,6,23,.06)}
+.ico{width:70px;height:70px;border-radius:50%;background:#dcfce7;color:#16a34a;display:flex;align-items:center;justify-content:center;font-size:34px;margin:0 auto 18px}
+.code{font-family:monospace;font-size:22px;font-weight:700;color:#6d28d9;background:#ede9fe;padding:8px 18px;border-radius:10px;display:inline-block;margin:8px 0 18px}
+a{color:#6d28d9}</style></head><body>
+<div class="box">
+  <div class="ico"><i class="bi bi-check-lg"></i></div>
+  <h4 class="fw-bold">Đã gửi yêu cầu hỗ trợ!</h4>
+  <p class="text-muted">Mã phiếu của bạn — hãy lưu lại để theo dõi:</p>
+  <div class="code">@Model?.Code</div>
+  <p class="text-muted">Đội ngũ CSKH sẽ liên hệ sớm nhất. Cảm ơn bạn!</p>
+  <a href="/Portal"><i class="bi bi-arrow-left"></i> Về trung tâm hỗ trợ</a>
+</div></body></html>

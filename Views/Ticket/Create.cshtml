@@ -1,0 +1,37 @@
+@model Ticket
+@{
+    ViewData["Title"] = "Tạo phiếu hỗ trợ";
+    var cats = (List<TicketCategory>)ViewBag.Categories;
+    var agents = (List<Agent>)ViewBag.Agents;
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="fw-bold mb-0"><i class="bi bi-plus-square me-2"></i>Tạo phiếu hỗ trợ</h5>
+    <a asp-action="Index" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Quay lại</a>
+</div>
+<form method="post"><div class="card"><div class="card-body">
+    @Html.AntiForgeryToken()
+    <div class="row g-3">
+        <div class="col-md-8"><label class="form-label fw-semibold">Tiêu đề <span class="text-danger">*</span></label>
+            <input name="Subject" value="@Model.Subject" class="form-control" required /></div>
+        <div class="col-md-4"><label class="form-label fw-semibold">Kênh</label>
+            <select name="Channel" class="form-select">@foreach (Channel c in Enum.GetValues<Channel>()){<option value="@c">@Ui.ChannelName(c)</option>}</select></div>
+        <div class="col-12"><label class="form-label fw-semibold">Mô tả</label>
+            <textarea name="Description" class="form-control" rows="3"></textarea></div>
+        <div class="col-md-4"><label class="form-label fw-semibold">Khách hàng <span class="text-danger">*</span></label>
+            <input name="CustomerName" value="@Model.CustomerName" class="form-control" required /></div>
+        <div class="col-md-4"><label class="form-label fw-semibold">Điện thoại</label>
+            <input name="CustomerPhone" class="form-control" /></div>
+        <div class="col-md-4"><label class="form-label fw-semibold">Email</label>
+            <input name="CustomerEmail" type="email" class="form-control" /></div>
+        <div class="col-md-4"><label class="form-label fw-semibold">Loại (SLA)</label>
+            <select name="CategoryId" class="form-select"><option value="">— Chọn —</option>
+                @foreach (var c in cats){<option value="@c.Id">@c.Name (@c.SlaHours h)</option>}</select></div>
+        <div class="col-md-4"><label class="form-label fw-semibold">Độ ưu tiên</label>
+            <select name="Priority" class="form-select">@foreach (TicketPriority p in Enum.GetValues<TicketPriority>()){<option value="@p" selected="@(p==TicketPriority.Normal)">@Ui.PriorityName(p)</option>}</select></div>
+        <div class="col-md-4"><label class="form-label fw-semibold">Gán agent</label>
+            <select name="AssignedAgentId" class="form-select"><option value="">— Chưa gán —</option>
+                @foreach (var a in agents){<option value="@a.Id">@a.Name</option>}</select></div>
+    </div>
+    <div class="mt-3"><button class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Tạo phiếu</button>
+        <a asp-action="Index" class="btn btn-light">Hủy</a></div>
+</div></div></form>

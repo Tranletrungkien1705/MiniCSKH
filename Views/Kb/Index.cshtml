@@ -1,0 +1,29 @@
+@model List<KbArticle>
+@{
+    ViewData["Title"] = "Knowledge Base";
+    var cats = (List<string>)ViewBag.Categories;
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div><h5 class="fw-bold mb-0"><i class="bi bi-journal-richtext me-2"></i>Knowledge Base</h5>
+        <small class="text-muted">@Model.Count bài viết</small></div>
+</div>
+<form method="get" class="card p-3 mb-3"><div class="row g-2 align-items-end">
+    <div class="col-auto"><label class="form-label small mb-1">Danh mục</label>
+        <select name="category" class="form-select form-select-sm"><option value="">Tất cả</option>
+            @foreach (var c in cats){<option value="@c" selected="@((ViewBag.Category as string)==c)">@c</option>}</select></div>
+    <div class="col"><label class="form-label small mb-1">Tìm kiếm</label>
+        <input name="q" value="@ViewBag.Q" class="form-control form-control-sm" placeholder="Tiêu đề / nội dung" /></div>
+    <div class="col-auto"><button class="btn btn-outline-primary btn-sm">Tìm</button></div>
+</div></form>
+<div class="row g-3">
+    @if(!Model.Any()){<div class="col-12 text-muted text-center py-4">Không có bài viết.</div>}
+    @foreach (var a in Model)
+    {
+        <div class="col-md-6"><div class="card h-100"><div class="card-body">
+            <span class="badge bg-primary-subtle text-primary mb-2">@a.Category</span>
+            <h6 class="fw-bold"><a asp-action="Details" asp-route-id="@a.Id" class="text-decoration-none">@a.Title</a></h6>
+            <p class="small text-muted mb-2">@(a.Body.Length > 120 ? a.Body[..120] + "…" : a.Body)</p>
+            <div class="small text-muted"><i class="bi bi-eye me-1"></i>@a.Views lượt xem · @a.UpdatedAt.ToString("dd/MM/yyyy")</div>
+        </div></div></div>
+    }
+</div>
