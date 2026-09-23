@@ -51,6 +51,7 @@ public class AppDbContext : DbContext
     public DbSet<CampaignType> CampaignTypes => Set<CampaignType>();
     public DbSet<CampaignTypeColumn> CampaignTypeColumns => Set<CampaignTypeColumn>();
     public DbSet<CampaignFeedback> CampaignFeedbacks => Set<CampaignFeedback>();
+    public DbSet<GovIDType> GovIDTypes => Set<GovIDType>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -383,6 +384,13 @@ public class AppDbContext : DbContext
             e.Property(x => x.Code).HasMaxLength(50);
             e.Property(x => x.Name).HasMaxLength(200);
             e.HasOne(x => x.CampaignType).WithMany(x => x.Feedbacks).HasForeignKey(x => x.CampaignTypeId);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<GovIDType>(e =>
+        {
+            e.Property(x => x.Code).HasMaxLength(50);
+            e.Property(x => x.Name).HasMaxLength(200);
+            e.HasIndex(x => x.Code);
             e.HasQueryFilter(x => x.OrgId == _orgId);
         });
     }

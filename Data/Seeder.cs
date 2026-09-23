@@ -730,6 +730,20 @@ public static class Seeder
             );
             await db.SaveChangesAsync();
         }
+
+        if (!await db.GovIDTypes.AnyAsync())
+        {
+            // Loại giấy tờ định danh (Mst_GovIDType) — giá trị mẫu theo seed thật của SkyCS
+            // (20200416.Init.Data.sql). Dùng cho hồ sơ khách hàng/người nộp thuế (PresentIDType).
+            db.GovIDTypes.AddRange(
+                new GovIDType { Code = "CMTND_THECANCUOC", Name = "CMTND/Thẻ căn cước", Remark = "Chứng minh nhân dân hoặc thẻ căn cước công dân.", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-60), UpdatedAt = DateTime.Now.AddDays(-10) },
+                new GovIDType { Code = "HOCHIEU", Name = "Hộ chiếu", Remark = "Hộ chiếu phổ thông/công vụ.", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-60), UpdatedAt = DateTime.Now.AddDays(-10) },
+                new GovIDType { Code = "BANGLAIXE", Name = "Bằng lái xe", Remark = "Giấy phép lái xe.", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-55), UpdatedAt = DateTime.Now.AddDays(-8) },
+                new GovIDType { Code = "ORTHER", Name = "Giấy tờ khác", Remark = "Các loại giấy tờ định danh khác.", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-50), UpdatedAt = DateTime.Now.AddDays(-5) },
+                new GovIDType { Code = "GID-CU", Name = "Loại cũ (ngừng dùng)", Remark = "Đã thay thế bằng CMTND/Thẻ căn cước.", IsActive = false, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-90), UpdatedAt = DateTime.Now.AddDays(-60) }
+            );
+            await db.SaveChangesAsync();
+        }
     }
 
     /// <summary>DB Postgres cloud cũ: tạo Orgs + thêm cột OrgId nếu thiếu, backfill về org mặc định. Idempotent.</summary>
@@ -737,7 +751,7 @@ public static class Seeder
     {
         if (!db.Database.IsNpgsql()) return;
         var def = TenantContext.DefaultOrgId;
-        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags", "ReceiveNotifies", "Addresses", "SlaWorkingDays", "SlaHolidays", "SlaScopes", "ContactChannels", "TicketCustomTypes", "TicketCustomTypeMaps", "Taxpayers", "CampaignTypes", "CampaignTypeColumns", "CampaignFeedbacks" };
+        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags", "ReceiveNotifies", "Addresses", "SlaWorkingDays", "SlaHolidays", "SlaScopes", "ContactChannels", "TicketCustomTypes", "TicketCustomTypeMaps", "Taxpayers", "CampaignTypes", "CampaignTypeColumns", "CampaignFeedbacks", "GovIDTypes" };
         var sql = new List<string>
         {
             "CREATE TABLE IF NOT EXISTS minicskh.\"Orgs\" (\"Id\" uuid PRIMARY KEY, \"Name\" text NOT NULL DEFAULT '', \"ApiKey\" text NOT NULL DEFAULT '', \"CreatedAt\" timestamp NOT NULL DEFAULT now())",

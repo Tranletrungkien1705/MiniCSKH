@@ -1196,3 +1196,28 @@ public class CampaignFeedback : IOrgOwned
 
     public CampaignType CampaignType { get; set; } = null!;
 }
+// ── Loại giấy tờ định danh (Mst_GovIDType) ───────────────────────────
+// Theo SkyCS: "loại giấy tờ định danh" (Mst_GovIDType) là master data quy
+// định các loại giấy tờ tùy thân/định danh dùng khi ghi nhận thông tin
+// khách hàng (CMTND/Thẻ căn cước, Hộ chiếu, Bằng lái xe, Giấy tờ khác…).
+// Mỗi loại có mã (GovIDType), tên hiển thị (GovIDTypeName), ghi chú và
+// trạng thái hoạt động (FlagActive). Hồ sơ khách hàng/người nộp thuế tham
+// chiếu loại này qua trường PresentIDType.
+// (11.BackEnd/V10/idn.SkyCS.Biz/Master.cs, `Mst_GovIDType_Get`;
+//  model 12.Dev.Common/idn.SkyCS.Common/Models/Mst_GovIDType.cs;
+//  controller 13.ClientGate/V20/idn.SkyCS.WebAPI/Controllers/MstGovIDTypeController.cs;
+//  cột xác nhận qua TblMst_GovIDType trong Const.Main.cs)
+
+/// <summary>Loại giấy tờ định danh (Mst_GovIDType) — dùng cho hồ sơ khách hàng.</summary>
+public class GovIDType : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string Code { get; set; } = "";              // GovIDType — mã loại giấy tờ
+    public string Name { get; set; } = "";              // GovIDTypeName — tên loại giấy tờ
+    public string? Remark { get; set; }                 // Remark
+    public bool IsActive { get; set; } = true;          // FlagActive
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // LogLUDTimeUTC
+    public string CreatedBy { get; set; } = "";         // LogLUBy
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+}

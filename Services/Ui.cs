@@ -340,4 +340,16 @@ public static class Ui
     public static string CampaignTypeActiveBadge(bool active) => active
         ? "<span class='badge bg-success-subtle text-success border-success-subtle'>Đang dùng</span>"
         : "<span class='badge bg-secondary-subtle text-secondary border-secondary-subtle'>Ngừng dùng</span>";
+
+    // ── Loại giấy tờ định danh (Mst_GovIDType) ──
+    public static string GovIDTypeActiveBadge(bool active) => active
+        ? "<span class='badge bg-success-subtle text-success border-success-subtle'>Đang dùng</span>"
+        : "<span class='badge bg-secondary-subtle text-secondary border-secondary-subtle'>Ngừng dùng</span>";
+    public static string GovIDTypeIcon(string code) => code.ToUpperInvariant() switch
+    {
+        "CMTND_THECANCUOC" => "bi-person-vcard",
+        "HOCHIEU" => "bi-passport",
+        "BANGLAIXE" => "bi-car-front",
+        _ => "bi-card-text"
+    };
 }

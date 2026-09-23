@@ -164,6 +164,12 @@ public interface ITicketService
     Task CampaignTypeToggleAsync(int id);
     Task<CampaignTypeStats> CampaignTypeStatsAsync();
     Task<int> CampaignTypeUsageAsync(string code);
+    // Loại giấy tờ định danh (Mst_GovIDType)
+    Task<List<GovIDType>> GovIDTypesAsync(bool? active, string? q);
+    Task<GovIDType?> GovIDTypeGetAsync(int id);
+    Task<int> GovIDTypeSaveAsync(GovIDType model);
+    Task GovIDTypeToggleAsync(int id);
+    Task<GovIDTypeStats> GovIDTypeStatsAsync();
 }
 
 public record SlaStats(int Policies, int TicketsWithSla, int ViolatingFirstRes, int ViolatingResolution);
@@ -205,6 +211,8 @@ public record TicketCustomTypeStats(int Total, int Active, int AgentOnly, int Bo
 public record TaxpayerStats(int Total, int Active, int Registered, int Cancelled, int WithContact);
 
 public record CampaignTypeStats(int Total, int Active, int WithColumns, int WithFeedbacks, int Columns, int Feedbacks);
+
+public record GovIDTypeStats(int Total, int Active, int Inactive, int WithRemark);
 
 public record TicketTypeStats(int Total, int Active, int ETicket, int Campaign);
 
@@ -1662,4 +1670,53 @@ public class TicketService(AppDbContext db) : ITicketService
     /// <summary>Số chiến dịch đang dùng loại này (theo Cpn_Campaign.CampaignTypeCode) — dùng để chặn xóa.</summary>
     public Task<int> CampaignTypeUsageAsync(string code) =>
         db.Campaigns.CountAsync(c => c.CampaignType == code);
+
+    // ── Loại giấy tờ định danh (Mst_GovIDType) ───────────────────────
+    public async Task<List<GovIDType>> GovIDTypesAsync(bool? active, string? q)
+    {
+        var query = db.GovIDTypes.AsQueryable();
+        if (active.HasValue) query = query.Where(t => t.IsActive == active.Value);
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(t => t.Code.Contains(q) || t.Name.Contains(q) || (t.Remark ?? "").Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderBy(t => t.Code).ToList();
+    }
+
+    public Task<GovIDType?> GovIDTypeGetAsync(int id) =>
+        db.GovIDTypes.FirstOrDefaultAsync(t => t.Id == id);
+
+    public async Task<int> GovIDTypeSaveAsync(GovIDType model)
+    {
+        if (model.Id == 0)
+        {
+            if (string.IsNullOrWhiteSpace(model.Code)) model.Code = "GID-" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+            model.CreatedAt = model.UpdatedAt = DateTime.Now;
+            db.GovIDTypes.Add(model);
+            await db.SaveChangesAsync();
+            return model.Id;
+        }
+        var e = await db.GovIDTypes.FirstOrDefaultAsync(x => x.Id == model.Id) ?? throw new KeyNotFoundException();
+        e.Code = model.Code; e.Name = model.Name; e.Remark = model.Remark;
+        e.IsActive = model.IsActive; e.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
+    public async Task GovIDTypeToggleAsync(int id)
+    {
+        var t = await db.GovIDTypes.FirstOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException();
+        t.IsActive = !t.IsActive;
+        t.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<GovIDTypeStats> GovIDTypeStatsAsync()
+    {
+        var list = await db.GovIDTypes.ToListAsync();
+        return new GovIDTypeStats(
+            list.Count,
+            list.Count(t => t.IsActive),
+            list.Count(t => !t.IsActive),
+            list.Count(t => !string.IsNullOrWhiteSpace(t.Remark)));
+    }
 }
