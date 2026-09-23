@@ -1,0 +1,86 @@
+@model Taxpayer
+@{
+    ViewData["Title"] = "Chi tiết người nộp thuế";
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Người nộp thuế</a>
+        <h5 class="fw-bold mb-0 mt-1">@Model.FullName</h5>
+        <small class="text-muted font-monospace">MST: @Model.TaxCode</small>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil me-1"></i>Sửa</a>
+        <form asp-action="Toggle" asp-route-id="@Model.Id" method="post" class="d-inline">
+            @Html.AntiForgeryToken()
+            <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-toggle2-on me-1"></i>@(Model.IsActive ? "Ngừng dùng" : "Kích hoạt")</button>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-8">
+        <div class="card mb-3"><div class="card-body">
+            <h6 class="fw-bold mb-3"><i class="bi bi-building me-1"></i>Thông tin doanh nghiệp</h6>
+            <div class="row g-3">
+                <div class="col-md-6"><div class="text-muted small">Mã số thuế (MST)</div><div class="fw-semibold font-monospace">@Model.TaxCode</div></div>
+                <div class="col-md-6"><div class="text-muted small">Tên viết tắt</div><div>@(string.IsNullOrWhiteSpace(Model.ShortName) ? "—" : Model.ShortName)</div></div>
+                <div class="col-md-6"><div class="text-muted small">Đơn vị trực thuộc (MSTParent)</div><div>@(string.IsNullOrWhiteSpace(Model.ParentTaxCode) ? "—" : Model.ParentTaxCode)</div></div>
+                <div class="col-md-6"><div class="text-muted small">Cấp đơn vị</div><div>@Model.LevelName</div></div>
+                <div class="col-md-6"><div class="text-muted small">Loại hình tổ chức (BizType)</div><div>@(string.IsNullOrWhiteSpace(Model.BizType) ? "—" : Model.BizType)</div></div>
+                <div class="col-md-6"><div class="text-muted small">Lĩnh vực hoạt động (BizFieldCode)</div><div>@(string.IsNullOrWhiteSpace(Model.BizFieldCode) ? "—" : Model.BizFieldCode)</div></div>
+                <div class="col-md-6"><div class="text-muted small">Quy mô tổ chức (BizSizeCode)</div><div>@(string.IsNullOrWhiteSpace(Model.BizSizeCode) ? "—" : Model.BizSizeCode)</div></div>
+                <div class="col-md-6"><div class="text-muted small">Vùng thị trường (AreaCode)</div><div>@(string.IsNullOrWhiteSpace(Model.AreaCode) ? "—" : Model.AreaCode)</div></div>
+                <div class="col-12"><div class="text-muted small">Địa chỉ người nộp thuế</div><div>@(string.IsNullOrWhiteSpace(Model.AddressText) ? "—" : Model.AddressText)</div></div>
+            </div>
+        </div></div>
+
+        <div class="card mb-3"><div class="card-body">
+            <h6 class="fw-bold mb-3"><i class="bi bi-briefcase me-1"></i>Pháp lý &amp; người đại diện</h6>
+            <div class="row g-3">
+                <div class="col-md-6"><div class="text-muted small">Người đại diện (PresentBy)</div><div>@(string.IsNullOrWhiteSpace(Model.PresentBy) ? "—" : Model.PresentBy)</div></div>
+                <div class="col-md-6"><div class="text-muted small">Chức vụ (NNTPosition)</div><div>@(string.IsNullOrWhiteSpace(Model.Position) ? "—" : Model.Position)</div></div>
+                <div class="col-md-6"><div class="text-muted small">Giấy phép KD (BusinessRegNo)</div><div>@(string.IsNullOrWhiteSpace(Model.BusinessRegNo) ? "—" : Model.BusinessRegNo)</div></div>
+                <div class="col-md-6"><div class="text-muted small">Số giấy tờ (PresentIDNo)</div><div>@(string.IsNullOrWhiteSpace(Model.PresentIDNo) ? "—" : Model.PresentIDNo)</div></div>
+                <div class="col-md-6"><div class="text-muted small">Loại giấy tờ (PresentIDType)</div><div>@(string.IsNullOrWhiteSpace(Model.PresentIDType) ? "—" : Model.PresentIDType)</div></div>
+                <div class="col-md-6"><div class="text-muted small">CQT quản lý (GovTaxID)</div><div>@(string.IsNullOrWhiteSpace(Model.GovTaxID) ? "—" : Model.GovTaxID)</div></div>
+            </div>
+        </div></div>
+
+        <div class="card mb-3"><div class="card-body">
+            <h6 class="fw-bold mb-3"><i class="bi bi-bank me-1"></i>Chữ ký số &amp; ngân hàng</h6>
+            <div class="row g-3">
+                <div class="col-md-6"><div class="text-muted small">Chứng thư số (CANumber)</div><div>@(string.IsNullOrWhiteSpace(Model.CANumber) ? "—" : Model.CANumber)</div></div>
+                <div class="col-md-6"><div class="text-muted small">Tổ chức cấp CTS (CAOrg)</div><div>@(string.IsNullOrWhiteSpace(Model.CAOrg) ? "—" : Model.CAOrg)</div></div>
+                <div class="col-md-6"><div class="text-muted small">Hiệu lực từ</div><div>@(Model.CAEffStart?.ToString("dd/MM/yyyy") ?? "—")</div></div>
+                <div class="col-md-6"><div class="text-muted small">Hiệu lực đến</div><div>@(Model.CAEffEnd?.ToString("dd/MM/yyyy") ?? "—")</div></div>
+                <div class="col-md-4"><div class="text-muted small">Số tài khoản (AccNo)</div><div>@(string.IsNullOrWhiteSpace(Model.AccNo) ? "—" : Model.AccNo)</div></div>
+                <div class="col-md-4"><div class="text-muted small">Chủ tài khoản (AccHolder)</div><div>@(string.IsNullOrWhiteSpace(Model.AccHolder) ? "—" : Model.AccHolder)</div></div>
+                <div class="col-md-4"><div class="text-muted small">Ngân hàng (BankName)</div><div>@(string.IsNullOrWhiteSpace(Model.BankName) ? "—" : Model.BankName)</div></div>
+            </div>
+        </div></div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card mb-3"><div class="card-body">
+            <h6 class="fw-bold mb-3"><i class="bi bi-person-lines-fill me-1"></i>Người liên hệ</h6>
+            <div class="mb-2"><div class="text-muted small">Tên</div><div class="fw-semibold">@(string.IsNullOrWhiteSpace(Model.ContactName) ? "—" : Model.ContactName)</div></div>
+            <div class="mb-2"><div class="text-muted small">Điện thoại</div><div>@(string.IsNullOrWhiteSpace(Model.ContactPhone) ? "—" : Model.ContactPhone)</div></div>
+            <div class="mb-2"><div class="text-muted small">Email</div><div>@(string.IsNullOrWhiteSpace(Model.ContactEmail) ? "—" : Model.ContactEmail)</div></div>
+            <hr />
+            <div class="mb-2"><div class="text-muted small">ĐT di động</div><div>@(string.IsNullOrWhiteSpace(Model.Mobile) ? "—" : Model.Mobile)</div></div>
+            <div class="mb-2"><div class="text-muted small">ĐT cố định</div><div>@(string.IsNullOrWhiteSpace(Model.Phone) ? "—" : Model.Phone)</div></div>
+            <div class="mb-2"><div class="text-muted small">Fax</div><div>@(string.IsNullOrWhiteSpace(Model.Fax) ? "—" : Model.Fax)</div></div>
+            <div class="mb-2"><div class="text-muted small">Website</div><div>@(string.IsNullOrWhiteSpace(Model.Website) ? "—" : Model.Website)</div></div>
+        </div></div>
+
+        <div class="card"><div class="card-body">
+            <h6 class="fw-bold mb-3"><i class="bi bi-info-circle me-1"></i>Trạng thái</h6>
+            <div class="mb-2"><div class="text-muted small">Trạng thái TCT (TCTStatus)</div><div>@Html.Raw(Ui.TctStatusBadge(Model.TctStatus))</div></div>
+            <div class="mb-2"><div class="text-muted small">Hoạt động (FlagActive)</div>
+                <div>@if(Model.IsActive){<span class="badge bg-success-subtle text-success border-success-subtle">Đang dùng</span>}else{<span class="badge bg-secondary-subtle text-secondary border-secondary-subtle">Ngừng dùng</span>}</div></div>
+            <div class="mb-2"><div class="text-muted small">Ghi chú</div><div>@(string.IsNullOrWhiteSpace(Model.Remark) ? "—" : Model.Remark)</div></div>
+            <div class="mb-2"><div class="text-muted small">Người tạo</div><div>@(string.IsNullOrWhiteSpace(Model.CreatedBy) ? "—" : Model.CreatedBy)</div></div>
+            <div class="mb-2"><div class="text-muted small">Cập nhật</div><div>@Model.UpdatedAt.ToString("dd/MM/yyyy HH:mm")</div></div>
+        </div></div>
+    </div>
+</div>

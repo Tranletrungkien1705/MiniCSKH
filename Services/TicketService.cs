@@ -151,6 +151,12 @@ public interface ITicketService
     Task<int> TicketCustomTypeSaveAsync(TicketCustomType model, List<TicketCustomTypeMap> maps);
     Task TicketCustomTypeToggleAsync(int id);
     Task<TicketCustomTypeStats> TicketCustomTypeStatsAsync();
+    // Người nộp thuế (Mst_NNT)
+    Task<List<Taxpayer>> TaxpayersAsync(bool? active, TctStatus? tctStatus, string? q);
+    Task<Taxpayer?> TaxpayerGetAsync(int id);
+    Task<int> TaxpayerSaveAsync(Taxpayer model);
+    Task TaxpayerToggleAsync(int id);
+    Task<TaxpayerStats> TaxpayerStatsAsync();
 }
 
 public record SlaStats(int Policies, int TicketsWithSla, int ViolatingFirstRes, int ViolatingResolution);
@@ -188,6 +194,8 @@ public record SlaScopeStats(int Policies, int WithScopes, int AllFlagPolicies, i
 public record ContactChannelStats(int Total, int Active, int AgentOnly, int Both, int CustomerOnly);
 
 public record TicketCustomTypeStats(int Total, int Active, int AgentOnly, int Both, int CustomerOnly, int MappedTypes);
+
+public record TaxpayerStats(int Total, int Active, int Registered, int Cancelled, int WithContact);
 
 public record TicketTypeStats(int Total, int Active, int ETicket, int Campaign);
 
@@ -1502,5 +1510,82 @@ public class TicketService(AppDbContext db) : ITicketService
             list.Count(c => c.UseType == CatalogUseType.Type2),
             list.Count(c => c.UseType == CatalogUseType.Type3),
             list.Sum(c => c.Maps.Count));
+    }
+
+    // ── Người nộp thuế (Mst_NNT) ─────────────────────────────────────
+    public async Task<List<Taxpayer>> TaxpayersAsync(bool? active, TctStatus? tctStatus, string? q)
+    {
+        var query = db.Taxpayers.AsQueryable();
+        if (active.HasValue) query = query.Where(t => t.IsActive == active.Value);
+        if (tctStatus.HasValue) query = query.Where(t => t.TctStatus == tctStatus.Value);
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(t => t.TaxCode.Contains(q) || t.FullName.Contains(q)
+                || (t.ShortName ?? "").Contains(q) || (t.ContactName ?? "").Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderBy(t => t.Level).ThenBy(t => t.TaxCode).ToList();
+    }
+
+    public Task<Taxpayer?> TaxpayerGetAsync(int id) =>
+        db.Taxpayers.FirstOrDefaultAsync(t => t.Id == id);
+
+    public async Task<int> TaxpayerSaveAsync(Taxpayer model)
+    {
+        // Theo Mst_NNT_Update: MST, tên doanh nghiệp, địa chỉ, người liên hệ (tên/ĐT/email) bắt buộc.
+        if (string.IsNullOrWhiteSpace(model.TaxCode))
+            throw new InvalidOperationException("Cần mã số thuế (MST).");
+        if (string.IsNullOrWhiteSpace(model.FullName))
+            throw new InvalidOperationException("Cần tên doanh nghiệp.");
+        if (string.IsNullOrWhiteSpace(model.Address))
+            throw new InvalidOperationException("Cần địa chỉ người nộp thuế.");
+        if (string.IsNullOrWhiteSpace(model.ContactName))
+            throw new InvalidOperationException("Cần tên người liên hệ.");
+        if (string.IsNullOrWhiteSpace(model.ContactPhone))
+            throw new InvalidOperationException("Cần điện thoại người liên hệ.");
+        if (string.IsNullOrWhiteSpace(model.ContactEmail))
+            throw new InvalidOperationException("Cần email người liên hệ.");
+
+        if (model.Id == 0)
+        {
+            model.CreatedAt = model.UpdatedAt = DateTime.Now;
+            db.Taxpayers.Add(model);
+            await db.SaveChangesAsync();
+            return model.Id;
+        }
+        var e = await db.Taxpayers.FirstOrDefaultAsync(x => x.Id == model.Id) ?? throw new KeyNotFoundException();
+        e.TaxCode = model.TaxCode; e.FullName = model.FullName; e.ShortName = model.ShortName;
+        e.ParentTaxCode = model.ParentTaxCode; e.Level = model.Level;
+        e.BUCode = model.BUCode; e.BUPattern = model.BUPattern;
+        e.Address = model.Address; e.ProvinceCode = model.ProvinceCode; e.DistrictCode = model.DistrictCode;
+        e.Mobile = model.Mobile; e.Phone = model.Phone; e.Fax = model.Fax; e.Website = model.Website;
+        e.PresentBy = model.PresentBy; e.Position = model.Position; e.BusinessRegNo = model.BusinessRegNo;
+        e.PresentIDNo = model.PresentIDNo; e.PresentIDType = model.PresentIDType; e.GovTaxID = model.GovTaxID;
+        e.ContactName = model.ContactName; e.ContactPhone = model.ContactPhone; e.ContactEmail = model.ContactEmail;
+        e.CANumber = model.CANumber; e.CAOrg = model.CAOrg;
+        e.CAEffStart = model.CAEffStart; e.CAEffEnd = model.CAEffEnd;
+        e.AccNo = model.AccNo; e.AccHolder = model.AccHolder; e.BankName = model.BankName;
+        e.BizType = model.BizType; e.BizFieldCode = model.BizFieldCode; e.BizSizeCode = model.BizSizeCode;
+        e.AreaCode = model.AreaCode; e.TctStatus = model.TctStatus;
+        e.IsActive = model.IsActive; e.Remark = model.Remark; e.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
+    public async Task TaxpayerToggleAsync(int id)
+    {
+        var t = await db.Taxpayers.FirstOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException();
+        t.IsActive = !t.IsActive;
+        t.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<TaxpayerStats> TaxpayerStatsAsync()
+    {
+        var list = await db.Taxpayers.ToListAsync();
+        return new TaxpayerStats(
+            list.Count,
+            list.Count(t => t.IsActive),
+            list.Count(t => t.TctStatus == TctStatus.Registered),
+            list.Count(t => t.TctStatus == TctStatus.Cancelled),
+            list.Count(t => !string.IsNullOrWhiteSpace(t.ContactName)));
     }
 }

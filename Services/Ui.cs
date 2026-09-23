@@ -318,4 +318,21 @@ public static class Ui
     };
     public static string SlaScopeKindBadge(SlaScopeKind k) =>
         $"<span class='badge bg-{SlaScopeKindColor(k)}-subtle text-{SlaScopeKindColor(k)} border-{SlaScopeKindColor(k)}-subtle'><i class='bi {SlaScopeKindIcon(k)} me-1'></i>{SlaScopeKindName(k)}</span>";
+
+    // ── Người nộp thuế (Mst_NNT) ──
+    public static string TctStatusName(TctStatus s) => s switch
+    {
+        TctStatus.Registered => "TCT xác nhận đăng ký", TctStatus.Cancelled => "TCT xác nhận ngừng",
+        _ => "Chưa đăng ký"
+    };
+    public static string TctStatusColor(TctStatus s) => s switch
+    {
+        TctStatus.Registered => "success", TctStatus.Cancelled => "danger", _ => "secondary"
+    };
+    public static string TctStatusIcon(TctStatus s) => s switch
+    {
+        TctStatus.Registered => "bi-patch-check", TctStatus.Cancelled => "bi-x-octagon", _ => "bi-hourglass"
+    };
+    public static string TctStatusBadge(TctStatus s) =>
+        $"<span class='badge bg-{TctStatusColor(s)}-subtle text-{TctStatusColor(s)} border-{TctStatusColor(s)}-subtle'><i class='bi {TctStatusIcon(s)} me-1'></i>{TctStatusName(s)}</span>";
 }

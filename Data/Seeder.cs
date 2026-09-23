@@ -633,6 +633,55 @@ public static class Seeder
             );
             await db.SaveChangesAsync();
         }
+
+        if (!await db.Taxpayers.AnyAsync())
+        {
+            // Người nộp thuế (Mst_NNT) — hồ sơ doanh nghiệp/tổ chức nộp thuế.
+            db.Taxpayers.AddRange(
+                new Taxpayer
+                {
+                    TaxCode = "0101234567", FullName = "Công ty TNHH Minh Anh", ShortName = "Minh Anh Co., Ltd",
+                    Level = 1, Address = "12 Lê Lợi, Phường Bến Nghé", ProvinceCode = "79", DistrictCode = "760",
+                    Mobile = "0901234567", Phone = "02838223344", Website = "minhanh.vn",
+                    PresentBy = "Nguyễn Thị Minh", Position = "Giám đốc", BusinessRegNo = "0101234567",
+                    PresentIDNo = "079123456789", PresentIDType = "CCCD", GovTaxID = "CQT-Q1",
+                    ContactName = "Trần Văn Khoa", ContactPhone = "0901234568", ContactEmail = "khoa@minhanh.vn",
+                    CANumber = "CA-0101234567", CAOrg = "VNPT-CA",
+                    CAEffStart = DateTime.Now.AddYears(-2), CAEffEnd = DateTime.Now.AddYears(1),
+                    AccNo = "0071000123456", AccHolder = "Công ty TNHH Minh Anh", BankName = "Vietcombank",
+                    BizType = "Doanh nghiệp", BizFieldCode = "BANLE", BizSizeCode = "SME", AreaCode = "MN-HCM",
+                    TctStatus = TctStatus.Registered, IsActive = true,
+                    Remark = "Khách doanh nghiệp VIP, đã đăng ký dịch vụ TVAN.",
+                    CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-30), UpdatedAt = DateTime.Now.AddDays(-2)
+                },
+                new Taxpayer
+                {
+                    TaxCode = "0309876543", FullName = "Đại lý Phương Nam", ShortName = "Phương Nam",
+                    Level = 1, Address = "45 Nguyễn Huệ, Phường Bến Nghé", ProvinceCode = "79", DistrictCode = "760",
+                    Mobile = "0934567890", Phone = "02838225566",
+                    PresentBy = "Lê Phương Nam", Position = "Giám đốc", BusinessRegNo = "0309876543",
+                    ContactName = "Lê Phương Nam", ContactPhone = "0934567890", ContactEmail = "nam@daily.vn",
+                    AccNo = "0071000987654", AccHolder = "Đại lý Phương Nam", BankName = "ACB",
+                    BizType = "Doanh nghiệp", BizFieldCode = "BANBUON", BizSizeCode = "SME", AreaCode = "MN-HCM",
+                    TctStatus = TctStatus.None, IsActive = true,
+                    Remark = "Đại lý khu vực miền Nam, chưa đăng ký TVAN.",
+                    CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-20), UpdatedAt = DateTime.Now.AddDays(-5)
+                },
+                new Taxpayer
+                {
+                    TaxCode = "0107654321", FullName = "Công ty ABC (ngừng hợp tác)", ShortName = "ABC",
+                    Level = 1, Address = "78 Trần Hưng Đạo, Phường Hàng Bạc", ProvinceCode = "01", DistrictCode = "001",
+                    Mobile = "0945678901",
+                    PresentBy = "Phạm Văn C", Position = "Giám đốc", BusinessRegNo = "0107654321",
+                    ContactName = "Phạm Văn C", ContactPhone = "0945678901", ContactEmail = "info@abc.vn",
+                    BizType = "Doanh nghiệp", BizFieldCode = "SANXUAT", BizSizeCode = "LARGE", AreaCode = "MB-HN",
+                    TctStatus = TctStatus.Cancelled, IsActive = false,
+                    Remark = "Đã ngừng hợp tác và ngừng đăng ký dịch vụ.",
+                    CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-60), UpdatedAt = DateTime.Now.AddDays(-15)
+                }
+            );
+            await db.SaveChangesAsync();
+        }
     }
 
     /// <summary>DB Postgres cloud cũ: tạo Orgs + thêm cột OrgId nếu thiếu, backfill về org mặc định. Idempotent.</summary>
@@ -640,7 +689,7 @@ public static class Seeder
     {
         if (!db.Database.IsNpgsql()) return;
         var def = TenantContext.DefaultOrgId;
-        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags", "ReceiveNotifies", "Addresses", "SlaWorkingDays", "SlaHolidays", "SlaScopes", "ContactChannels", "TicketCustomTypes", "TicketCustomTypeMaps" };
+        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags", "ReceiveNotifies", "Addresses", "SlaWorkingDays", "SlaHolidays", "SlaScopes", "ContactChannels", "TicketCustomTypes", "TicketCustomTypeMaps", "Taxpayers" };
         var sql = new List<string>
         {
             "CREATE TABLE IF NOT EXISTS minicskh.\"Orgs\" (\"Id\" uuid PRIMARY KEY, \"Name\" text NOT NULL DEFAULT '', \"ApiKey\" text NOT NULL DEFAULT '', \"CreatedAt\" timestamp NOT NULL DEFAULT now())",

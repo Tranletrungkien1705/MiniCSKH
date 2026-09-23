@@ -1,0 +1,67 @@
+@model List<Taxpayer>
+@{
+    ViewData["Title"] = "Người nộp thuế";
+    var stats = (TaxpayerStats)ViewBag.Stats;
+    var active = (bool?)ViewBag.Active;
+    var tctStatus = (TctStatus?)ViewBag.TctStatus;
+    var q = (string?)ViewBag.Q;
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div><h5 class="fw-bold mb-0"><i class="bi bi-receipt me-2"></i>Người nộp thuế</h5>
+        <small class="text-muted">Hồ sơ doanh nghiệp/tổ chức nộp thuế (Mst_NNT) — Trung tâm khách hàng</small></div>
+    <a asp-action="Create" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Thêm người nộp thuế</a>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Tổng hồ sơ</div><div class="fs-3 fw-bold">@stats.Total</div></div>
+        <i class="bi bi-receipt fs-2 text-primary opacity-50"></i></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Đang dùng</div><div class="fs-3 fw-bold text-success">@stats.Active</div></div>
+        <i class="bi bi-check-circle fs-2 text-success opacity-50"></i></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">TCT xác nhận ĐK</div><div class="fs-3 fw-bold text-info">@stats.Registered</div></div>
+        <i class="bi bi-patch-check fs-2 text-info opacity-50"></i></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Có người liên hệ</div><div class="fs-3 fw-bold text-warning">@stats.WithContact</div></div>
+        <i class="bi bi-person-lines-fill fs-2 text-warning opacity-50"></i></div></div></div>
+</div>
+
+<form method="get" class="card p-3 mb-3"><div class="row g-2 align-items-end">
+    <div class="col"><label class="form-label small mb-1">Tìm</label><input name="q" value="@q" class="form-control form-control-sm" placeholder="MST / tên doanh nghiệp / người liên hệ" /></div>
+    <div class="col-auto"><label class="form-label small mb-1">Trạng thái TCT</label>
+        <select name="tctStatus" class="form-select form-select-sm">
+            <option value="">— Tất cả —</option>
+            @foreach (var t in Enum.GetValues<TctStatus>())
+            {
+                <option value="@t" selected="@(tctStatus==t)">@Ui.TctStatusName(t)</option>
+            }
+        </select></div>
+    <div class="col-auto"><label class="form-label small mb-1">Trạng thái</label>
+        <select name="active" class="form-select form-select-sm">
+            <option value="">— Tất cả —</option>
+            <option value="true" selected="@(active==true)">Đang dùng</option>
+            <option value="false" selected="@(active==false)">Ngừng dùng</option>
+        </select></div>
+    <div class="col-auto"><button class="btn btn-outline-primary btn-sm">Lọc</button> <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Xóa</a></div>
+</div></form>
+
+<div class="card"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
+    <thead><tr><th>MST</th><th>Tên doanh nghiệp</th><th>Người liên hệ</th><th>Địa chỉ</th><th>Trạng thái TCT</th><th>Trạng thái</th><th></th></tr></thead>
+    <tbody>
+        @if(!Model.Any()){<tr><td colspan="7" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>Chưa có người nộp thuế</td></tr>}
+        @foreach (var t in Model)
+        {
+            <tr style="cursor:pointer" onclick="location.href='/Taxpayer/Details/@t.Id'">
+                <td><span class="font-monospace small fw-semibold">@t.TaxCode</span></td>
+                <td class="fw-semibold">@t.FullName
+                    @if(!t.IsRoot){<span class="badge bg-light text-muted border ms-1">@t.LevelName</span>}</td>
+                <td class="small text-muted">@(string.IsNullOrWhiteSpace(t.ContactName) ? "—" : t.ContactName)</td>
+                <td class="small text-muted">@(string.IsNullOrWhiteSpace(t.AddressText) ? "—" : t.AddressText)</td>
+                <td>@Html.Raw(Ui.TctStatusBadge(t.TctStatus))</td>
+                <td>@if(t.IsActive){<span class="badge bg-success-subtle text-success border-success-subtle">Đang dùng</span>}else{<span class="badge bg-secondary-subtle text-secondary border-secondary-subtle">Ngừng dùng</span>}</td>
+                <td class="text-end"><a asp-action="Edit" asp-route-id="@t.Id" class="btn btn-outline-primary btn-sm" onclick="event.stopPropagation()"><i class="bi bi-pencil me-1"></i>Sửa</a></td>
+            </tr>
+        }
+    </tbody>
+</table></div></div>

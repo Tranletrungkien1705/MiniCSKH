@@ -1,0 +1,127 @@
+@model Taxpayer
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Thêm người nộp thuế" : "Sửa người nộp thuế";
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Người nộp thuế</a>
+        <h5 class="fw-bold mb-0 mt-1">@ViewData["Title"]</h5>
+    </div>
+</div>
+
+<form asp-action="Save" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="Id" value="@Model.Id" />
+
+    <div class="card mb-3"><div class="card-body">
+        <h6 class="fw-bold mb-3"><i class="bi bi-building me-1"></i>Thông tin doanh nghiệp</h6>
+        <div class="row g-3">
+            <div class="col-md-4"><label class="form-label small">Mã số thuế (MST) <span class="text-danger">*</span></label>
+                <input name="TaxCode" value="@Model.TaxCode" class="form-control form-control-sm" placeholder="VD: 0101234567" required /></div>
+            <div class="col-md-8"><label class="form-label small">Tên doanh nghiệp (NNTFullName) <span class="text-danger">*</span></label>
+                <input name="FullName" value="@Model.FullName" class="form-control form-control-sm" placeholder="VD: Công ty TNHH ABC" required /></div>
+            <div class="col-md-6"><label class="form-label small">Tên viết tắt (NNTShortName)</label>
+                <input name="ShortName" value="@Model.ShortName" class="form-control form-control-sm" /></div>
+            <div class="col-md-3"><label class="form-label small">Đơn vị trực thuộc (MSTParent)</label>
+                <input name="ParentTaxCode" value="@Model.ParentTaxCode" class="form-control form-control-sm" /></div>
+            <div class="col-md-3"><label class="form-label small">Cấp đơn vị (MSTLevel)</label>
+                <input name="Level" type="number" min="1" value="@Model.Level" class="form-control form-control-sm" /></div>
+            <div class="col-md-4"><label class="form-label small">Loại hình tổ chức (BizType)</label>
+                <input name="BizType" value="@Model.BizType" class="form-control form-control-sm" placeholder="VD: Doanh nghiệp / Hộ KD" /></div>
+            <div class="col-md-4"><label class="form-label small">Lĩnh vực hoạt động (BizFieldCode)</label>
+                <input name="BizFieldCode" value="@Model.BizFieldCode" class="form-control form-control-sm" /></div>
+            <div class="col-md-4"><label class="form-label small">Quy mô tổ chức (BizSizeCode)</label>
+                <input name="BizSizeCode" value="@Model.BizSizeCode" class="form-control form-control-sm" /></div>
+            <div class="col-md-4"><label class="form-label small">Vùng thị trường (AreaCode)</label>
+                <input name="AreaCode" value="@Model.AreaCode" class="form-control form-control-sm" /></div>
+            <div class="col-md-4"><label class="form-label small">Mã tỉnh (ProvinceCode)</label>
+                <input name="ProvinceCode" value="@Model.ProvinceCode" class="form-control form-control-sm" /></div>
+            <div class="col-md-4"><label class="form-label small">Mã huyện (DistrictCode)</label>
+                <input name="DistrictCode" value="@Model.DistrictCode" class="form-control form-control-sm" /></div>
+            <div class="col-12"><label class="form-label small">Địa chỉ người nộp thuế (NNTAddress) <span class="text-danger">*</span></label>
+                <input name="Address" value="@Model.Address" class="form-control form-control-sm" placeholder="Số nhà, đường, phường/xã…" required /></div>
+        </div>
+    </div></div>
+
+    <div class="card mb-3"><div class="card-body">
+        <h6 class="fw-bold mb-3"><i class="bi bi-briefcase me-1"></i>Pháp lý &amp; người đại diện</h6>
+        <div class="row g-3">
+            <div class="col-md-4"><label class="form-label small">Người đại diện (PresentBy)</label>
+                <input name="PresentBy" value="@Model.PresentBy" class="form-control form-control-sm" /></div>
+            <div class="col-md-4"><label class="form-label small">Chức vụ (NNTPosition)</label>
+                <input name="Position" value="@Model.Position" class="form-control form-control-sm" /></div>
+            <div class="col-md-4"><label class="form-label small">Giấy phép KD (BusinessRegNo)</label>
+                <input name="BusinessRegNo" value="@Model.BusinessRegNo" class="form-control form-control-sm" /></div>
+            <div class="col-md-4"><label class="form-label small">Số giấy tờ (PresentIDNo)</label>
+                <input name="PresentIDNo" value="@Model.PresentIDNo" class="form-control form-control-sm" /></div>
+            <div class="col-md-4"><label class="form-label small">Loại giấy tờ (PresentIDType)</label>
+                <input name="PresentIDType" value="@Model.PresentIDType" class="form-control form-control-sm" /></div>
+            <div class="col-md-4"><label class="form-label small">CQT quản lý (GovTaxID)</label>
+                <input name="GovTaxID" value="@Model.GovTaxID" class="form-control form-control-sm" /></div>
+        </div>
+    </div></div>
+
+    <div class="card mb-3"><div class="card-body">
+        <h6 class="fw-bold mb-3"><i class="bi bi-person-lines-fill me-1"></i>Người liên hệ <span class="text-danger">*</span></h6>
+        <div class="row g-3">
+            <div class="col-md-4"><label class="form-label small">Tên người liên hệ (ContactName) <span class="text-danger">*</span></label>
+                <input name="ContactName" value="@Model.ContactName" class="form-control form-control-sm" required /></div>
+            <div class="col-md-4"><label class="form-label small">Điện thoại (ContactPhone) <span class="text-danger">*</span></label>
+                <input name="ContactPhone" value="@Model.ContactPhone" class="form-control form-control-sm" required /></div>
+            <div class="col-md-4"><label class="form-label small">Email (ContactEmail) <span class="text-danger">*</span></label>
+                <input name="ContactEmail" type="email" value="@Model.ContactEmail" class="form-control form-control-sm" required /></div>
+            <div class="col-md-3"><label class="form-label small">ĐT di động (NNTMobile)</label>
+                <input name="Mobile" value="@Model.Mobile" class="form-control form-control-sm" /></div>
+            <div class="col-md-3"><label class="form-label small">ĐT cố định (NNTPhone)</label>
+                <input name="Phone" value="@Model.Phone" class="form-control form-control-sm" /></div>
+            <div class="col-md-3"><label class="form-label small">Fax (NNTFax)</label>
+                <input name="Fax" value="@Model.Fax" class="form-control form-control-sm" /></div>
+            <div class="col-md-3"><label class="form-label small">Website</label>
+                <input name="Website" value="@Model.Website" class="form-control form-control-sm" /></div>
+        </div>
+    </div></div>
+
+    <div class="card mb-3"><div class="card-body">
+        <h6 class="fw-bold mb-3"><i class="bi bi-bank me-1"></i>Chữ ký số &amp; ngân hàng</h6>
+        <div class="row g-3">
+            <div class="col-md-4"><label class="form-label small">Chứng thư số (CANumber)</label>
+                <input name="CANumber" value="@Model.CANumber" class="form-control form-control-sm" /></div>
+            <div class="col-md-4"><label class="form-label small">Tổ chức cấp CTS (CAOrg)</label>
+                <input name="CAOrg" value="@Model.CAOrg" class="form-control form-control-sm" /></div>
+            <div class="col-md-2"><label class="form-label small">Hiệu lực từ</label>
+                <input name="CAEffStart" type="date" value="@(Model.CAEffStart?.ToString("yyyy-MM-dd"))" class="form-control form-control-sm" /></div>
+            <div class="col-md-2"><label class="form-label small">Hiệu lực đến</label>
+                <input name="CAEffEnd" type="date" value="@(Model.CAEffEnd?.ToString("yyyy-MM-dd"))" class="form-control form-control-sm" /></div>
+            <div class="col-md-4"><label class="form-label small">Số tài khoản (AccNo)</label>
+                <input name="AccNo" value="@Model.AccNo" class="form-control form-control-sm" /></div>
+            <div class="col-md-4"><label class="form-label small">Chủ tài khoản (AccHolder)</label>
+                <input name="AccHolder" value="@Model.AccHolder" class="form-control form-control-sm" /></div>
+            <div class="col-md-4"><label class="form-label small">Ngân hàng (BankName)</label>
+                <input name="BankName" value="@Model.BankName" class="form-control form-control-sm" /></div>
+        </div>
+    </div></div>
+
+    <div class="card mb-3"><div class="card-body">
+        <h6 class="fw-bold mb-3"><i class="bi bi-info-circle me-1"></i>Trạng thái</h6>
+        <div class="row g-3">
+            <div class="col-md-4"><label class="form-label small">Trạng thái TCT (TCTStatus)</label>
+                <select name="TctStatus" class="form-select form-select-sm">
+                    @foreach (var t in Enum.GetValues<TctStatus>())
+                    {
+                        <option value="@t" selected="@(Model.TctStatus==t)">@Ui.TctStatusName(t)</option>
+                    }
+                </select></div>
+            <div class="col-md-4"><label class="form-label small">Hoạt động</label>
+                <div class="form-check form-switch mt-1">
+                    <input class="form-check-input" type="checkbox" name="IsActive" value="true" id="isActive" @(Model.IsActive ? "checked" : "") />
+                    <label class="form-check-label small" for="isActive">Đang dùng (FlagActive)</label></div></div>
+            <div class="col-12"><label class="form-label small">Ghi chú</label>
+                <input name="Remark" value="@Model.Remark" class="form-control form-control-sm" /></div>
+        </div>
+    </div></div>
+
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary btn-sm"><i class="bi bi-check-lg me-1"></i>Lưu người nộp thuế</button>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Hủy</a>
+    </div>
+</form>

@@ -47,6 +47,7 @@ public class AppDbContext : DbContext
     public DbSet<ContactChannel> ContactChannels => Set<ContactChannel>();
     public DbSet<TicketCustomType> TicketCustomTypes => Set<TicketCustomType>();
     public DbSet<TicketCustomTypeMap> TicketCustomTypeMaps => Set<TicketCustomTypeMap>();
+    public DbSet<Taxpayer> Taxpayers => Set<Taxpayer>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -338,6 +339,23 @@ public class AppDbContext : DbContext
         {
             e.Property(x => x.TicketTypeCode).HasMaxLength(50);
             e.HasOne(x => x.CustomType).WithMany(x => x.Maps).HasForeignKey(x => x.TicketCustomTypeId);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<Taxpayer>(e =>
+        {
+            e.Property(x => x.TaxCode).HasMaxLength(30);
+            e.Property(x => x.FullName).HasMaxLength(300);
+            e.Property(x => x.ShortName).HasMaxLength(200);
+            e.Property(x => x.ParentTaxCode).HasMaxLength(30);
+            e.Property(x => x.ProvinceCode).HasMaxLength(50);
+            e.Property(x => x.DistrictCode).HasMaxLength(50);
+            e.Property(x => x.AreaCode).HasMaxLength(50);
+            e.HasIndex(x => x.TaxCode);
+            e.Ignore(x => x.TctStatusName);
+            e.Ignore(x => x.IsRoot);
+            e.Ignore(x => x.LevelName);
+            e.Ignore(x => x.Initials);
+            e.Ignore(x => x.AddressText);
             e.HasQueryFilter(x => x.OrgId == _orgId);
         });
     }

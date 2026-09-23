@@ -1046,4 +1046,84 @@ public class TicketCustomTypeMap : IOrgOwned
     public bool IsActive { get; set; } = true;          // FlagActive
 
     public TicketCustomType CustomType { get; set; } = null!;
+}// ── Người nộp thuế (Mst_NNT) ─────────────────────────────────────────
+// Theo SkyCS: "người nộp thuế" (Mst_NNT) là hồ sơ doanh nghiệp/tổ chức nộp
+// thuế trong Trung tâm khách hàng — gắn với mã số thuế (MST), thông tin pháp
+// lý (giấy phép KD, người đại diện, chữ ký số), địa chỉ (tỉnh/huyện), ngân
+// hàng và người liên hệ. Là master data nền cho hồ sơ khách hàng doanh nghiệp
+// và đăng ký dịch vụ TVAN (TCTStatus = kết quả Tổng cục Thuế).
+// (11.BackEnd/V10/idn.SkyCS.Biz/Master.cs, `Mst_NNT_Get`/`Mst_NNT_Update`/
+//  `Mst_NNT_CreateForNetwork`; model 12.Dev.Common/idn.SkyCS.Common/Models/Mst_NNT.cs;
+//  controller 13.ClientGate/V20/idn.SkyCS.WebAPI/Controllers/MstNNTController.cs;
+//  hằng số MstNNT_TCTStatus trong Const.Main.BE.cs)
+
+/// <summary>Trạng thái đăng ký dịch vụ TVAN với Tổng cục Thuế (MstNNT_TCTStatus).</summary>
+public enum TctStatus { None = 0, Registered = 1, Cancelled = 2 }
+
+/// <summary>Người nộp thuế (Mst_NNT) — hồ sơ doanh nghiệp/tổ chức nộp thuế.</summary>
+public class Taxpayer : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string TaxCode { get; set; } = "";            // MST — mã số thuế (khóa nghiệp vụ)
+    public string FullName { get; set; } = "";           // NNTFullName — tên doanh nghiệp
+    public string? ShortName { get; set; }               // NNTShortName — tên viết tắt
+    public string? ParentTaxCode { get; set; }           // MSTParent — đơn vị trực thuộc
+    public int Level { get; set; } = 1;                  // MSTLevel — cấp đơn vị
+    public string? BUCode { get; set; }                  // MSTBUCode — mã đơn vị kinh doanh
+    public string? BUPattern { get; set; }               // MSTBUPattern — mẫu đơn vị kinh doanh
+    // Địa chỉ
+    public string? Address { get; set; }                 // NNTAddress — địa chỉ người nộp thuế
+    public string? ProvinceCode { get; set; }            // ProvinceCode — mã tỉnh
+    public string? DistrictCode { get; set; }            // DistrictCode — mã huyện
+    // Liên hệ
+    public string? Mobile { get; set; }                  // NNTMobile — ĐT di động
+    public string? Phone { get; set; }                   // NNTPhone — ĐT cố định
+    public string? Fax { get; set; }                     // NNTFax
+    public string? Website { get; set; }                 // Website
+    // Pháp lý / người đại diện
+    public string? PresentBy { get; set; }               // PresentBy — người đại diện
+    public string? Position { get; set; }                // NNTPosition — chức vụ
+    public string? BusinessRegNo { get; set; }           // BusinessRegNo — giấy phép KD
+    public string? PresentIDNo { get; set; }             // PresentIDNo — số giấy tờ
+    public string? PresentIDType { get; set; }           // PresentIDType — loại giấy tờ tùy thân
+    public string? GovTaxID { get; set; }                // GovTaxID — CQT quản lý
+    // Người liên hệ
+    public string? ContactName { get; set; }             // ContactName — tên người liên lạc
+    public string? ContactPhone { get; set; }            // ContactPhone — ĐT người liên hệ
+    public string? ContactEmail { get; set; }            // ContactEmail — email người liên hệ
+    // Chữ ký số (CA)
+    public string? CANumber { get; set; }                // CANumber — chứng thư số
+    public string? CAOrg { get; set; }                   // CAOrg — tổ chức cấp CTS
+    public DateTime? CAEffStart { get; set; }            // CAEffDTimeUTCStart — hiệu lực từ
+    public DateTime? CAEffEnd { get; set; }              // CAEffDTimeUTCEnd — hiệu lực đến
+    // Ngân hàng
+    public string? AccNo { get; set; }                   // AccNo — số tài khoản
+    public string? AccHolder { get; set; }               // AccHolder — chủ tài khoản
+    public string? BankName { get; set; }                // BankName — ngân hàng
+    // Phân loại / trạng thái
+    public string? BizType { get; set; }                 // BizType — loại hình tổ chức
+    public string? BizFieldCode { get; set; }            // BizFieldCode — lĩnh vực hoạt động
+    public string? BizSizeCode { get; set; }             // BizSizeCode — quy mô tổ chức
+    public string? AreaCode { get; set; }                // AreaCode — vùng thị trường
+    public TctStatus TctStatus { get; set; } = TctStatus.None;  // TCTStatus — kết quả TCT
+    public bool IsActive { get; set; } = true;           // FlagActive
+    public string? Remark { get; set; }                  // Remark
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // LogLUDTimeUTC
+    public string CreatedBy { get; set; } = "";          // LogLUBy
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+    // ── tính toán ────────────────────────────────────────────────────
+    public string TctStatusName => TctStatus switch
+    {
+        TctStatus.Registered => "TCT xác nhận đăng ký",
+        TctStatus.Cancelled => "TCT xác nhận ngừng",
+        _ => "Chưa đăng ký"
+    };
+    public bool IsRoot => string.IsNullOrWhiteSpace(ParentTaxCode);
+    public string LevelName => Level <= 1 ? "Cấp 1" : $"Cấp {Level}";
+    public string Initials => string.IsNullOrWhiteSpace(FullName) ? "?" : FullName.Trim()[0].ToString().ToUpperInvariant();
+    /// <summary>Địa chỉ đầy đủ (địa chỉ + tỉnh/huyện) dùng cho view.</summary>
+    public string AddressText => string.Join(", ", new[] { Address, DistrictCode, ProvinceCode }
+        .Where(s => !string.IsNullOrWhiteSpace(s)));
 }
