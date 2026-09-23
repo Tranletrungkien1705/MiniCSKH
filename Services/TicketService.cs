@@ -182,6 +182,12 @@ public interface ITicketService
     Task<int> SatisfactionRatingSaveAsync(SatisfactionRating model);
     Task SatisfactionRatingToggleAsync(int id);
     Task<SatisfactionRatingStats> SatisfactionRatingStatsAsync();
+    // Loại kênh (Mst_ChannelType)
+    Task<List<ChannelType>> ChannelTypesAsync(bool? active, string? q);
+    Task<ChannelType?> ChannelTypeGetAsync(int id);
+    Task<int> ChannelTypeSaveAsync(ChannelType model);
+    Task ChannelTypeToggleAsync(int id);
+    Task<ChannelTypeStats> ChannelTypeStatsAsync();
 }
 
 public record SlaStats(int Policies, int TicketsWithSla, int ViolatingFirstRes, int ViolatingResolution);
@@ -229,6 +235,8 @@ public record GovIDTypeStats(int Total, int Active, int Inactive, int WithRemark
 public record CountryStats(int Total, int Active, int Inactive, int WithPostCode);
 
 public record SatisfactionRatingStats(int Total, int Active, int Inactive, int Positive);
+
+public record ChannelTypeStats(int Total, int Active, int Inactive, int WithName);
 
 public record TicketTypeStats(int Total, int Active, int ETicket, int Campaign);
 
@@ -1832,5 +1840,53 @@ public class TicketService(AppDbContext db) : ITicketService
             list.Count(s => s.IsActive),
             list.Count(s => !s.IsActive),
             list.Count(s => s.IsPositive));
+    }
+
+    // ── Loại kênh (Mst_ChannelType) ───────
+    public async Task<List<ChannelType>> ChannelTypesAsync(bool? active, string? q)
+    {
+        var query = db.ChannelTypes.AsQueryable();
+        if (active.HasValue) query = query.Where(c => c.IsActive == active.Value);
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(c => c.Code.Contains(q) || c.Name.Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderBy(c => c.Code).ToList();
+    }
+
+    public Task<ChannelType?> ChannelTypeGetAsync(int id) =>
+        db.ChannelTypes.FirstOrDefaultAsync(c => c.Id == id);
+
+    public async Task<int> ChannelTypeSaveAsync(ChannelType model)
+    {
+        if (model.Id == 0)
+        {
+            if (string.IsNullOrWhiteSpace(model.Code)) model.Code = "CH-" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+            model.CreatedAt = model.UpdatedAt = DateTime.Now;
+            db.ChannelTypes.Add(model);
+            await db.SaveChangesAsync();
+            return model.Id;
+        }
+        var e = await db.ChannelTypes.FirstOrDefaultAsync(x => x.Id == model.Id) ?? throw new KeyNotFoundException();
+        e.Code = model.Code; e.Name = model.Name; e.IsActive = model.IsActive; e.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
+    public async Task ChannelTypeToggleAsync(int id)
+    {
+        var c = await db.ChannelTypes.FirstOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException();
+        c.IsActive = !c.IsActive;
+        c.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<ChannelTypeStats> ChannelTypeStatsAsync()
+    {
+        var list = await db.ChannelTypes.ToListAsync();
+        return new ChannelTypeStats(
+            list.Count,
+            list.Count(c => c.IsActive),
+            list.Count(c => !c.IsActive),
+            list.Count(c => !string.IsNullOrWhiteSpace(c.Name)));
     }
 }

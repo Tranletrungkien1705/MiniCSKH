@@ -1282,3 +1282,41 @@ public class SatisfactionRating : IOrgOwned
     /// <summary>Mức đánh giá tích cực (Rất hài lòng / Hài lòng) — dùng cho thống kê.</summary>
     public bool IsPositive => Code.ToUpperInvariant() is "SAT5" or "SAT4" or "RAT5" or "RAT4";
 }
+
+// ── Loại kênh (Mst_ChannelType) ──────────────────────
+// Theo SkyCS: "loại kênh" (Mst_ChannelType) là master data của OmniChannel —
+// danh mục các LOẠI kênh liên lạc đa kênh (email, sms, zalo…). Mỗi loại kênh
+// có mã (ChannelType), tên hiển thị (ChannelTypeName) và trạng thái hoạt động
+// (FlagActive). Mst_Channel gắn loại kênh cho eTicket (ChannelTypeETicket) và
+// cho OTP (ChannelTypeOTP); các bảng con Mst_ChannelEmail/SMS/Zalo tham chiếu
+// loại kênh để cấu hình gửi/nhận.
+// (11.BackEnd/V10/idn.SkyCS.Biz/OmniChannel/OminiChannel.cs, `Mst_ChannelType_Get`;
+//  model 12.Dev.Common/idn.SkyCS.Common/Models/OminiChannel/Mst_ChannelType.cs;
+//  controller 13.ClientGate/V20/idn.SkyCS.WebAPI/Controllers/MstChannelTypeController.cs;
+//  cột xác nhận qua TblMst_ChannelType trong Const.Main.1.cs;
+//  seed thật 20230619.z11.UpdDB.80.OmniChannel.sql: EMAIL/SMS/ZALO)
+
+/// <summary>Loại kênh (Mst_ChannelType) — danh mục loại kênh liên lạc đa kênh.</summary>
+public class ChannelType : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string Code { get; set; } = "";              // ChannelType — mã loại kênh
+    public string Name { get; set; } = "";              // ChannelTypeName — tên loại kênh
+    public bool IsActive { get; set; } = true;          // FlagActive
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // LogLUDTimeUTC
+    public string CreatedBy { get; set; } = "";         // LogLUBy
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+    // ── tính toán ────────────────────
+    /// <summary>Biểu tượng theo loại kênh (dựa vào mã).</summary>
+    public string Icon => Code.ToUpperInvariant() switch
+    {
+        "EMAIL" => "bi-envelope",
+        "SMS" => "bi-chat-left-text",
+        "ZALO" => "bi-chat-dots",
+        "CALL" => "bi-telephone",
+        "FACEBOOK" => "bi-facebook",
+        _ => "bi-broadcast"
+    };
+}

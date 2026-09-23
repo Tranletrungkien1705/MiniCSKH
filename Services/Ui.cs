@@ -392,4 +392,19 @@ public static class Ui
         "SAT1" or "RAT1" => "<span class='badge bg-danger text-white'>Rất không hài lòng</span>",
         _ => "<span class='badge bg-light text-dark border'>Khác</span>"
     };
+
+    // ── Loại kênh (Mst_ChannelType) ──
+    public static string ChannelTypeActiveBadge(bool active) => active
+        ? "<span class='badge bg-success-subtle text-success border-success-subtle'>Đang dùng</span>"
+        : "<span class='badge bg-secondary-subtle text-secondary border-secondary-subtle'>Ngừng dùng</span>";
+    /// <summary>Biểu tượng theo loại kênh (dựa vào mã).</summary>
+    public static string ChannelTypeIcon(string code) => code.ToUpperInvariant() switch
+    {
+        "EMAIL" => "bi-envelope",
+        "SMS" => "bi-chat-left-text",
+        "ZALO" => "bi-chat-dots",
+        "CALL" => "bi-telephone",
+        "FACEBOOK" => "bi-facebook",
+        _ => "bi-broadcast"
+    };
 }

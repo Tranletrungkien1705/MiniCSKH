@@ -759,6 +759,21 @@ public static class Seeder
             );
             await db.SaveChangesAsync();
         }
+
+        if (!await db.ChannelTypes.AnyAsync())
+        {
+            // Loại kênh (Mst_ChannelType) — danh mục loại kênh liên lạc đa kênh (OmniChannel).
+            // Giá trị mẫu theo seed thật của SkyCS (20230619.z11.UpdDB.80.OmniChannel.sql: EMAIL/SMS/ZALO).
+            db.ChannelTypes.AddRange(
+                new ChannelType { Code = "EMAIL", Name = "email", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-60), UpdatedAt = DateTime.Now.AddDays(-10) },
+                new ChannelType { Code = "SMS", Name = "sms", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-60), UpdatedAt = DateTime.Now.AddDays(-10) },
+                new ChannelType { Code = "ZALO", Name = "zalo", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-55), UpdatedAt = DateTime.Now.AddDays(-8) },
+                new ChannelType { Code = "CALL", Name = "call", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-50), UpdatedAt = DateTime.Now.AddDays(-5) },
+                new ChannelType { Code = "FACEBOOK", Name = "facebook", IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-45), UpdatedAt = DateTime.Now.AddDays(-4) },
+                new ChannelType { Code = "CH-CU", Name = "Loại kênh cũ (ngừng dùng)", IsActive = false, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-90), UpdatedAt = DateTime.Now.AddDays(-60) }
+            );
+            await db.SaveChangesAsync();
+        }
     }
 
     /// <summary>DB Postgres cloud cũ: tạo Orgs + thêm cột OrgId nếu thiếu, backfill về org mặc định. Idempotent.</summary>
@@ -766,7 +781,7 @@ public static class Seeder
     {
         if (!db.Database.IsNpgsql()) return;
         var def = TenantContext.DefaultOrgId;
-        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags", "ReceiveNotifies", "Addresses", "SlaWorkingDays", "SlaHolidays", "SlaScopes", "ContactChannels", "TicketCustomTypes", "TicketCustomTypeMaps", "Taxpayers", "CampaignTypes", "CampaignTypeColumns", "CampaignFeedbacks", "GovIDTypes", "Countries", "SatisfactionRatings" };
+        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags", "ReceiveNotifies", "Addresses", "SlaWorkingDays", "SlaHolidays", "SlaScopes", "ContactChannels", "TicketCustomTypes", "TicketCustomTypeMaps", "Taxpayers", "CampaignTypes", "CampaignTypeColumns", "CampaignFeedbacks", "GovIDTypes", "Countries", "SatisfactionRatings", "ChannelTypes" };
         var sql = new List<string>
         {
             "CREATE TABLE IF NOT EXISTS minicskh.\"Orgs\" (\"Id\" uuid PRIMARY KEY, \"Name\" text NOT NULL DEFAULT '', \"ApiKey\" text NOT NULL DEFAULT '', \"CreatedAt\" timestamp NOT NULL DEFAULT now())",
