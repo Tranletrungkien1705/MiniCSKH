@@ -1,0 +1,84 @@
+@model SlaPolicy
+@{
+    ViewData["Title"] = "Lịch làm việc SLA";
+    var workingDays = (List<SlaWorkingDay>)ViewBag.WorkingDays;
+    var holidays = (List<SlaHoliday>)ViewBag.Holidays;
+    var byDay = workingDays.GroupBy(w => w.WeekdayCode).OrderBy(g => g.Key).ToList();
+}
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Lịch làm việc SLA</a>
+        <h5 class="fw-bold mb-1 mt-1"><i class="bi bi-calendar-week me-1"></i>@Model.Level <span class="font-monospace text-muted">@Model.Code</span></h5>
+        <div class="text-muted small">Phản hồi đầu tiên @Model.FirstResText · Xử lý xong @Model.ResolutionText</div>
+    </div>
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil me-1"></i>Sửa lịch</a>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-4"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Số ca làm việc / tuần</div><div class="fs-4 fw-bold">@workingDays.Count</div></div></div></div>
+    <div class="col-md-4"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Số ngày nghỉ</div><div class="fs-4 fw-bold">@holidays.Count</div></div></div></div>
+    <div class="col-md-4"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Chế độ tính hạn</div>
+        <div class="fs-6 fw-bold">@(workingDays.Count == 0 ? "24/7 (không có lịch)" : "Theo giờ hành chính")</div></div></div></div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card mb-3"><div class="card-body">
+            <h6 class="fw-bold mb-3"><i class="bi bi-clock-history me-1"></i>Giờ làm việc theo thứ (Mst_SLAWorkingDay)</h6>
+            @if(byDay.Count == 0){<div class="text-muted small py-3 text-center"><i class="bi bi-inbox fs-4 d-block mb-2"></i>Chưa cấu hình lịch — hạn tính theo 24/7</div>}
+            else{
+            <table class="table table-sm align-middle mb-0">
+                <thead><tr><th>Thứ</th><th>Ca</th><th>Khoảng giờ</th><th>Số phút</th></tr></thead>
+                <tbody>
+                @foreach (var g in byDay)
+                {
+                    foreach (var w in g.OrderBy(x => x.Shift))
+                    {
+                        <tr>
+                            <td class="fw-semibold">@Ui.WeekdayName(g.Key)</td>
+                            <td>@Html.Raw(Ui.ShiftBadge(w.Shift))</td>
+                            <td class="font-monospace small">@w.RangeText</td>
+                            <td class="small">@w.Minutes</td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>}
+        </div></div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card mb-3"><div class="card-body">
+            <h6 class="fw-bold mb-3"><i class="bi bi-calendar-x me-1"></i>Ngày nghỉ (Mst_SLAHoliday)</h6>
+            @if(holidays.Count == 0){<div class="text-muted small py-3 text-center"><i class="bi bi-inbox fs-4 d-block mb-2"></i>Chưa có ngày nghỉ</div>}
+            else{
+            <table class="table table-sm align-middle mb-0">
+                <thead><tr><th>Ngày (dd-MM)</th><th>Tên</th></tr></thead>
+                <tbody>
+                @foreach (var h in holidays)
+                {
+                    <tr><td class="font-monospace small fw-semibold">@h.Holiday</td><td class="small">@h.Name</td></tr>
+                }
+                </tbody>
+            </table>}
+        </div></div>
+
+        <div class="card"><div class="card-body">
+            <h6 class="fw-bold mb-3"><i class="bi bi-calculator me-1"></i>Tính thử hạn xử lý</h6>
+            <form asp-action="Calc" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.Id" />
+                <div class="mb-2"><label class="form-label small">Thời điểm nhận phiếu</label>
+                    <input type="datetime-local" name="reception" class="form-control form-control-sm" value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" required /></div>
+                <div class="mb-2"><label class="form-label small">Loại hạn</label>
+                    <select name="firstResponse" class="form-select form-select-sm">
+                        <option value="true">Phản hồi đầu tiên (@Model.FirstResText)</option>
+                        <option value="false">Xử lý xong (@Model.ResolutionText)</option>
+                    </select></div>
+                <button class="btn btn-primary btn-sm"><i class="bi bi-calculator me-1"></i>Tính hạn</button>
+            </form>
+        </div></div>
+    </div>
+</div>

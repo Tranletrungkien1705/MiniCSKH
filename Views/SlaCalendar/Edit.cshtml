@@ -1,0 +1,104 @@
+@model SlaPolicy
+@{
+    ViewData["Title"] = "Sửa lịch làm việc SLA";
+    var workingDays = (List<SlaWorkingDay>)ViewBag.WorkingDays;
+    var holidays = (List<SlaHoliday>)ViewBag.Holidays;
+    var weekdays = new (int Code, string Name)[] {
+        (2,"Thứ hai"),(3,"Thứ ba"),(4,"Thứ tư"),(5,"Thứ năm"),(6,"Thứ sáu"),(7,"Thứ bảy"),(1,"Chủ nhật")
+    };
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Lịch làm việc SLA</a>
+        <h5 class="fw-bold mb-0 mt-1">@ViewData["Title"] — @Model.Level <span class="font-monospace text-muted">@Model.Code</span></h5>
+    </div>
+</div>
+
+<form asp-action="Save" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="id" value="@Model.Id" />
+
+    <div class="card mb-3"><div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold mb-0"><i class="bi bi-clock-history me-1"></i>Giờ làm việc theo thứ (Mst_SLAWorkingDay)</h6>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="addWd()"><i class="bi bi-plus-lg me-1"></i>Thêm ca</button>
+        </div>
+        <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+            <thead><tr><th style="width:180px">Thứ</th><th style="width:160px">Ca</th><th>Từ (phút)</th><th>Đến (phút)</th><th></th></tr></thead>
+            <tbody id="wdBody">
+            @for (int i = 0; i < workingDays.Count; i++)
+            {
+                var w = workingDays[i];
+                <tr>
+                    <td><select name="workingDays[@i].WeekdayCode" class="form-select form-select-sm">
+                        @foreach (var d in weekdays){<option value="@d.Code" selected="@(w.WeekdayCode==d.Code)">@d.Name</option>}
+                    </select></td>
+                    <td><select name="workingDays[@i].Shift" class="form-select form-select-sm">
+                        <option value="1" selected="@(w.Shift==SlaShift.Morning)">Buổi sáng</option>
+                        <option value="2" selected="@(w.Shift==SlaShift.Afternoon)">Buổi chiều</option>
+                    </select></td>
+                    <td><input type="number" name="workingDays[@i].FromMinutes" value="@w.FromMinutes" class="form-control form-control-sm" min="0" max="1440" /></td>
+                    <td><input type="number" name="workingDays[@i].ToMinutes" value="@w.ToMinutes" class="form-control form-control-sm" min="0" max="1440" /></td>
+                    <td><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('tr').remove()"><i class="bi bi-trash"></i></button></td>
+                </tr>
+            }
+            </tbody>
+        </table></div>
+        <div class="form-text mt-2">Phút tính từ 00:00 — ví dụ 480 = 08:00, 720 = 12:00, 780 = 13:00, 1020 = 17:00. Dòng có "Đến" ≤ "Từ" sẽ bị bỏ qua.</div>
+    </div></div>
+
+    <div class="card mb-3"><div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold mb-0"><i class="bi bi-calendar-x me-1"></i>Ngày nghỉ (Mst_SLAHoliday)</h6>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="addHd()"><i class="bi bi-plus-lg me-1"></i>Thêm ngày nghỉ</button>
+        </div>
+        <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+            <thead><tr><th style="width:200px">Ngày (dd-MM)</th><th>Tên ngày nghỉ</th><th></th></tr></thead>
+            <tbody id="hdBody">
+            @for (int i = 0; i < holidays.Count; i++)
+            {
+                var h = holidays[i];
+                <tr>
+                    <td><input name="holidays[@i].Holiday" value="@h.Holiday" class="form-control form-control-sm" placeholder="VD: 01-01" /></td>
+                    <td><input name="holidays[@i].Name" value="@h.Name" class="form-control form-control-sm" placeholder="Tên ngày nghỉ" /></td>
+                    <td><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('tr').remove()"><i class="bi bi-trash"></i></button></td>
+                </tr>
+            }
+            </tbody>
+        </table></div>
+        <div class="form-text mt-2">Ngày nghỉ dạng "dd-MM" (lặp hằng năm), ví dụ 01-01 (Tết Dương lịch), 30-04, 01-05.</div>
+    </div></div>
+
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary btn-sm"><i class="bi bi-check-lg me-1"></i>Lưu lịch làm việc</button>
+        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary btn-sm">Hủy</a>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+    function wdRow(i) {
+        return `<tr>
+            <td><select name="workingDays[${i}].WeekdayCode" class="form-select form-select-sm">
+                <option value="2">Thứ hai</option><option value="3">Thứ ba</option><option value="4">Thứ tư</option>
+                <option value="5">Thứ năm</option><option value="6">Thứ sáu</option><option value="7">Thứ bảy</option><option value="1">Chủ nhật</option>
+            </select></td>
+            <td><select name="workingDays[${i}].Shift" class="form-select form-select-sm">
+                <option value="1">Buổi sáng</option><option value="2">Buổi chiều</option>
+            </select></td>
+            <td><input type="number" name="workingDays[${i}].FromMinutes" value="480" class="form-control form-control-sm" min="0" max="1440" /></td>
+            <td><input type="number" name="workingDays[${i}].ToMinutes" value="720" class="form-control form-control-sm" min="0" max="1440" /></td>
+            <td><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('tr').remove()"><i class="bi bi-trash"></i></button></td>
+        </tr>`;
+    }
+    function hdRow(i) {
+        return `<tr>
+            <td><input name="holidays[${i}].Holiday" class="form-control form-control-sm" placeholder="VD: 01-01" /></td>
+            <td><input name="holidays[${i}].Name" class="form-control form-control-sm" placeholder="Tên ngày nghỉ" /></td>
+            <td><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('tr').remove()"><i class="bi bi-trash"></i></button></td>
+        </tr>`;
+    }
+    function addWd() { const b = document.getElementById('wdBody'); b.insertAdjacentHTML('beforeend', wdRow(b.rows.length)); }
+    function addHd() { const b = document.getElementById('hdBody'); b.insertAdjacentHTML('beforeend', hdRow(b.rows.length)); }
+</script>
+}

@@ -509,6 +509,45 @@ public static class Seeder
             );
             await db.SaveChangesAsync();
         }
+
+        if (!await db.SlaWorkingDays.AnyAsync())
+        {
+            // Lịch làm việc SLA (Mst_SLAWorkingDay): giờ hành chính T2–T6, 2 ca/ngày.
+            // SLA-VIP: 08:00–12:00 & 13:00–17:00; SLA-STD: 08:30–12:00 & 13:30–17:30.
+            var slas = await db.SlaPolicies.OrderBy(p => p.Id).ToListAsync();
+            if (slas.Count >= 2)
+            {
+                var vip = slas[0]; var std = slas[1];
+                var rows = new List<SlaWorkingDay>();
+                foreach (var code in new[] { 2, 3, 4, 5, 6 })   // Thứ hai → Thứ sáu
+                {
+                    rows.Add(new SlaWorkingDay { SlaPolicyId = vip.Id, WeekdayCode = code, Shift = SlaShift.Morning, FromMinutes = 480, ToMinutes = 720, CreatedBy = "Hệ thống" });
+                    rows.Add(new SlaWorkingDay { SlaPolicyId = vip.Id, WeekdayCode = code, Shift = SlaShift.Afternoon, FromMinutes = 780, ToMinutes = 1020, CreatedBy = "Hệ thống" });
+                    rows.Add(new SlaWorkingDay { SlaPolicyId = std.Id, WeekdayCode = code, Shift = SlaShift.Morning, FromMinutes = 510, ToMinutes = 720, CreatedBy = "Hệ thống" });
+                    rows.Add(new SlaWorkingDay { SlaPolicyId = std.Id, WeekdayCode = code, Shift = SlaShift.Afternoon, FromMinutes = 810, ToMinutes = 1050, CreatedBy = "Hệ thống" });
+                }
+                db.SlaWorkingDays.AddRange(rows);
+                await db.SaveChangesAsync();
+            }
+        }
+
+        if (!await db.SlaHolidays.AnyAsync())
+        {
+            // Ngày nghỉ SLA (Mst_SLAHoliday) — dạng dd-MM, lặp hằng năm.
+            var slas = await db.SlaPolicies.OrderBy(p => p.Id).ToListAsync();
+            if (slas.Count >= 2)
+            {
+                var vip = slas[0]; var std = slas[1];
+                db.SlaHolidays.AddRange(
+                    new SlaHoliday { SlaPolicyId = vip.Id, Holiday = "01-01", Name = "Tết Dương lịch", CreatedBy = "Hệ thống" },
+                    new SlaHoliday { SlaPolicyId = vip.Id, Holiday = "30-04", Name = "Ngày Giải phóng miền Nam", CreatedBy = "Hệ thống" },
+                    new SlaHoliday { SlaPolicyId = vip.Id, Holiday = "01-05", Name = "Ngày Quốc tế Lao động", CreatedBy = "Hệ thống" },
+                    new SlaHoliday { SlaPolicyId = std.Id, Holiday = "01-01", Name = "Tết Dương lịch", CreatedBy = "Hệ thống" },
+                    new SlaHoliday { SlaPolicyId = std.Id, Holiday = "02-09", Name = "Ngày Quốc khánh", CreatedBy = "Hệ thống" }
+                );
+                await db.SaveChangesAsync();
+            }
+        }
     }
 
     /// <summary>DB Postgres cloud cũ: tạo Orgs + thêm cột OrgId nếu thiếu, backfill về org mặc định. Idempotent.</summary>
@@ -516,7 +555,7 @@ public static class Seeder
     {
         if (!db.Database.IsNpgsql()) return;
         var def = TenantContext.DefaultOrgId;
-        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags", "ReceiveNotifies", "Addresses" };
+        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags", "ReceiveNotifies", "Addresses", "SlaWorkingDays", "SlaHolidays" };
         var sql = new List<string>
         {
             "CREATE TABLE IF NOT EXISTS minicskh.\"Orgs\" (\"Id\" uuid PRIMARY KEY, \"Name\" text NOT NULL DEFAULT '', \"ApiKey\" text NOT NULL DEFAULT '', \"CreatedAt\" timestamp NOT NULL DEFAULT now())",

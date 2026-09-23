@@ -126,6 +126,14 @@ public interface ITicketService
     Task<int> AddressSaveAsync(Address model);
     Task AddressToggleAsync(int id);
     Task<AddressStats> AddressStatsAsync();
+    // Lịch làm việc SLA (Mst_SLAWorkingDay / Mst_SLAHoliday)
+    Task<List<SlaPolicy>> SlaCalendarsAsync(string? q);
+    Task<SlaPolicy?> SlaCalendarGetAsync(int id);
+    Task<List<SlaWorkingDay>> SlaWorkingDaysAsync(int slaPolicyId);
+    Task<List<SlaHoliday>> SlaHolidaysAsync(int slaPolicyId);
+    Task<int> SlaCalendarSaveAsync(SlaPolicy model, List<SlaWorkingDay> workingDays, List<SlaHoliday> holidays);
+    Task<SlaCalendarStats> SlaCalendarStatsAsync();
+    Task<DateTime?> SlaCalcDeadlineAsync(int slaPolicyId, DateTime reception, bool firstResponse);
 }
 
 public record SlaStats(int Policies, int TicketsWithSla, int ViolatingFirstRes, int ViolatingResolution);
@@ -155,6 +163,8 @@ public record TagStats(int Total, int Active, int WithSlug, int Inactive);
 public record ReceiveNotifyStats(int Total, int WithName, int WithRemark, int DistinctAgents);
 
 public record AddressStats(int Total, int Active, int Provinces, int Districts, int Wards);
+
+public record SlaCalendarStats(int Policies, int WithWorkingDays, int WithHolidays, int WorkingDayRows, int HolidayRows);
 
 public record TicketTypeStats(int Total, int Active, int ETicket, int Campaign);
 
@@ -1164,5 +1174,141 @@ public class TicketService(AppDbContext db) : ITicketService
             list.Count(a => a.Level == AddressLevel.Province),
             list.Count(a => a.Level == AddressLevel.District),
             list.Count(a => a.Level == AddressLevel.Ward));
+    }
+
+    // ── Lịch làm việc SLA (Mst_SLAWorkingDay / Mst_SLAHoliday) ───────
+    public async Task<List<SlaPolicy>> SlaCalendarsAsync(string? q)
+    {
+        var query = db.SlaPolicies.AsQueryable();
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(p => p.Code.Contains(q) || p.Level.Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderBy(p => p.FirstResMinutes).ToList();
+    }
+
+    public Task<SlaPolicy?> SlaCalendarGetAsync(int id) =>
+        db.SlaPolicies.FirstOrDefaultAsync(p => p.Id == id);
+
+    public async Task<List<SlaWorkingDay>> SlaWorkingDaysAsync(int slaPolicyId)
+    {
+        var list = await db.SlaWorkingDays.Where(x => x.SlaPolicyId == slaPolicyId).ToListAsync();
+        return list.OrderBy(x => x.WeekdayCode).ThenBy(x => x.Shift).ToList();
+    }
+
+    public async Task<List<SlaHoliday>> SlaHolidaysAsync(int slaPolicyId)
+    {
+        var list = await db.SlaHolidays.Where(x => x.SlaPolicyId == slaPolicyId).ToListAsync();
+        return list.OrderBy(x => x.Holiday).ToList();
+    }
+
+    public async Task<int> SlaCalendarSaveAsync(SlaPolicy model, List<SlaWorkingDay> workingDays, List<SlaHoliday> holidays)
+    {
+        var e = await db.SlaPolicies.FirstOrDefaultAsync(x => x.Id == model.Id) ?? throw new KeyNotFoundException();
+        // Thay toàn bộ lịch làm việc + ngày nghỉ (lịch là cấu hình, không giữ lịch sử).
+        var oldWd = await db.SlaWorkingDays.Where(x => x.SlaPolicyId == e.Id).ToListAsync();
+        var oldHd = await db.SlaHolidays.Where(x => x.SlaPolicyId == e.Id).ToListAsync();
+        db.SlaWorkingDays.RemoveRange(oldWd);
+        db.SlaHolidays.RemoveRange(oldHd);
+        foreach (var w in workingDays)
+        {
+            w.Id = 0; w.SlaPolicyId = e.Id; w.CreatedAt = DateTime.Now;
+            db.SlaWorkingDays.Add(w);
+        }
+        foreach (var h in holidays)
+        {
+            h.Id = 0; h.SlaPolicyId = e.Id; h.CreatedAt = DateTime.Now;
+            db.SlaHolidays.Add(h);
+        }
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
+    public async Task<SlaCalendarStats> SlaCalendarStatsAsync()
+    {
+        var policies = await db.SlaPolicies.ToListAsync();
+        var wd = await db.SlaWorkingDays.ToListAsync();
+        var hd = await db.SlaHolidays.ToListAsync();
+        var wdPolicyIds = wd.Select(x => x.SlaPolicyId).Distinct().ToHashSet();
+        var hdPolicyIds = hd.Select(x => x.SlaPolicyId).Distinct().ToHashSet();
+        return new SlaCalendarStats(
+            policies.Count,
+            policies.Count(p => wdPolicyIds.Contains(p.Id)),
+            policies.Count(p => hdPolicyIds.Contains(p.Id)),
+            wd.Count,
+            hd.Count);
+    }
+
+    /// <summary>
+    /// Tính hạn (deadline) theo lịch làm việc của chính sách SLA — port từ
+    /// Mst_SLA_CalcFirstResDTimeX / Mst_SLA_CalcDeadlineX (Master.1.cs).
+    /// Cộng dồn số phút cam kết (FirstResMinutes hoặc ResolutionMinutes), chỉ tính
+    /// trong các ca làm việc, bỏ qua ngày nghỉ (SLAHoliday "dd-MM") và ngày không có ca.
+    /// Không có lịch làm việc → cộng thẳng theo giờ đồng hồ (24/7).
+    /// </summary>
+    public async Task<DateTime?> SlaCalcDeadlineAsync(int slaPolicyId, DateTime reception, bool firstResponse)
+    {
+        var sla = await db.SlaPolicies.FirstOrDefaultAsync(p => p.Id == slaPolicyId);
+        if (sla == null) return null;
+        var minutes = firstResponse ? sla.FirstResMinutes : sla.ResolutionMinutes;
+
+        var wd = await db.SlaWorkingDays.Where(x => x.SlaPolicyId == slaPolicyId).ToListAsync();
+        var holidays = await db.SlaHolidays.Where(x => x.SlaPolicyId == slaPolicyId).ToListAsync();
+        var holidaySet = holidays.Select(h => h.Holiday.Trim()).ToHashSet();
+
+        // Không có lịch làm việc → cộng thẳng (24/7), chỉ né ngày nghỉ nếu có.
+        if (wd.Count == 0)
+        {
+            var dt = reception;
+            for (int guard = 0; guard < 366; guard++)
+            {
+                if (holidaySet.Contains(dt.ToString("dd-MM"))) { dt = dt.AddDays(1); continue; }
+                return dt.AddMinutes(minutes);
+            }
+            return null;
+        }
+
+        // Gộp ca theo thứ: WeekdayCode (1=CN..7=Thứ bảy) → danh sách ca (sáng/chiều).
+        var byDay = wd.GroupBy(x => x.WeekdayCode)
+            .ToDictionary(g => g.Key, g => g.OrderBy(x => x.Shift).ToList());
+
+        // Quy đổi DayOfWeek (.NET: Sunday=0) sang SLAWorkingDayCode (1=CN..7=Thứ bảy).
+        static int Code(DayOfWeek d) => d == DayOfWeek.Sunday ? 1 : (int)d + 1;
+
+        // Bước 1: cộng phần thời gian đã trôi qua trong ngày nhận (nếu đang trong ca).
+        var day = reception.Date;
+        var dayShifts = byDay.TryGetValue(Code(reception.DayOfWeek), out var s0) ? s0 : new List<SlaWorkingDay>();
+        int remaining = minutes;
+        foreach (var sh in dayShifts)
+        {
+            var start = day.AddMinutes(sh.FromMinutes);
+            var end = day.AddMinutes(sh.ToMinutes);
+            if (reception >= end) remaining += sh.Minutes;                 // đã qua cả ca
+            else if (reception >= start) remaining += (int)(reception - start).TotalMinutes; // đang trong ca
+        }
+
+        // Bước 2: dò từng ngày, trừ dần số phút còn lại theo ca làm việc.
+        for (int guard = 0; guard < 366 && remaining > 0; guard++)
+        {
+            if (holidaySet.Contains(day.ToString("dd-MM"))) { day = day.AddDays(1); continue; }
+            if (!byDay.TryGetValue(Code(day.DayOfWeek), out var shifts) || shifts.Count == 0)
+            {
+                day = day.AddDays(1);
+                continue;
+            }
+            foreach (var sh in shifts)
+            {
+                if (remaining <= 0) break;
+                if (remaining > sh.Minutes)
+                {
+                    remaining -= sh.Minutes;
+                }
+                else
+                {
+                    return day.AddMinutes(sh.FromMinutes + remaining);
+                }
+            }
+            day = day.AddDays(1);
+        }
+        return null;
     }
 }

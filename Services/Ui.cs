@@ -244,4 +244,16 @@ public static class Ui
     };
     public static string AddressLevelBadge(AddressLevel l) =>
         $"<span class='badge bg-{AddressLevelColor(l)}-subtle text-{AddressLevelColor(l)} border-{AddressLevelColor(l)}-subtle'><i class='bi {AddressLevelIcon(l)} me-1'></i>{AddressLevelName(l)}</span>";
+
+    // ── Lịch làm việc SLA (Mst_SLAWorkingDay / Mst_SLAHoliday) ──
+    public static string ShiftName(SlaShift s) => s == SlaShift.Morning ? "Buổi sáng" : "Buổi chiều";
+    public static string ShiftColor(SlaShift s) => s == SlaShift.Morning ? "warning" : "info";
+    public static string ShiftIcon(SlaShift s) => s == SlaShift.Morning ? "bi-sunrise" : "bi-sunset";
+    public static string ShiftBadge(SlaShift s) =>
+        $"<span class='badge bg-{ShiftColor(s)}-subtle text-{ShiftColor(s)} border-{ShiftColor(s)}-subtle'><i class='bi {ShiftIcon(s)} me-1'></i>{ShiftName(s)}</span>";
+    public static string WeekdayName(int code) => code switch
+    {
+        1 => "Chủ nhật", 2 => "Thứ hai", 3 => "Thứ ba", 4 => "Thứ tư",
+        5 => "Thứ năm", 6 => "Thứ sáu", 7 => "Thứ bảy", _ => $"Thứ {code}"
+    };
 }

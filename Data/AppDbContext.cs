@@ -41,6 +41,8 @@ public class AppDbContext : DbContext
     public DbSet<Tag> Tags => Set<Tag>();
     public DbSet<ReceiveNotify> ReceiveNotifies => Set<ReceiveNotify>();
     public DbSet<Address> Addresses => Set<Address>();
+    public DbSet<SlaWorkingDay> SlaWorkingDays => Set<SlaWorkingDay>();
+    public DbSet<SlaHoliday> SlaHolidays => Set<SlaHoliday>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -280,6 +282,22 @@ public class AppDbContext : DbContext
             e.HasIndex(x => new { x.Level, x.Code });
             e.Ignore(x => x.LevelName);
             e.Ignore(x => x.IsRoot);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<SlaWorkingDay>(e =>
+        {
+            e.Ignore(x => x.Minutes);
+            e.Ignore(x => x.WeekdayName);
+            e.Ignore(x => x.RangeText);
+            e.HasOne(x => x.SlaPolicy).WithMany().HasForeignKey(x => x.SlaPolicyId);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<SlaHoliday>(e =>
+        {
+            e.Property(x => x.Holiday).HasMaxLength(10);
+            e.Property(x => x.Name).HasMaxLength(200);
+            e.HasIndex(x => new { x.SlaPolicyId, x.Holiday });
+            e.HasOne(x => x.SlaPolicy).WithMany().HasForeignKey(x => x.SlaPolicyId);
             e.HasQueryFilter(x => x.OrgId == _orgId);
         });
     }

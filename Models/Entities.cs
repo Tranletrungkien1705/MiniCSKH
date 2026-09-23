@@ -821,3 +821,64 @@ public class Address : IOrgOwned
     };
     public bool IsRoot => Level == AddressLevel.Province;
 }
+// ── Lịch làm việc SLA (Mst_SLAWorkingDay / Mst_SLAHoliday) ────────────
+// Theo SkyCS: mỗi chính sách SLA (Mst_SLA) có thể gắn một LỊCH LÀM VIỆC để
+// tính hạn xử lý (deadline) theo giờ hành chính thay vì 24/7. Lịch gồm:
+//  • Mst_SLAWorkingDay — giờ làm việc theo từng thứ trong tuần, mỗi ngày có
+//    2 ca (Idx=1 buổi sáng, Idx=2 buổi chiều); WorkingDTimeFrom/To là số PHÚT
+//    tính từ 00:00 (ví dụ 480 = 08:00, 720 = 12:00).
+//  • Mst_SLAHoliday — danh sách ngày nghỉ (SLAHoliday dạng "dd-MM") không tính
+//    vào thời gian xử lý.
+// Thuật toán tính deadline: Mst_SLA_CalcDeadlineX / Mst_SLA_CalcFirstResDTimeX
+// (11.BackEnd/V10/idn.SkyCS.Biz/Master.1.cs) — cộng dồn số phút cam kết, chỉ
+// tính trong các ca làm việc, bỏ qua ngày nghỉ và ngày không có ca.
+// (models 12.Dev.Common/idn.SkyCS.Common/Models/Mst_SLAWorkingDay.cs, Mst_SLAHoliday.cs)
+
+/// <summary>Ca làm việc trong ngày (Mst_SLAWorkingDay.Idx).</summary>
+public enum SlaShift { Morning = 1, Afternoon = 2 }
+
+/// <summary>
+/// Giờ làm việc của 1 thứ trong tuần cho 1 chính sách SLA (Mst_SLAWorkingDay).
+/// SLAWorkingDayCode: 1=Chủ nhật … 7=Thứ bảy (theo SkyCS). Mỗi (thứ, ca) là 1 dòng.
+/// </summary>
+public class SlaWorkingDay : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public int SlaPolicyId { get; set; }                 // SLAID — chính sách SLA
+    public int WeekdayCode { get; set; } = 2;            // SLAWorkingDayCode — 1=CN … 7=Thứ bảy
+    public SlaShift Shift { get; set; } = SlaShift.Morning; // Idx — 1 sáng / 2 chiều
+    public int FromMinutes { get; set; }                 // WorkingDTimeFrom — phút từ 00:00
+    public int ToMinutes { get; set; }                   // WorkingDTimeTo — phút từ 00:00
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // LogLUDTimeUTC
+    public string CreatedBy { get; set; } = "";          // LogLUBy
+
+    public SlaPolicy SlaPolicy { get; set; } = null!;
+
+    // ── tính toán ────────────────────────────────────────────────────
+    /// <summary>Số phút làm việc của ca này.</summary>
+    public int Minutes => Math.Max(0, ToMinutes - FromMinutes);
+    /// <summary>Tên thứ (theo SLAWorkingDayCode).</summary>
+    public string WeekdayName => WeekdayCode switch
+    {
+        1 => "Chủ nhật", 2 => "Thứ hai", 3 => "Thứ ba", 4 => "Thứ tư",
+        5 => "Thứ năm", 6 => "Thứ sáu", 7 => "Thứ bảy", _ => $"Thứ {WeekdayCode}"
+    };
+    /// <summary>Khoảng giờ dạng HH:mm–HH:mm.</summary>
+    public string RangeText => $"{Fmt(FromMinutes)}–{Fmt(ToMinutes)}";
+    public static string Fmt(int minutes) => $"{minutes / 60:D2}:{minutes % 60:D2}";
+}
+
+/// <summary>Ngày nghỉ của 1 chính sách SLA (Mst_SLAHoliday) — không tính vào thời gian xử lý.</summary>
+public class SlaHoliday : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public int SlaPolicyId { get; set; }                 // SLAID — chính sách SLA
+    public string Holiday { get; set; } = "";            // SLAHoliday — "dd-MM" (lặp hằng năm)
+    public string Name { get; set; } = "";               // SLAHolidayName — tên ngày nghỉ
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // LogLUDTimeUTC
+    public string CreatedBy { get; set; } = "";          // LogLUBy
+
+    public SlaPolicy SlaPolicy { get; set; } = null!;
+}
