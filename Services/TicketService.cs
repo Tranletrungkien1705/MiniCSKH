@@ -194,6 +194,12 @@ public interface ITicketService
     Task<int> PartnerTypeSaveAsync(PartnerTypeCatalog model);
     Task PartnerTypeToggleAsync(int id);
     Task<PartnerTypeStats> PartnerTypeStatsAsync();
+    // Loại phân tích âm thanh (Mst_AudioAnalysisType)
+    Task<List<AudioAnalysisType>> AudioAnalysisTypesAsync(bool? active, string? q);
+    Task<AudioAnalysisType?> AudioAnalysisTypeGetAsync(int id);
+    Task<int> AudioAnalysisTypeSaveAsync(AudioAnalysisType model);
+    Task AudioAnalysisTypeToggleAsync(int id);
+    Task<AudioAnalysisTypeStats> AudioAnalysisTypeStatsAsync();
     // Quản lý thông báo (Mst_NotifyType / Mst_ManageNotify / Map_UserInNotifyType)
     Task<List<NotifyType>> NotifyTypesAsync(bool? active, string? q);
     Task<NotifyType?> NotifyTypeGetAsync(int id);
@@ -271,6 +277,8 @@ public record SatisfactionRatingStats(int Total, int Active, int Inactive, int P
 public record ChannelTypeStats(int Total, int Active, int Inactive, int WithName);
 
 public record PartnerTypeStats(int Total, int Active, int Inactive, int WithName);
+
+public record AudioAnalysisTypeStats(int Total, int Active, int Inactive, int WithRemark);
 
 public record NotifyStats(int Types, int ActiveTypes, int Managers, int Subscriptions, int EnabledSubscriptions);
 
@@ -1976,6 +1984,55 @@ public class TicketService(AppDbContext db) : ITicketService
             list.Count(t => t.IsActive),
             list.Count(t => !t.IsActive),
             list.Count(t => !string.IsNullOrWhiteSpace(t.Name)));
+    }
+
+    // ── Loại phân tích âm thanh (Mst_AudioAnalysisType) ──────────────
+    public async Task<List<AudioAnalysisType>> AudioAnalysisTypesAsync(bool? active, string? q)
+    {
+        var query = db.AudioAnalysisTypes.AsQueryable();
+        if (active.HasValue) query = query.Where(t => t.IsActive == active.Value);
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(t => t.Code.Contains(q) || t.Name.Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderBy(t => t.Code).ToList();
+    }
+
+    public Task<AudioAnalysisType?> AudioAnalysisTypeGetAsync(int id) =>
+        db.AudioAnalysisTypes.FirstOrDefaultAsync(t => t.Id == id);
+
+    public async Task<int> AudioAnalysisTypeSaveAsync(AudioAnalysisType model)
+    {
+        if (model.Id == 0)
+        {
+            if (string.IsNullOrWhiteSpace(model.Code)) model.Code = "AAT-" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+            model.CreatedAt = model.UpdatedAt = DateTime.Now;
+            db.AudioAnalysisTypes.Add(model);
+            await db.SaveChangesAsync();
+            return model.Id;
+        }
+        var e = await db.AudioAnalysisTypes.FirstOrDefaultAsync(x => x.Id == model.Id) ?? throw new KeyNotFoundException();
+        e.Code = model.Code; e.Name = model.Name; e.Remark = model.Remark;
+        e.IsActive = model.IsActive; e.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
+    public async Task AudioAnalysisTypeToggleAsync(int id)
+    {
+        var t = await db.AudioAnalysisTypes.FirstOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException();
+        t.IsActive = !t.IsActive;
+        t.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<AudioAnalysisTypeStats> AudioAnalysisTypeStatsAsync()
+    {
+        var list = await db.AudioAnalysisTypes.ToListAsync();
+        return new AudioAnalysisTypeStats(
+            list.Count,
+            list.Count(t => t.IsActive),
+            list.Count(t => !t.IsActive),
+            list.Count(t => !string.IsNullOrWhiteSpace(t.Remark)));
     }
 
     // ── Quản lý thông báo (Mst_NotifyType / Mst_ManageNotify / Map_UserInNotifyType) ──

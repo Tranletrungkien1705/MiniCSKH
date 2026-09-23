@@ -1477,3 +1477,40 @@ public class PartnerTypeCatalog : IOrgOwned
     public string CreatedBy { get; set; } = "";         // LogLUBy
     public DateTime UpdatedAt { get; set; } = DateTime.Now;
 }
+
+// ── Loại phân tích âm thanh (Mst_AudioAnalysisType) ──────────────────
+// Theo SkyCS: "loại phân tích âm thanh" (Mst_AudioAnalysisType) là master data
+// của phân hệ Cải tiến chất lượng dịch vụ — quy định CÁCH phân tích file ghi âm
+// cuộc gọi (chuyển giọng nói thành văn bản, phân tích âm lượng/tần số…). Mỗi loại
+// có mã (AudioAnalysisType), tên hiển thị (AudioAnalysisTypeName), ghi chú và
+// trạng thái hoạt động (FlagActive). Bảng con SvImp_AudioAnalysis tham chiếu mã
+// này qua cột AudioAnalysisType để cấu hình phân tích tự động cuộc gọi.
+// (11.BackEnd/V10/idn.SkyCS.Biz/ServiceImprovement.cs, `Mst_AudioAnalysisType_Get`/
+//  `Mst_AudioAnalysisType_CheckDB`; model 12.Dev.Common/idn.SkyCS.Common/Models/
+//  Mst_AudioAnalysisType.cs; controller 13.ClientGate/V20/idn.SkyCS.WebAPI/
+//  Controllers/MstAudioAnalysisTypeController.cs; hằng số TConst.AudioAnalysisType
+//  = SPEECHTOTEXT/AUDIOTOSOUNDVALUE; cột xác nhận qua TblMst_AudioAnalysisType
+//  trong Const.Main.1.cs; seed thật 20230825.z11.UpdDB.50.ServiceImprovement.sql)
+
+/// <summary>Loại phân tích âm thanh (Mst_AudioAnalysisType) — cách phân tích file ghi âm cuộc gọi.</summary>
+public class AudioAnalysisType : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string Code { get; set; } = "";              // AudioAnalysisType — mã loại phân tích
+    public string Name { get; set; } = "";              // AudioAnalysisTypeName — tên loại phân tích
+    public string? Remark { get; set; }                  // Remark — ghi chú
+    public bool IsActive { get; set; } = true;           // FlagActive
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // LogLUDTimeUTC
+    public string CreatedBy { get; set; } = "";          // LogLUBy
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+    // ── tính toán ────────────────────
+    /// <summary>Biểu tượng theo loại phân tích (dựa vào mã).</summary>
+    public string Icon => Code.ToUpperInvariant() switch
+    {
+        "SPEECHTOTEXT" => "bi-file-earmark-text",
+        "AUDIOTOSOUNDVALUE" => "bi-soundwave",
+        _ => "bi-mic"
+    };
+}

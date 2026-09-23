@@ -421,6 +421,18 @@ public static class Ui
         _ => "bi-person-badge"
     };
 
+    // ── Loại phân tích âm thanh (Mst_AudioAnalysisType) ──
+    public static string AudioAnalysisTypeActiveBadge(bool active) => active
+        ? "<span class='badge bg-success-subtle text-success border-success-subtle'>Đang dùng</span>"
+        : "<span class='badge bg-secondary-subtle text-secondary border-secondary-subtle'>Ngừng dùng</span>";
+    /// <summary>Biểu tượng theo loại phân tích âm thanh (dựa vào mã).</summary>
+    public static string AudioAnalysisTypeIcon(string code) => code.ToUpperInvariant() switch
+    {
+        "SPEECHTOTEXT" => "bi-file-earmark-text",
+        "AUDIOTOSOUNDVALUE" => "bi-soundwave",
+        _ => "bi-mic"
+    };
+
     // ── Quản lý thông báo (Mst_NotifyType / Mst_ManageNotify / Map_UserInNotifyType) ──
     public static string NotifyActiveBadge(bool active) => active
         ? "<span class='badge bg-success-subtle text-success border-success-subtle'>Bật mặc định</span>"
