@@ -1,0 +1,50 @@
+@model TicketTypeDepartment
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Thêm gán loại phiếu — phòng ban" : "Sửa gán loại phiếu — phòng ban";
+    var ticketTypes = (List<TicketType>)ViewBag.TicketTypes;
+    var departments = (List<Department>)ViewBag.Departments;
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Gán loại phiếu — phòng ban</a>
+        <h5 class="fw-bold mb-0 mt-1">@ViewData["Title"]</h5>
+    </div>
+</div>
+
+<form asp-action="Save" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="Id" value="@Model.Id" />
+
+    <div class="card mb-3"><div class="card-body">
+        <h6 class="fw-bold mb-3"><i class="bi bi-info-circle me-1"></i>Thông tin gán</h6>
+        <div class="row g-3">
+            <div class="col-md-5"><label class="form-label small">Loại phiếu (TicketType) <span class="text-danger">*</span></label>
+                <select name="TicketTypeCode" class="form-select form-select-sm" required>
+                    <option value="">— Chọn loại phiếu —</option>
+                    @foreach (var t in ticketTypes)
+                    {
+                        <option value="@t.Code" selected="@(Model.TicketTypeCode==t.Code)">@t.Code — @t.AgentName</option>
+                    }
+                </select></div>
+            <div class="col-md-5"><label class="form-label small">Phòng ban (DepartmentCode) <span class="text-danger">*</span></label>
+                <select name="DepartmentCode" class="form-select form-select-sm" required>
+                    <option value="">— Chọn phòng ban —</option>
+                    @foreach (var d in departments)
+                    {
+                        <option value="@d.Code" selected="@(Model.DepartmentCode==d.Code)">@d.Code — @d.Name</option>
+                    }
+                </select></div>
+            <div class="col-md-2"><label class="form-label small">Thứ tự (Idx)</label>
+                <input name="Order" type="number" value="@Model.Order" class="form-control form-control-sm" /></div>
+            <div class="col-12"><div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="IsActive" value="true" id="isActive" @(Model.IsActive ? "checked" : "") />
+                <label class="form-check-label small" for="isActive">Đang dùng (FlagActive)</label></div></div>
+        </div>
+        <div class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i>Mỗi dòng gán 1 cặp (loại phiếu ↔ phòng ban). Khi tạo eTicket, hệ thống dò bảng này để định tuyến phiếu về đúng phòng ban theo phân loại nghiệp vụ.</div>
+    </div></div>
+
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary btn-sm"><i class="bi bi-check-lg me-1"></i>Lưu gán</button>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Hủy</a>
+    </div>
+</form>

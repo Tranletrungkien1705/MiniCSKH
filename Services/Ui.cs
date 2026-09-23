@@ -429,4 +429,15 @@ public static class Ui
         "OTHERS" => "bi-bell",
         _ => "bi-bell"
     };
+
+    // ── Gán loại phiếu cho phòng ban (Map_TicketTypeDepartment) ──
+    public static string TicketTypeDeptActiveBadge(bool active) => active
+        ? "<span class='badge bg-success-subtle text-success border-success-subtle'>Đang dùng</span>"
+        : "<span class='badge bg-secondary-subtle text-secondary border-secondary-subtle'>Ngừng dùng</span>";
+    /// <summary>Badge mã phân loại nghiệp vụ (TicketType).</summary>
+    public static string TicketTypeCodeBadge(string code) =>
+        $"<span class='badge bg-primary-subtle text-primary border-primary-subtle'><i class='bi bi-diagram-3 me-1'></i>{code}</span>";
+    /// <summary>Badge mã phòng ban (DepartmentCode).</summary>
+    public static string DepartmentCodeBadge(string code) =>
+        $"<span class='badge bg-info-subtle text-info border-info-subtle'><i class='bi bi-diagram-2 me-1'></i>{code}</span>";
 }

@@ -1,0 +1,43 @@
+@model TicketTypeDepartment
+@{
+    ViewData["Title"] = "Chi tiết gán loại phiếu — phòng ban";
+}
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Gán loại phiếu — phòng ban</a>
+        <h5 class="fw-bold mb-1 mt-1">@Model.PairText
+            @Html.Raw(Ui.TicketTypeDeptActiveBadge(Model.IsActive))</h5>
+        <div class="text-muted small">Thứ tự @Model.Order · tạo @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil me-1"></i>Sửa</a>
+        <form asp-action="Toggle" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <button class="btn btn-sm @(Model.IsActive?"btn-outline-secondary":"btn-primary")">
+                <i class="bi bi-toggle-@(Model.IsActive?"off":"on") me-1"></i>@(Model.IsActive?"Ngừng dùng":"Kích hoạt")</button>
+        </form>
+        <form asp-action="Delete" method="post" onsubmit="return confirm('Xóa gán này?');">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash me-1"></i>Xóa</button>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-4"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Loại phiếu (TicketType)</div>
+        <div class="fs-6 fw-bold font-monospace">@Model.TicketTypeCode</div></div></div></div>
+    <div class="col-md-4"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Phòng ban (DepartmentCode)</div>
+        <div class="fs-6 fw-bold font-monospace">@Model.DepartmentCode</div></div></div></div>
+    <div class="col-md-4"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Thứ tự hiển thị (Idx)</div>
+        <div class="fs-6 fw-bold">@Model.Order</div></div></div></div>
+</div>
+
+<div class="alert alert-light border">
+    <i class="bi bi-info-circle me-1"></i>Khi tạo eTicket thuộc loại <span class="font-monospace fw-semibold">@Model.TicketTypeCode</span>,
+    hệ thống định tuyến phiếu về phòng ban <span class="font-monospace fw-semibold">@Model.DepartmentCode</span> (theo Map_TicketTypeDepartment).
+</div>

@@ -58,6 +58,7 @@ public class AppDbContext : DbContext
     public DbSet<NotifyType> NotifyTypes => Set<NotifyType>();
     public DbSet<NotifyManager> NotifyManagers => Set<NotifyManager>();
     public DbSet<NotifySubscription> NotifySubscriptions => Set<NotifySubscription>();
+    public DbSet<TicketTypeDepartment> TicketTypeDepartments => Set<TicketTypeDepartment>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -445,6 +446,14 @@ public class AppDbContext : DbContext
             e.Property(x => x.UserCode).HasMaxLength(50);
             e.Property(x => x.NotifyTypeCode).HasMaxLength(50);
             e.HasIndex(x => new { x.UserCode, x.NotifyTypeCode });
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<TicketTypeDepartment>(e =>
+        {
+            e.Property(x => x.TicketTypeCode).HasMaxLength(50);
+            e.Property(x => x.DepartmentCode).HasMaxLength(50);
+            e.HasIndex(x => new { x.TicketTypeCode, x.DepartmentCode });
+            e.Ignore(x => x.PairText);
             e.HasQueryFilter(x => x.OrgId == _orgId);
         });
     }

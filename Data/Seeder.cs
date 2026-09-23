@@ -774,6 +774,20 @@ public static class Seeder
             );
             await db.SaveChangesAsync();
         }
+
+        if (!await db.TicketTypeDepartments.AnyAsync())
+        {
+            // Gán loại phiếu cho phòng ban (Map_TicketTypeDepartment) — phòng ban phụ trách
+            // xử lý loại phiếu nào. Dùng mã loại phiếu (Mst_TicketType) + mã phòng ban (Mst_Department).
+            db.TicketTypeDepartments.AddRange(
+                new TicketTypeDepartment { TicketTypeCode = "TT-SUPPORT", DepartmentCode = "PB-KYTHUAT", Order = 1, IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-30), UpdatedAt = DateTime.Now.AddDays(-3) },
+                new TicketTypeDepartment { TicketTypeCode = "TT-SUPPORT", DepartmentCode = "PB-CSKH", Order = 2, IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-30), UpdatedAt = DateTime.Now.AddDays(-3) },
+                new TicketTypeDepartment { TicketTypeCode = "TT-COMPLAINT", DepartmentCode = "PB-CSKH", Order = 1, IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-25), UpdatedAt = DateTime.Now.AddDays(-2) },
+                new TicketTypeDepartment { TicketTypeCode = "TT-SURVEY", DepartmentCode = "PB-TONGDAI", Order = 1, IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-20), UpdatedAt = DateTime.Now.AddDays(-1) },
+                new TicketTypeDepartment { TicketTypeCode = "TT-OLD", DepartmentCode = "PB-CU", Order = 9, IsActive = false, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-90), UpdatedAt = DateTime.Now.AddDays(-60) }
+            );
+            await db.SaveChangesAsync();
+        }
     }
 
     /// <summary>DB Postgres cloud cũ: tạo Orgs + thêm cột OrgId nếu thiếu, backfill về org mặc định. Idempotent.</summary>
@@ -781,7 +795,7 @@ public static class Seeder
     {
         if (!db.Database.IsNpgsql()) return;
         var def = TenantContext.DefaultOrgId;
-        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags", "ReceiveNotifies", "Addresses", "SlaWorkingDays", "SlaHolidays", "SlaScopes", "ContactChannels", "TicketCustomTypes", "TicketCustomTypeMaps", "Taxpayers", "CampaignTypes", "CampaignTypeColumns", "CampaignFeedbacks", "GovIDTypes", "Countries", "SatisfactionRatings", "ChannelTypes" };
+        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags", "ReceiveNotifies", "Addresses", "SlaWorkingDays", "SlaHolidays", "SlaScopes", "ContactChannels", "TicketCustomTypes", "TicketCustomTypeMaps", "Taxpayers", "CampaignTypes", "CampaignTypeColumns", "CampaignFeedbacks", "GovIDTypes", "Countries", "SatisfactionRatings", "ChannelTypes", "TicketTypeDepartments" };
         var sql = new List<string>
         {
             "CREATE TABLE IF NOT EXISTS minicskh.\"Orgs\" (\"Id\" uuid PRIMARY KEY, \"Name\" text NOT NULL DEFAULT '', \"ApiKey\" text NOT NULL DEFAULT '', \"CreatedAt\" timestamp NOT NULL DEFAULT now())",

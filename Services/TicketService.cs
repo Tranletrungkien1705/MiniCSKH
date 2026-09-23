@@ -200,6 +200,13 @@ public interface ITicketService
     Task<List<NotifySubscription>> NotifySubscriptionsAsync(string? userCode);
     Task NotifySubscriptionSaveAsync(string userCode, List<NotifySubscription> subs);
     Task<NotifyStats> NotifyStatsAsync();
+    // Gán loại phiếu cho phòng ban (Map_TicketTypeDepartment)
+    Task<List<TicketTypeDepartment>> TicketTypeDepartmentsAsync(bool? active, string? ticketTypeCode, string? departmentCode, string? q);
+    Task<TicketTypeDepartment?> TicketTypeDepartmentGetAsync(int id);
+    Task<int> TicketTypeDepartmentSaveAsync(TicketTypeDepartment model);
+    Task TicketTypeDepartmentToggleAsync(int id);
+    Task TicketTypeDepartmentDeleteAsync(int id);
+    Task<TicketTypeDepartmentStats> TicketTypeDepartmentStatsAsync();
 }
 
 public record SlaStats(int Policies, int TicketsWithSla, int ViolatingFirstRes, int ViolatingResolution);
@@ -251,6 +258,8 @@ public record SatisfactionRatingStats(int Total, int Active, int Inactive, int P
 public record ChannelTypeStats(int Total, int Active, int Inactive, int WithName);
 
 public record NotifyStats(int Types, int ActiveTypes, int Managers, int Subscriptions, int EnabledSubscriptions);
+
+public record TicketTypeDepartmentStats(int Total, int Active, int Inactive, int DistinctTicketTypes, int DistinctDepartments);
 
 public record TicketTypeStats(int Total, int Active, int ETicket, int Campaign);
 
@@ -2013,5 +2022,63 @@ public class TicketService(AppDbContext db) : ITicketService
             managers,
             subs.Count,
             subs.Count(s => s.FlagNotify));
+    }
+
+    // ── Gán loại phiếu cho phòng ban (Map_TicketTypeDepartment) ──────
+    public async Task<List<TicketTypeDepartment>> TicketTypeDepartmentsAsync(bool? active, string? ticketTypeCode, string? departmentCode, string? q)
+    {
+        var query = db.TicketTypeDepartments.AsQueryable();
+        if (active.HasValue) query = query.Where(x => x.IsActive == active.Value);
+        if (!string.IsNullOrWhiteSpace(ticketTypeCode)) query = query.Where(x => x.TicketTypeCode == ticketTypeCode);
+        if (!string.IsNullOrWhiteSpace(departmentCode)) query = query.Where(x => x.DepartmentCode == departmentCode);
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(x => x.TicketTypeCode.Contains(q) || x.DepartmentCode.Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderBy(x => x.Order).ThenBy(x => x.TicketTypeCode).ThenBy(x => x.DepartmentCode).ToList();
+    }
+
+    public Task<TicketTypeDepartment?> TicketTypeDepartmentGetAsync(int id) =>
+        db.TicketTypeDepartments.FirstOrDefaultAsync(x => x.Id == id);
+
+    public async Task<int> TicketTypeDepartmentSaveAsync(TicketTypeDepartment model)
+    {
+        if (model.Id == 0)
+        {
+            model.CreatedAt = model.UpdatedAt = DateTime.Now;
+            db.TicketTypeDepartments.Add(model);
+            await db.SaveChangesAsync();
+            return model.Id;
+        }
+        var e = await db.TicketTypeDepartments.FirstOrDefaultAsync(x => x.Id == model.Id) ?? throw new KeyNotFoundException();
+        e.TicketTypeCode = model.TicketTypeCode; e.DepartmentCode = model.DepartmentCode;
+        e.Order = model.Order; e.IsActive = model.IsActive; e.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
+    public async Task TicketTypeDepartmentToggleAsync(int id)
+    {
+        var x = await db.TicketTypeDepartments.FirstOrDefaultAsync(e => e.Id == id) ?? throw new KeyNotFoundException();
+        x.IsActive = !x.IsActive;
+        x.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task TicketTypeDepartmentDeleteAsync(int id)
+    {
+        var x = await db.TicketTypeDepartments.FirstOrDefaultAsync(e => e.Id == id) ?? throw new KeyNotFoundException();
+        db.TicketTypeDepartments.Remove(x);
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<TicketTypeDepartmentStats> TicketTypeDepartmentStatsAsync()
+    {
+        var list = await db.TicketTypeDepartments.ToListAsync();
+        return new TicketTypeDepartmentStats(
+            list.Count,
+            list.Count(x => x.IsActive),
+            list.Count(x => !x.IsActive),
+            list.Select(x => x.TicketTypeCode).Distinct().Count(),
+            list.Select(x => x.DepartmentCode).Distinct().Count());
     }
 }

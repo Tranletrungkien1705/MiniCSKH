@@ -1384,3 +1384,35 @@ public class NotifySubscription : IOrgOwned
     public string CreatedBy { get; set; } = "";          // LogLUBy
     public DateTime UpdatedAt { get; set; } = DateTime.Now;
 }
+
+// ── Gán loại phiếu cho phòng ban (Map_TicketTypeDepartment) ───────────
+// Theo SkyCS: bảng map (Map_TicketTypeDepartment) quy định PHÒNG BAN nào
+// phụ trách xử lý LOẠI PHIẾU nào. Mỗi dòng = 1 cặp (TicketType ↔ DepartmentCode)
+// theo tổ chức (OrgID), kèm thứ tự hiển thị (Idx) và trạng thái (FlagActive).
+// Khi tạo eTicket, hệ thống dò bảng này để định tuyến phiếu về đúng phòng ban
+// theo phân loại nghiệp vụ (Mst_TicketType) — là nền cho phân bổ phiếu tự động
+// (Mst_EstablishAllocateETicket.DepartmentCode).
+// (11.BackEnd/V10/idn.SkyCS.Biz/Master.cs, `Map_TicketTypeDepartment_Get`/
+//  `Map_TicketTypeDepartment_SaveX`; model 12.Dev.Common/idn.SkyCS.Common/
+//  Models/Map_TicketTypeDepartment.cs; controller 13.ClientGate/V20/
+//  idn.SkyCS.WebAPI/Controllers/MapTicketTypeDepartmentController.cs)
+
+/// <summary>
+/// Gán loại phiếu cho phòng ban (Map_TicketTypeDepartment) — phòng ban phụ trách 1 loại phiếu.
+/// </summary>
+public class TicketTypeDepartment : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string TicketTypeCode { get; set; } = "";    // TicketType — mã phân loại nghiệp vụ (Mst_TicketType)
+    public string DepartmentCode { get; set; } = "";    // DepartmentCode — mã phòng ban (Mst_Department)
+    public int Order { get; set; }                       // Idx — thứ tự hiển thị
+    public bool IsActive { get; set; } = true;           // FlagActive
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // LogLUDTimeUTC
+    public string CreatedBy { get; set; } = "";          // LogLUBy
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+    // ── tính toán ────────────────────
+    /// <summary>Mô tả ngắn cặp gán (dùng cho view).</summary>
+    public string PairText => $"{TicketTypeCode} → {DepartmentCode}";
+}
