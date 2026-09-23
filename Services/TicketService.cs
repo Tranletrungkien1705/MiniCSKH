@@ -96,6 +96,12 @@ public interface ITicketService
     Task<int> DepartmentSaveAsync(Department model, List<DepartmentMember> members);
     Task DepartmentToggleAsync(int id);
     Task<DepartmentStats> DepartmentStatsAsync();
+    // Điều khoản thanh toán (Mst_PaymentTerm)
+    Task<List<PaymentTerm>> PaymentTermsAsync(bool? active, PTType? type, string? q);
+    Task<PaymentTerm?> PaymentTermGetAsync(int id);
+    Task<int> PaymentTermSaveAsync(PaymentTerm model);
+    Task PaymentTermToggleAsync(int id);
+    Task<PaymentTermStats> PaymentTermStatsAsync();
 }
 
 public record SlaStats(int Policies, int TicketsWithSla, int ViolatingFirstRes, int ViolatingResolution);
@@ -115,6 +121,8 @@ public record ReminderStats(int Total, int Active, int System, int Email, int Sm
 public record TicketCatalogStats(int Total, int Active, int Status, int Priority, int Source, int ReceptionChannel);
 
 public record DepartmentStats(int Total, int Active, int Root, int AutoDiv, int Members);
+
+public record PaymentTermStats(int Total, int Active, int Sale, int Purchase, int WithCredit);
 
 public record TicketTypeStats(int Total, int Active, int ETicket, int Campaign);
 
@@ -870,5 +878,57 @@ public class TicketService(AppDbContext db) : ITicketService
             list.Count(d => d.IsRoot),
             list.Count(d => d.AutoDiv),
             list.Sum(d => d.Members.Count));
+    }
+
+    // ── Điều khoản thanh toán (Mst_PaymentTerm) ──────────────────────
+    public async Task<List<PaymentTerm>> PaymentTermsAsync(bool? active, PTType? type, string? q)
+    {
+        var query = db.PaymentTerms.AsQueryable();
+        if (active.HasValue) query = query.Where(p => p.IsActive == active.Value);
+        if (type.HasValue) query = query.Where(p => p.Type == type.Value);
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(p => p.Code.Contains(q) || p.Name.Contains(q) || (p.Description ?? "").Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderBy(p => p.Type).ThenBy(p => p.Code).ToList();
+    }
+
+    public Task<PaymentTerm?> PaymentTermGetAsync(int id) =>
+        db.PaymentTerms.FirstOrDefaultAsync(p => p.Id == id);
+
+    public async Task<int> PaymentTermSaveAsync(PaymentTerm model)
+    {
+        if (model.Id == 0)
+        {
+            if (string.IsNullOrWhiteSpace(model.Code)) model.Code = "PT-" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+            model.CreatedAt = model.UpdatedAt = DateTime.Now;
+            db.PaymentTerms.Add(model);
+            await db.SaveChangesAsync();
+            return model.Id;
+        }
+        var e = await db.PaymentTerms.FirstOrDefaultAsync(x => x.Id == model.Id) ?? throw new KeyNotFoundException();
+        e.Code = model.Code; e.Name = model.Name; e.Type = model.Type; e.Description = model.Description;
+        e.OwedDay = model.OwedDay; e.CreditLimit = model.CreditLimit; e.DepositPercent = model.DepositPercent;
+        e.IsActive = model.IsActive; e.Remark = model.Remark; e.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
+    public async Task PaymentTermToggleAsync(int id)
+    {
+        var p = await db.PaymentTerms.FirstOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException();
+        p.IsActive = !p.IsActive;
+        p.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<PaymentTermStats> PaymentTermStatsAsync()
+    {
+        var list = await db.PaymentTerms.ToListAsync();
+        return new PaymentTermStats(
+            list.Count,
+            list.Count(p => p.IsActive),
+            list.Count(p => p.Type == PTType.Sale),
+            list.Count(p => p.Type == PTType.Purchase),
+            list.Count(p => p.CreditLimit > 0));
     }
 }

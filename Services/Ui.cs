@@ -202,4 +202,14 @@ public static class Ui
     public static string DepartmentLevelColor(int level) => level <= 1 ? "primary" : level == 2 ? "info" : "secondary";
     public static string DepartmentLevelBadge(int level) =>
         $"<span class='badge bg-{DepartmentLevelColor(level)}-subtle text-{DepartmentLevelColor(level)} border-{DepartmentLevelColor(level)}-subtle'>{DepartmentLevelName(level)}</span>";
+
+    // ── Điều khoản thanh toán (Mst_PaymentTerm) ──
+    public static string PTTypeName(PTType t) => t switch
+    { PTType.Sale => "Bán ra", PTType.Purchase => "Mua vào", _ => t.ToString() };
+    public static string PTTypeColor(PTType t) => t switch
+    { PTType.Sale => "success", PTType.Purchase => "info", _ => "secondary" };
+    public static string PTTypeIcon(PTType t) => t switch
+    { PTType.Sale => "bi-cart-check", PTType.Purchase => "bi-bag-check", _ => "bi-tag" };
+    public static string PTTypeBadge(PTType t) =>
+        $"<span class='badge bg-{PTTypeColor(t)}-subtle text-{PTTypeColor(t)} border-{PTTypeColor(t)}-subtle'><i class='bi {PTTypeIcon(t)} me-1'></i>{PTTypeName(t)}</span>";
 }

@@ -1,0 +1,49 @@
+@model PaymentTerm
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Thêm điều khoản thanh toán" : "Sửa điều khoản thanh toán";
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Điều khoản thanh toán</a>
+        <h5 class="fw-bold mb-0 mt-1">@ViewData["Title"]</h5>
+    </div>
+</div>
+
+<form asp-action="Save" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="Id" value="@Model.Id" />
+
+    <div class="card mb-3"><div class="card-body">
+        <h6 class="fw-bold mb-3"><i class="bi bi-info-circle me-1"></i>Thông tin điều khoản</h6>
+        <div class="row g-3">
+            <div class="col-md-4"><label class="form-label small">Mã điều khoản (PaymentTermCode)</label>
+                <input name="Code" value="@Model.Code" class="form-control form-control-sm" placeholder="VD: PT-30" />
+                <div class="form-text">Để trống sẽ tự sinh mã.</div></div>
+            <div class="col-md-4"><label class="form-label small">Tên điều khoản <span class="text-danger">*</span></label>
+                <input name="Name" value="@Model.Name" class="form-control form-control-sm" placeholder="VD: Công nợ 30 ngày" required /></div>
+            <div class="col-md-4"><label class="form-label small">Loại (PTType) <span class="text-danger">*</span></label>
+                <select name="Type" class="form-select form-select-sm">
+                    <option value="0" selected="@(Model.Type==PTType.Sale)">Bán ra (SALE)</option>
+                    <option value="1" selected="@(Model.Type==PTType.Purchase)">Mua vào (PURCHASE)</option>
+                </select></div>
+            <div class="col-12"><label class="form-label small">Mô tả (PTDesc) <span class="text-danger">*</span></label>
+                <input name="Description" value="@Model.Description" class="form-control form-control-sm" placeholder="Mô tả điều khoản thanh toán" required /></div>
+            <div class="col-md-4"><label class="form-label small">Số ngày được nợ (OwedDay)</label>
+                <input name="OwedDay" type="number" min="0" value="@Model.OwedDay" class="form-control form-control-sm" /></div>
+            <div class="col-md-4"><label class="form-label small">Hạn mức công nợ (CreditLimit)</label>
+                <input name="CreditLimit" type="number" min="0" step="0.01" value="@Model.CreditLimit" class="form-control form-control-sm" placeholder="0 = không giới hạn" /></div>
+            <div class="col-md-4"><label class="form-label small">% đặt cọc (DepositPercent)</label>
+                <input name="DepositPercent" type="number" min="0" step="0.01" value="@Model.DepositPercent" class="form-control form-control-sm" placeholder="VD: 30" /></div>
+            <div class="col-12"><label class="form-label small">Ghi chú (Remark)</label>
+                <input name="Remark" value="@Model.Remark" class="form-control form-control-sm" placeholder="Ghi chú nội bộ" /></div>
+            <div class="col-12"><div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="IsActive" value="true" id="isActive" @(Model.IsActive ? "checked" : "") />
+                <label class="form-check-label small" for="isActive">Đang dùng (FlagActive)</label></div></div>
+        </div>
+    </div></div>
+
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary btn-sm"><i class="bi bi-check-lg me-1"></i>Lưu điều khoản</button>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Hủy</a>
+    </div>
+</form>

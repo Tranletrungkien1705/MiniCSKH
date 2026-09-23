@@ -440,6 +440,18 @@ public static class Seeder
             );
             await db.SaveChangesAsync();
         }
+
+        if (!await db.PaymentTerms.AnyAsync())
+        {
+            db.PaymentTerms.AddRange(
+                new PaymentTerm { Code = "PT-NGAY", Name = "Thanh toán ngay", Type = PTType.Sale, Description = "Khách thanh toán toàn bộ khi nhận hàng.", OwedDay = 0, CreditLimit = 0, DepositPercent = 0, IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-45), UpdatedAt = DateTime.Now.AddDays(-5) },
+                new PaymentTerm { Code = "PT-30", Name = "Công nợ 30 ngày", Type = PTType.Sale, Description = "Khách được nợ trong 30 ngày, hạn mức 50 triệu.", OwedDay = 30, CreditLimit = 50000000, DepositPercent = 0, IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-40), UpdatedAt = DateTime.Now.AddDays(-3) },
+                new PaymentTerm { Code = "PT-DL", Name = "Đại lý — cọc 30%", Type = PTType.Sale, Description = "Đại lý đặt cọc 30%, nợ 15 ngày, hạn mức 200 triệu.", OwedDay = 15, CreditLimit = 200000000, DepositPercent = 30, IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-30), UpdatedAt = DateTime.Now.AddDays(-2) },
+                new PaymentTerm { Code = "PT-MUA", Name = "Mua vào — nợ 45 ngày", Type = PTType.Purchase, Description = "Điều khoản thanh toán nhà cung cấp, nợ 45 ngày.", OwedDay = 45, CreditLimit = 100000000, DepositPercent = 0, IsActive = true, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-25), UpdatedAt = DateTime.Now.AddDays(-4) },
+                new PaymentTerm { Code = "PT-CU", Name = "Điều khoản cũ (ngừng dùng)", Type = PTType.Sale, Description = "Đã thay thế bằng PT-30.", OwedDay = 60, CreditLimit = 0, DepositPercent = 0, IsActive = false, Remark = "Ngừng áp dụng.", CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-90), UpdatedAt = DateTime.Now.AddDays(-60) }
+            );
+            await db.SaveChangesAsync();
+        }
     }
 
     /// <summary>DB Postgres cloud cũ: tạo Orgs + thêm cột OrgId nếu thiếu, backfill về org mặc định. Idempotent.</summary>
@@ -447,7 +459,7 @@ public static class Seeder
     {
         if (!db.Database.IsNpgsql()) return;
         var def = TenantContext.DefaultOrgId;
-        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers" };
+        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms" };
         var sql = new List<string>
         {
             "CREATE TABLE IF NOT EXISTS minicskh.\"Orgs\" (\"Id\" uuid PRIMARY KEY, \"Name\" text NOT NULL DEFAULT '', \"ApiKey\" text NOT NULL DEFAULT '', \"CreatedAt\" timestamp NOT NULL DEFAULT now())",

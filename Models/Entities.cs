@@ -647,3 +647,39 @@ public class DepartmentMember : IOrgOwned
 
     public Department Department { get; set; } = null!;
 }
+
+// ── Điều khoản thanh toán (Mst_PaymentTerm) ──────────────────────────
+// Theo SkyCS: điều khoản thanh toán quy định cách khách hàng thanh toán —
+// loại (bán/mua), số ngày được nợ, hạn mức công nợ tối đa và % đặt cọc.
+// Là master data nền cho hồ sơ khách hàng / đơn hàng.
+// (11.BackEnd/V10/idn.SkyCS.Biz/Master.cs, `Mst_PaymentTerm_Get`/`_SaveX`;
+//  model 12.Dev.Common/idn.SkyCS.Common/Models/Mst_PaymentTerm.cs;
+//  hằng số TConst.PTType = SALE/PURCHASE)
+
+/// <summary>Loại điều khoản thanh toán (Mst_PaymentTerm.PTType — TConst.PTType).</summary>
+public enum PTType { Sale = 0, Purchase = 1 }
+
+/// <summary>Điều khoản thanh toán (Mst_PaymentTerm).</summary>
+public class PaymentTerm : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string Code { get; set; } = "";              // PaymentTermCode — mã điều khoản
+    public string Name { get; set; } = "";              // PaymentTermName — tên điều khoản
+    public PTType Type { get; set; } = PTType.Sale;     // PTType — loại (SALE/PURCHASE)
+    public string? Description { get; set; }            // PTDesc — mô tả
+    public int OwedDay { get; set; }                    // OwedDay — số ngày được nợ
+    public decimal CreditLimit { get; set; }            // CreditLimit — hạn mức công nợ tối đa
+    public decimal DepositPercent { get; set; }         // DepositPercent — % thanh toán đặt cọc
+    public bool IsActive { get; set; } = true;          // FlagActive
+    public string? Remark { get; set; }                 // Remark
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // LogLUDTimeUTC
+    public string CreatedBy { get; set; } = "";         // LogLUBy
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+    // ── tính toán ────────────────────
+    public string TypeName => Type == PTType.Purchase ? "Mua vào" : "Bán ra";
+    public string OwedDayText => OwedDay <= 0 ? "Thanh toán ngay" : $"Nợ {OwedDay} ngày";
+    public string CreditLimitText => CreditLimit <= 0 ? "Không giới hạn" : CreditLimit.ToString("#,##0");
+    public string DepositText => DepositPercent <= 0 ? "—" : $"{DepositPercent:0.##}%";
+}

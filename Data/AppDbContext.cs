@@ -36,6 +36,7 @@ public class AppDbContext : DbContext
     public DbSet<TicketCatalog> TicketCatalogs => Set<TicketCatalog>();
     public DbSet<Department> Departments => Set<Department>();
     public DbSet<DepartmentMember> DepartmentMembers => Set<DepartmentMember>();
+    public DbSet<PaymentTerm> PaymentTerms => Set<PaymentTerm>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -224,6 +225,19 @@ public class AppDbContext : DbContext
             e.Property(x => x.UserCode).HasMaxLength(50);
             e.Property(x => x.FullName).HasMaxLength(200);
             e.HasOne(x => x.Department).WithMany(x => x.Members).HasForeignKey(x => x.DepartmentId);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<PaymentTerm>(e =>
+        {
+            e.Property(x => x.Code).HasMaxLength(30);
+            e.Property(x => x.Name).HasMaxLength(200);
+            e.Property(x => x.CreditLimit).HasPrecision(18, 2);
+            e.Property(x => x.DepositPercent).HasPrecision(18, 2);
+            e.HasIndex(x => x.Code);
+            e.Ignore(x => x.TypeName);
+            e.Ignore(x => x.OwedDayText);
+            e.Ignore(x => x.CreditLimitText);
+            e.Ignore(x => x.DepositText);
             e.HasQueryFilter(x => x.OrgId == _orgId);
         });
     }

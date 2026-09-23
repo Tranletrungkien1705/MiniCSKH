@@ -1,0 +1,42 @@
+@model PaymentTerm
+@{
+    ViewData["Title"] = "Chi tiết điều khoản thanh toán";
+}
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Điều khoản thanh toán</a>
+        <h5 class="fw-bold mb-1 mt-1">@Model.Name <span class="font-monospace text-muted">@Model.Code</span>
+            @Html.Raw(Ui.PTTypeBadge(Model.Type))
+            @if(Model.IsActive){<span class="badge bg-success-subtle text-success border-success-subtle">Đang dùng</span>}
+            else{<span class="badge bg-secondary-subtle text-secondary border-secondary-subtle">Ngừng dùng</span>}</h5>
+        <div class="text-muted small">tạo @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm") · cập nhật @Model.UpdatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil me-1"></i>Sửa</a>
+        <form asp-action="Toggle" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <button class="btn btn-sm @(Model.IsActive?"btn-outline-secondary":"btn-primary")">
+                <i class="bi bi-toggle-@(Model.IsActive?"off":"on") me-1"></i>@(Model.IsActive?"Ngừng dùng":"Kích hoạt")</button>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Loại điều khoản</div><div class="fs-6 fw-bold">@Ui.PTTypeName(Model.Type)</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Số ngày được nợ</div><div class="fs-5 fw-bold">@Model.OwedDayText</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Hạn mức công nợ</div><div class="fs-5 fw-bold">@Model.CreditLimitText</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">% đặt cọc</div><div class="fs-5 fw-bold">@Model.DepositText</div></div></div></div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.Description) || !string.IsNullOrWhiteSpace(Model.Remark))
+{
+    <div class="alert alert-light border">
+        @if (!string.IsNullOrWhiteSpace(Model.Description)) { <div><i class="bi bi-info-circle me-1"></i>@Model.Description</div> }
+        @if (!string.IsNullOrWhiteSpace(Model.Remark)) { <div class="small text-muted mt-1"><i class="bi bi-sticky me-1"></i>@Model.Remark</div> }
+    </div>
+}
