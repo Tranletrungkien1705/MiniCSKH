@@ -81,5 +81,26 @@
                 @if(Model.ResolvedAt.HasValue){<div>Giải quyết: @Model.ResolvedAt.Value.ToString("dd/MM HH:mm")</div>}
             </div>
         </div></div>
+
+        @if(Model.SlaPolicy!=null)
+        {
+            <div class="card mt-3"><div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="text-muted small text-uppercase"><i class="bi bi-stopwatch me-1"></i>Cam kết SLA</div>
+                    @if(Model.ViolatesSla){<span class="badge bg-danger-subtle text-danger border-danger-subtle"><i class="bi bi-exclamation-triangle me-1"></i>Vi phạm</span>}
+                    else{<span class="badge bg-success-subtle text-success border-success-subtle"><i class="bi bi-check-circle me-1"></i>Đạt</span>}
+                </div>
+                <div class="fw-semibold mb-2">@Model.SlaPolicy.Level <span class="text-muted small font-monospace">@Model.SlaPolicy.Code</span></div>
+                <div class="d-flex justify-content-between small">
+                    <span>Phản hồi đầu tiên</span>
+                    <span class="@(Model.ViolatesFirstResponse?"text-danger fw-semibold":"text-success")">@SlaPolicy.FormatMinutes(Model.ActualFirstResMinutes) / @Model.SlaPolicy.FirstResText</span>
+                </div>
+                <div class="d-flex justify-content-between small">
+                    <span>Thời gian xử lý</span>
+                    <span class="@(Model.ViolatesResolution?"text-danger fw-semibold":"text-success")">@SlaPolicy.FormatMinutes(Model.ActualResolutionMinutes) / @Model.SlaPolicy.ResolutionText</span>
+                </div>
+                @if(Model.ViolatesSla){<div class="small text-danger mt-2"><i class="bi bi-info-circle me-1"></i>@(Model.ViolatesFirstResponse?"Không đáp ứng SLA phản hồi đầu tiên. ":"")@(Model.ViolatesResolution?"Không đáp ứng SLA thời gian xử lý.":"")</div>}
+            </div></div>
+        }
     </div>
 </div>

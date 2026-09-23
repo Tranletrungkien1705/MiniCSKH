@@ -25,6 +25,7 @@ public class TicketController(ITicketService svc) : Controller
     {
         ViewBag.Categories = await svc.CategoriesAsync();
         ViewBag.Agents = await svc.AgentsAsync();
+        ViewBag.SlaPolicies = await svc.SlaListAsync();
         return View(new Ticket());
     }
 
@@ -35,6 +36,7 @@ public class TicketController(ITicketService svc) : Controller
         {
             TempData["Error"] = "Cần tiêu đề và tên khách hàng.";
             ViewBag.Categories = await svc.CategoriesAsync(); ViewBag.Agents = await svc.AgentsAsync();
+            ViewBag.SlaPolicies = await svc.SlaListAsync();
             return View(model);
         }
         var id = await svc.CreateAsync(model);

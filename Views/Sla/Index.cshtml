@@ -1,0 +1,44 @@
+@model List<SlaPolicy>
+@{
+    ViewData["Title"] = "Chính sách SLA";
+    var stats = (SlaStats)ViewBag.Stats;
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div><h5 class="fw-bold mb-0"><i class="bi bi-stopwatch me-2"></i>Chính sách SLA</h5>
+        <small class="text-muted">Cam kết thời gian phản hồi đầu tiên &amp; thời gian xử lý</small></div>
+    <a asp-action="Edit" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Thêm mức SLA</a>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Mức SLA</div><div class="fs-3 fw-bold">@stats.Policies</div></div>
+        <i class="bi bi-list-check fs-2 text-primary opacity-50"></i></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Phiếu có SLA</div><div class="fs-3 fw-bold">@stats.TicketsWithSla</div></div>
+        <i class="bi bi-ticket-detailed fs-2 text-info opacity-50"></i></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Vi phạm phản hồi</div><div class="fs-3 fw-bold text-warning">@stats.ViolatingFirstRes</div></div>
+        <i class="bi bi-reply-all fs-2 text-warning opacity-50"></i></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Vi phạm xử lý</div><div class="fs-3 fw-bold text-danger">@stats.ViolatingResolution</div></div>
+        <i class="bi bi-alarm fs-2 text-danger opacity-50"></i></div></div></div>
+</div>
+
+<div class="card"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
+    <thead><tr><th>Mã</th><th>Mức SLA</th><th>Phản hồi đầu tiên</th><th>Thời gian xử lý</th><th>Trạng thái</th><th>Mô tả</th><th></th></tr></thead>
+    <tbody>
+        @if(!Model.Any()){<tr><td colspan="7" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>Chưa có chính sách SLA</td></tr>}
+        @foreach (var p in Model)
+        {
+            <tr>
+                <td class="font-monospace small">@p.Code</td>
+                <td class="fw-semibold">@p.Level</td>
+                <td><span class="badge bg-primary-subtle text-primary border-primary-subtle"><i class="bi bi-reply me-1"></i>@p.FirstResText</span></td>
+                <td><span class="badge bg-info-subtle text-info border-info-subtle"><i class="bi bi-check2-circle me-1"></i>@p.ResolutionText</span></td>
+                <td>@if(p.IsActive){<span class="badge bg-success-subtle text-success border-success-subtle">Đang dùng</span>}else{<span class="badge bg-secondary-subtle text-secondary border-secondary-subtle">Tắt</span>}</td>
+                <td class="small text-muted">@p.Description</td>
+                <td class="text-end"><a asp-action="Edit" asp-route-id="@p.Id" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil"></i></a></td>
+            </tr>
+        }
+    </tbody>
+</table></div></div>
