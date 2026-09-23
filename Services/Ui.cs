@@ -270,4 +270,18 @@ public static class Ui
     };
     public static string ContactUseTypeBadge(CatalogUseType t) =>
         $"<span class='badge bg-{ContactUseTypeColor(t)}-subtle text-{ContactUseTypeColor(t)} border-{ContactUseTypeColor(t)}-subtle'>{ContactUseTypeName(t)}</span>";
+
+    // ── Loại phiếu tùy chỉnh (Mst_TicketCustomType) ──
+    public static string CustomTypeUseTypeName(CatalogUseType t) => t switch
+    {
+        CatalogUseType.Type1 => "Chỉ agent", CatalogUseType.Type2 => "Agent & khách",
+        CatalogUseType.Type3 => "Chỉ khách", _ => t.ToString()
+    };
+    public static string CustomTypeUseTypeColor(CatalogUseType t) => t switch
+    {
+        CatalogUseType.Type1 => "info", CatalogUseType.Type2 => "success",
+        CatalogUseType.Type3 => "warning", _ => "secondary"
+    };
+    public static string CustomTypeUseTypeBadge(CatalogUseType t) =>
+        $"<span class='badge bg-{CustomTypeUseTypeColor(t)}-subtle text-{CustomTypeUseTypeColor(t)} border-{CustomTypeUseTypeColor(t)}-subtle'>{CustomTypeUseTypeName(t)}</span>";
 }

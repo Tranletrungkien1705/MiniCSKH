@@ -562,6 +562,56 @@ public static class Seeder
             );
             await db.SaveChangesAsync();
         }
+
+        if (!await db.TicketCustomTypes.AnyAsync())
+        {
+            // Loại phiếu tùy chỉnh (Mst_TicketCustomType) — phân loại con của eTicket,
+            // gán cho từng phân loại nghiệp vụ (Mst_TicketType) qua Mst_TicketTypeMapCustom.
+            db.TicketCustomTypes.AddRange(
+                new TicketCustomType
+                {
+                    Code = "TCT-KYTHUAT", AgentName = "Sự cố kỹ thuật", CustomerName = "Sự cố kỹ thuật",
+                    UseType = CatalogUseType.Type2, IsActive = true,
+                    Remark = "Phân loại con cho các phiếu sự cố kỹ thuật.",
+                    CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-30), UpdatedAt = DateTime.Now.AddDays(-3),
+                    Maps =
+                    [
+                        new TicketCustomTypeMap { TicketTypeCode = "TT-SUPPORT", Remark = "Áp dụng cho yêu cầu hỗ trợ kỹ thuật." }
+                    ]
+                },
+                new TicketCustomType
+                {
+                    Code = "TCT-HOADON", AgentName = "Vấn đề hóa đơn", CustomerName = "Vấn đề hóa đơn",
+                    UseType = CatalogUseType.Type2, IsActive = true,
+                    Remark = "Phân loại con cho các phiếu liên quan hóa đơn, chứng từ.",
+                    CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-25), UpdatedAt = DateTime.Now.AddDays(-2),
+                    Maps =
+                    [
+                        new TicketCustomTypeMap { TicketTypeCode = "TT-SUPPORT", Remark = "Hóa đơn thuộc nhóm hỗ trợ." },
+                        new TicketCustomTypeMap { TicketTypeCode = "TT-COMPLAINT", Remark = "Khiếu nại về hóa đơn." }
+                    ]
+                },
+                new TicketCustomType
+                {
+                    Code = "TCT-KHAOSAT", AgentName = "Khảo sát sau bán", CustomerName = "Khảo sát hài lòng",
+                    UseType = CatalogUseType.Type3, IsActive = true,
+                    Remark = "Chỉ hiển thị cho khách trong chiến dịch khảo sát.",
+                    CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-20), UpdatedAt = DateTime.Now.AddDays(-1),
+                    Maps =
+                    [
+                        new TicketCustomTypeMap { TicketTypeCode = "TT-SURVEY", Remark = "Dùng cho chiến dịch khảo sát." }
+                    ]
+                },
+                new TicketCustomType
+                {
+                    Code = "TCT-CU", AgentName = "Loại tùy chỉnh cũ (ngừng dùng)", CustomerName = "Loại cũ",
+                    UseType = CatalogUseType.Type2, IsActive = false,
+                    Remark = "Đã ngừng sử dụng.",
+                    CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-90), UpdatedAt = DateTime.Now.AddDays(-60)
+                }
+            );
+            await db.SaveChangesAsync();
+        }
     }
 
     /// <summary>DB Postgres cloud cũ: tạo Orgs + thêm cột OrgId nếu thiếu, backfill về org mặc định. Idempotent.</summary>
@@ -569,7 +619,7 @@ public static class Seeder
     {
         if (!db.Database.IsNpgsql()) return;
         var def = TenantContext.DefaultOrgId;
-        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags", "ReceiveNotifies", "Addresses", "SlaWorkingDays", "SlaHolidays", "ContactChannels" };
+        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags", "ReceiveNotifies", "Addresses", "SlaWorkingDays", "SlaHolidays", "ContactChannels", "TicketCustomTypes", "TicketCustomTypeMaps" };
         var sql = new List<string>
         {
             "CREATE TABLE IF NOT EXISTS minicskh.\"Orgs\" (\"Id\" uuid PRIMARY KEY, \"Name\" text NOT NULL DEFAULT '', \"ApiKey\" text NOT NULL DEFAULT '', \"CreatedAt\" timestamp NOT NULL DEFAULT now())",

@@ -44,6 +44,8 @@ public class AppDbContext : DbContext
     public DbSet<SlaWorkingDay> SlaWorkingDays => Set<SlaWorkingDay>();
     public DbSet<SlaHoliday> SlaHolidays => Set<SlaHoliday>();
     public DbSet<ContactChannel> ContactChannels => Set<ContactChannel>();
+    public DbSet<TicketCustomType> TicketCustomTypes => Set<TicketCustomType>();
+    public DbSet<TicketCustomTypeMap> TicketCustomTypeMaps => Set<TicketCustomTypeMap>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -308,6 +310,22 @@ public class AppDbContext : DbContext
             e.Property(x => x.CustomerName).HasMaxLength(200);
             e.HasIndex(x => x.Code);
             e.Ignore(x => x.UseTypeName);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<TicketCustomType>(e =>
+        {
+            e.Property(x => x.Code).HasMaxLength(50);
+            e.Property(x => x.AgentName).HasMaxLength(200);
+            e.Property(x => x.CustomerName).HasMaxLength(200);
+            e.HasIndex(x => x.Code);
+            e.Ignore(x => x.MappedTypeCount);
+            e.Ignore(x => x.UseTypeName);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<TicketCustomTypeMap>(e =>
+        {
+            e.Property(x => x.TicketTypeCode).HasMaxLength(50);
+            e.HasOne(x => x.CustomType).WithMany(x => x.Maps).HasForeignKey(x => x.TicketCustomTypeId);
             e.HasQueryFilter(x => x.OrgId == _orgId);
         });
     }

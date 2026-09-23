@@ -1,0 +1,81 @@
+@model TicketCustomType
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Thêm loại phiếu tùy chỉnh" : "Sửa loại phiếu tùy chỉnh";
+    var maps = Model.Maps.ToList();
+    if (maps.Count == 0) maps.Add(new TicketCustomTypeMap());
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Loại phiếu tùy chỉnh</a>
+        <h5 class="fw-bold mb-0 mt-1">@ViewData["Title"]</h5>
+    </div>
+</div>
+
+<form asp-action="Save" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="Id" value="@Model.Id" />
+
+    <div class="card mb-3"><div class="card-body">
+        <h6 class="fw-bold mb-3"><i class="bi bi-info-circle me-1"></i>Thông tin loại phiếu tùy chỉnh</h6>
+        <div class="row g-3">
+            <div class="col-md-4"><label class="form-label small">Mã loại (TicketCustomType)</label>
+                <input name="Code" value="@Model.Code" class="form-control form-control-sm" placeholder="VD: TCT-KYTHUAT" />
+                <div class="form-text">Để trống sẽ tự sinh mã.</div></div>
+            <div class="col-md-4"><label class="form-label small">Phạm vi sử dụng (FlagUseType)</label>
+                <select name="UseType" class="form-select form-select-sm">
+                    @foreach (var t in Enum.GetValues<CatalogUseType>())
+                    {
+                        <option value="@t" selected="@(Model.UseType==t)">@Ui.CustomTypeUseTypeName(t)</option>
+                    }
+                </select></div>
+            <div class="col-md-4"><label class="form-label small">Trạng thái</label>
+                <div class="form-check form-switch mt-1">
+                    <input class="form-check-input" type="checkbox" name="IsActive" value="true" id="isActive" @(Model.IsActive ? "checked" : "") />
+                    <label class="form-check-label small" for="isActive">Đang dùng (FlagActive)</label></div></div>
+            <div class="col-md-6"><label class="form-label small">Tên cho agent <span class="text-danger">*</span></label>
+                <input name="AgentName" value="@Model.AgentName" class="form-control form-control-sm" placeholder="VD: Sự cố kỹ thuật" required /></div>
+            <div class="col-md-6"><label class="form-label small">Tên cho khách hàng <span class="text-danger">*</span></label>
+                <input name="CustomerName" value="@Model.CustomerName" class="form-control form-control-sm" placeholder="VD: Sự cố kỹ thuật" required /></div>
+            <div class="col-12"><label class="form-label small">Ghi chú</label>
+                <input name="Remark" value="@Model.Remark" class="form-control form-control-sm" placeholder="Mô tả loại phiếu tùy chỉnh" /></div>
+        </div>
+    </div></div>
+
+    <div class="card mb-3"><div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold mb-0"><i class="bi bi-diagram-3 me-1"></i>Phân loại nghiệp vụ áp dụng</h6>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="addRow()"><i class="bi bi-plus-lg me-1"></i>Thêm phân loại</button>
+        </div>
+        <div class="table-responsive"><table class="table align-middle mb-0" id="mapTable">
+            <thead><tr><th style="width:60%">Mã phân loại nghiệp vụ (TicketType)</th><th style="width:40px"></th></tr></thead>
+            <tbody>
+                @foreach (var m in maps)
+                {
+                    <tr>
+                        <td><input name="mapTypeCode" value="@m.TicketTypeCode" class="form-control form-control-sm" placeholder="VD: TT-SUPPORT" /></td>
+                        <td><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('tr').remove()"><i class="bi bi-x-lg"></i></button></td>
+                    </tr>
+                }
+            </tbody>
+        </table></div>
+        <div class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i>Loại tùy chỉnh chỉ hiển thị khi tạo phiếu thuộc các phân loại nghiệp vụ (Mst_TicketType) được gán ở đây (theo Mst_TicketTypeMapCustom).</div>
+    </div></div>
+
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary btn-sm"><i class="bi bi-check-lg me-1"></i>Lưu loại phiếu tùy chỉnh</button>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Hủy</a>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+    function addRow() {
+        const tb = document.querySelector('#mapTable tbody');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input name="mapTypeCode" class="form-control form-control-sm" placeholder="VD: TT-SUPPORT" /></td>
+            <td><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('tr').remove()"><i class="bi bi-x-lg"></i></button></td>`;
+        tb.appendChild(tr);
+    }
+</script>
+}

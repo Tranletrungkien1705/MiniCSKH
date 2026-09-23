@@ -914,4 +914,59 @@ public class ContactChannel : IOrgOwned
         CatalogUseType.Type3 => "Chỉ khách",
         _ => UseType.ToString()
     };
+}// ── Loại phiếu tùy chỉnh (Mst_TicketCustomType) ──────────────────────
+// Theo SkyCS: "loại phiếu tùy chỉnh" (Mst_TicketCustomType) là phân loại
+// con của eTicket — mỗi loại có mã (TicketCustomType), tên hiển thị cho
+// agent và cho khách, phạm vi sử dụng (FlagUseType TYPE1/2/3) và trạng thái.
+// eTicket gắn loại tùy chỉnh qua ET_Ticket.TicketCustomType; khi hiển thị sẽ
+// join sang bảng này để lấy tên cho agent/khách (ETicket.cs).
+// Loại tùy chỉnh được gán cho từng "phân loại nghiệp vụ" (Mst_TicketType) qua
+// bảng map Mst_TicketTypeMapCustom (TicketType ↔ TicketCustomType).
+// (11.BackEnd/V10/idn.SkyCS.Biz/Master.cs, `Mst_TicketCustomType_Get`/
+//  `Mst_TicketCustomType_GetByTicketType`/`Mst_TicketCustomType_Save`;
+//  model 12.Dev.Common/idn.SkyCS.Common/Models/Mst_TicketCustomType.cs,
+//  Mst_TicketTypeMapCustom.cs; cột xác nhận qua TblMst_TicketCustomType)
+
+/// <summary>Loại phiếu tùy chỉnh (Mst_TicketCustomType) — phân loại con của eTicket.</summary>
+public class TicketCustomType : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string Code { get; set; } = "";              // TicketCustomType — mã loại tùy chỉnh
+    public string AgentName { get; set; } = "";         // AgentTicketCustomTypeName — tên cho agent
+    public string CustomerName { get; set; } = "";      // CustomerTicketCustomTypeName — tên cho khách
+    public CatalogUseType UseType { get; set; } = CatalogUseType.Type2;  // FlagUseType (TYPE1/2/3)
+    public bool IsActive { get; set; } = true;          // FlagActive
+    public string? Remark { get; set; }                 // Remark
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // LogLUDTimeUTC
+    public string CreatedBy { get; set; } = "";         // LogLUBy
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+    public List<TicketCustomTypeMap> Maps { get; set; } = [];
+
+    // ── tính toán ────────────────────────────────────────────────────
+    public int MappedTypeCount => Maps.Count;
+    public string UseTypeName => UseType switch
+    {
+        CatalogUseType.Type1 => "Chỉ agent",
+        CatalogUseType.Type2 => "Agent & khách",
+        CatalogUseType.Type3 => "Chỉ khách",
+        _ => UseType.ToString()
+    };
+}
+
+/// <summary>
+/// Gán loại phiếu tùy chỉnh cho 1 phân loại nghiệp vụ (Mst_TicketTypeMapCustom).
+/// Mỗi dòng = 1 cặp (TicketType ↔ TicketCustomType).
+/// </summary>
+public class TicketCustomTypeMap : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public int TicketCustomTypeId { get; set; }
+    public string TicketTypeCode { get; set; } = "";    // TicketType — mã phân loại nghiệp vụ (Mst_TicketType)
+    public string? Remark { get; set; }                 // ghi chú
+    public bool IsActive { get; set; } = true;          // FlagActive
+
+    public TicketCustomType CustomType { get; set; } = null!;
 }

@@ -140,6 +140,12 @@ public interface ITicketService
     Task<int> ContactChannelSaveAsync(ContactChannel model);
     Task ContactChannelToggleAsync(int id);
     Task<ContactChannelStats> ContactChannelStatsAsync();
+    // Loại phiếu tùy chỉnh (Mst_TicketCustomType)
+    Task<List<TicketCustomType>> TicketCustomTypesAsync(bool? active, CatalogUseType? useType, string? q);
+    Task<TicketCustomType?> TicketCustomTypeGetAsync(int id);
+    Task<int> TicketCustomTypeSaveAsync(TicketCustomType model, List<TicketCustomTypeMap> maps);
+    Task TicketCustomTypeToggleAsync(int id);
+    Task<TicketCustomTypeStats> TicketCustomTypeStatsAsync();
 }
 
 public record SlaStats(int Policies, int TicketsWithSla, int ViolatingFirstRes, int ViolatingResolution);
@@ -173,6 +179,8 @@ public record AddressStats(int Total, int Active, int Provinces, int Districts, 
 public record SlaCalendarStats(int Policies, int WithWorkingDays, int WithHolidays, int WorkingDayRows, int HolidayRows);
 
 public record ContactChannelStats(int Total, int Active, int AgentOnly, int Both, int CustomerOnly);
+
+public record TicketCustomTypeStats(int Total, int Active, int AgentOnly, int Both, int CustomerOnly, int MappedTypes);
 
 public record TicketTypeStats(int Total, int Active, int ETicket, int Campaign);
 
@@ -1376,5 +1384,70 @@ public class TicketService(AppDbContext db) : ITicketService
             list.Count(c => c.UseType == CatalogUseType.Type1),
             list.Count(c => c.UseType == CatalogUseType.Type2),
             list.Count(c => c.UseType == CatalogUseType.Type3));
+    }
+
+    // ── Loại phiếu tùy chỉnh (Mst_TicketCustomType) ──────────────────
+    public async Task<List<TicketCustomType>> TicketCustomTypesAsync(bool? active, CatalogUseType? useType, string? q)
+    {
+        var query = db.TicketCustomTypes.Include(c => c.Maps).AsQueryable();
+        if (active.HasValue) query = query.Where(c => c.IsActive == active.Value);
+        if (useType.HasValue) query = query.Where(c => c.UseType == useType.Value);
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(c => c.Code.Contains(q) || c.AgentName.Contains(q) || c.CustomerName.Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderBy(c => c.Code).ToList();
+    }
+
+    public Task<TicketCustomType?> TicketCustomTypeGetAsync(int id) =>
+        db.TicketCustomTypes.Include(c => c.Maps).FirstOrDefaultAsync(c => c.Id == id);
+
+    public async Task<int> TicketCustomTypeSaveAsync(TicketCustomType model, List<TicketCustomTypeMap> maps)
+    {
+        // Theo Mst_TicketCustomType_Save: tên cho agent và cho khách bắt buộc;
+        // FlagUseType phải là TYPE1/TYPE2/TYPE3 (enum đã đảm bảo).
+        if (string.IsNullOrWhiteSpace(model.AgentName))
+            throw new InvalidOperationException("Cần tên loại tùy chỉnh cho agent.");
+        if (string.IsNullOrWhiteSpace(model.CustomerName))
+            throw new InvalidOperationException("Cần tên loại tùy chỉnh cho khách hàng.");
+
+        if (model.Id == 0)
+        {
+            if (string.IsNullOrWhiteSpace(model.Code)) model.Code = "TCT-" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+            model.CreatedAt = model.UpdatedAt = DateTime.Now;
+            foreach (var m in maps) model.Maps.Add(m);
+            db.TicketCustomTypes.Add(model);
+            await db.SaveChangesAsync();
+            return model.Id;
+        }
+        var e = await db.TicketCustomTypes.Include(x => x.Maps).FirstOrDefaultAsync(x => x.Id == model.Id)
+            ?? throw new KeyNotFoundException();
+        e.Code = model.Code; e.AgentName = model.AgentName; e.CustomerName = model.CustomerName;
+        e.UseType = model.UseType; e.IsActive = model.IsActive; e.Remark = model.Remark; e.UpdatedAt = DateTime.Now;
+        // Thay toàn bộ danh sách phân loại nghiệp vụ áp dụng (cấu hình, không giữ lịch sử).
+        db.TicketCustomTypeMaps.RemoveRange(e.Maps);
+        e.Maps.Clear();
+        foreach (var m in maps) e.Maps.Add(m);
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
+    public async Task TicketCustomTypeToggleAsync(int id)
+    {
+        var c = await db.TicketCustomTypes.FirstOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException();
+        c.IsActive = !c.IsActive;
+        c.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<TicketCustomTypeStats> TicketCustomTypeStatsAsync()
+    {
+        var list = await db.TicketCustomTypes.Include(c => c.Maps).ToListAsync();
+        return new TicketCustomTypeStats(
+            list.Count,
+            list.Count(c => c.IsActive),
+            list.Count(c => c.UseType == CatalogUseType.Type1),
+            list.Count(c => c.UseType == CatalogUseType.Type2),
+            list.Count(c => c.UseType == CatalogUseType.Type3),
+            list.Sum(c => c.Maps.Count));
     }
 }
