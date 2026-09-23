@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<Org> Orgs => Set<Org>();
     public DbSet<Agent> Agents => Set<Agent>();
     public DbSet<TicketCategory> Categories => Set<TicketCategory>();
+    public DbSet<TicketType> TicketTypes => Set<TicketType>();
     public DbSet<SlaPolicy> SlaPolicies => Set<SlaPolicy>();
     public DbSet<Ticket> Tickets => Set<Ticket>();
     public DbSet<TicketComment> Comments => Set<TicketComment>();
@@ -32,6 +33,15 @@ public class AppDbContext : DbContext
         b.Entity<Org>().HasIndex(x => x.ApiKey).IsUnique();
         b.Entity<Agent>().HasQueryFilter(x => x.OrgId == _orgId);
         b.Entity<TicketCategory>().HasQueryFilter(x => x.OrgId == _orgId);
+        b.Entity<TicketType>(e =>
+        {
+            e.Property(x => x.Code).HasMaxLength(30);
+            e.Property(x => x.AgentName).HasMaxLength(200);
+            e.Property(x => x.CustomerName).HasMaxLength(200);
+            e.HasIndex(x => x.Code);
+            e.Ignore(x => x.BusinessTypeName);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
         b.Entity<SlaPolicy>(e =>
         {
             e.Property(x => x.Code).HasMaxLength(30);

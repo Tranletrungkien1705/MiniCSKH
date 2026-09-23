@@ -1,0 +1,48 @@
+@model TicketType
+@{
+    ViewData["Title"] = "Chi tiết phân loại nghiệp vụ";
+}
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Phân loại nghiệp vụ</a>
+        <h5 class="fw-bold mb-1 mt-1">@Model.AgentName
+            @if(Model.IsActive){<span class="badge bg-success-subtle text-success border-success-subtle">Đang dùng</span>}
+            else{<span class="badge bg-secondary-subtle text-secondary border-secondary-subtle">Ngừng dùng</span>}</h5>
+        <div class="text-muted small"><span class="font-monospace">@Model.Code</span> · @Ui.BusinessTypeBadge(Model.BusinessType) · tạo @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil me-1"></i>Sửa</a>
+        <form asp-action="Toggle" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <button class="btn btn-sm @(Model.IsActive?"btn-outline-secondary":"btn-primary")">
+                <i class="bi bi-toggle-@(Model.IsActive?"off":"on") me-1"></i>@(Model.IsActive?"Ngừng dùng":"Kích hoạt")</button>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Loại nghiệp vụ</div><div class="fs-5 fw-bold">@Ui.BusinessTypeName(Model.BusinessType)</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Thứ tự</div><div class="fs-3 fw-bold">@Model.Order</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Mã HO</div><div class="fs-5 fw-bold">@(string.IsNullOrWhiteSpace(Model.HoCode) ? "—" : Model.HoCode)</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Cập nhật</div><div class="fs-5 fw-bold">@Model.UpdatedAt.ToString("dd/MM HH:mm")</div></div></div></div>
+</div>
+
+<div class="card mb-3"><div class="card-body">
+    <h6 class="fw-bold mb-3"><i class="bi bi-info-circle me-1"></i>Thông tin phân loại</h6>
+    <div class="row g-3">
+        <div class="col-md-6"><div class="text-muted small text-uppercase">Tên cho agent (AgentTicketTypeName)</div><div>@Model.AgentName</div></div>
+        <div class="col-md-6"><div class="text-muted small text-uppercase">Tên cho khách (CustomerTicketTypeName)</div><div>@Model.CustomerName</div></div>
+        <div class="col-md-6"><div class="text-muted small text-uppercase">Mẫu bố cục tạo (ScrTplCreateCodeSys)</div><div class="font-monospace small">@(string.IsNullOrWhiteSpace(Model.CreateTemplate) ? "—" : Model.CreateTemplate)</div></div>
+        <div class="col-md-6"><div class="text-muted small text-uppercase">Mẫu bố cục chi tiết (ScrTplDetailCodeSys)</div><div class="font-monospace small">@(string.IsNullOrWhiteSpace(Model.DetailTemplate) ? "—" : Model.DetailTemplate)</div></div>
+    </div>
+</div></div>
+
+@if (!string.IsNullOrWhiteSpace(Model.Remark))
+{
+    <div class="alert alert-light border"><i class="bi bi-info-circle me-1"></i>@Model.Remark</div>
+}

@@ -107,4 +107,20 @@ public static class Ui
     };
     public static string SvImprvTypeBadge(SvImprvItemType t) =>
         $"<span class='badge bg-{SvImprvTypeColor(t)}-subtle text-{SvImprvTypeColor(t)} border-{SvImprvTypeColor(t)}-subtle'>{SvImprvTypeName(t)}</span>";
+
+    // ── Phân loại nghiệp vụ (Mst_TicketType) ──
+    public static string BusinessTypeName(BusinessType b) => b switch
+    {
+        BusinessType.ETicket => "eTicket", BusinessType.Campaign => "Chiến dịch", _ => b.ToString()
+    };
+    public static string BusinessTypeColor(BusinessType b) => b switch
+    {
+        BusinessType.ETicket => "primary", BusinessType.Campaign => "info", _ => "secondary"
+    };
+    public static string BusinessTypeIcon(BusinessType b) => b switch
+    {
+        BusinessType.ETicket => "bi-ticket-detailed", BusinessType.Campaign => "bi-megaphone", _ => "bi-tag"
+    };
+    public static string BusinessTypeBadge(BusinessType b) =>
+        $"<span class='badge bg-{BusinessTypeColor(b)}-subtle text-{BusinessTypeColor(b)} border-{BusinessTypeColor(b)}-subtle'>{BusinessTypeName(b)}</span>";
 }

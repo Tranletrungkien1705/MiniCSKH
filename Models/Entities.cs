@@ -23,6 +23,36 @@ public class TicketCategory : IOrgOwned
     public int SlaHours { get; set; } = 24;
 }
 
+// ── Phân loại nghiệp vụ (Mst_TicketType) ─────────────────────────────
+// Theo SkyCS: mỗi "phân loại nghiệp vụ" (TicketType) là một mã nghiệp vụ
+// dùng để phân loại eTicket, gắn mẫu bố cục màn hình tạo/chi tiết và loại
+// nghiệp vụ (ETICKET/CAMPAIGN). Có tên riêng cho agent và cho khách hàng.
+
+/// <summary>Loại nghiệp vụ áp dụng cho phân loại (Mst_TicketType.BusinessType).</summary>
+public enum BusinessType { ETicket = 0, Campaign = 1 }
+
+/// <summary>Phân loại nghiệp vụ eTicket (Mst_TicketType).</summary>
+public class TicketType : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string Code { get; set; } = "";              // TicketType — mã phân loại nghiệp vụ
+    public string AgentName { get; set; } = "";          // AgentTicketTypeName — tên cho agent
+    public string CustomerName { get; set; } = "";       // CustomerTicketTypeName — tên cho khách
+    public string? CreateTemplate { get; set; }          // ScrTplCreateCodeSys — mẫu bố cục tạo
+    public string? DetailTemplate { get; set; }          // ScrTplDetailCodeSys — mẫu bố cục chi tiết
+    public string? HoCode { get; set; }                  // TicketTypeHO — mã phân loại HO
+    public BusinessType BusinessType { get; set; } = BusinessType.ETicket; // BusinessType
+    public bool IsActive { get; set; } = true;           // FlagActive
+    public int Order { get; set; }                       // Idx — thứ tự hiển thị
+    public string? Remark { get; set; }                  // Remark
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // LogLUDTimeUTC
+    public string CreatedBy { get; set; } = "";          // LogLUBy
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+    public string BusinessTypeName => BusinessType == BusinessType.Campaign ? "Chiến dịch" : "eTicket";
+}
+
 /// <summary>
 /// Chính sách SLA (Mst_SLA bên SkyCS): mức cam kết theo 2 mốc thời gian —
 /// phản hồi đầu tiên (FirstResMinutes) và xử lý xong (ResolutionMinutes).

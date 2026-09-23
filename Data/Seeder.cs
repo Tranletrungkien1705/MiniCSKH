@@ -33,6 +33,15 @@ public static class Seeder
                 new TicketCategory { Name = "Tư vấn chung", SlaHours = 48 });
             await db.SaveChangesAsync();
         }
+        if (!await db.TicketTypes.AnyAsync())
+        {
+            db.TicketTypes.AddRange(
+                new TicketType { Code = "TT-SUPPORT", AgentName = "Yêu cầu hỗ trợ", CustomerName = "Hỗ trợ kỹ thuật", BusinessType = BusinessType.ETicket, Order = 1, IsActive = true, Remark = "Phân loại mặc định cho phiếu hỗ trợ kỹ thuật.", CreateTemplate = "SCR-ET-CREATE", DetailTemplate = "SCR-ET-DETAIL", CreatedBy = "Hệ thống" },
+                new TicketType { Code = "TT-COMPLAINT", AgentName = "Khiếu nại dịch vụ", CustomerName = "Phản ánh / Khiếu nại", BusinessType = BusinessType.ETicket, Order = 2, IsActive = true, Remark = "Tiếp nhận phản ánh, khiếu nại của khách hàng.", CreateTemplate = "SCR-ET-CREATE", DetailTemplate = "SCR-ET-DETAIL", CreatedBy = "Hệ thống" },
+                new TicketType { Code = "TT-SURVEY", AgentName = "Khảo sát sau bán", CustomerName = "Khảo sát hài lòng", BusinessType = BusinessType.Campaign, Order = 3, IsActive = true, Remark = "Dùng cho chiến dịch gọi khảo sát hài lòng.", CreatedBy = "Hệ thống" },
+                new TicketType { Code = "TT-OLD", AgentName = "Phân loại cũ (ngừng dùng)", CustomerName = "Phân loại cũ", BusinessType = BusinessType.ETicket, Order = 9, IsActive = false, Remark = "Đã ngừng sử dụng.", CreatedBy = "Hệ thống" });
+            await db.SaveChangesAsync();
+        }
         if (!await db.SlaPolicies.AnyAsync())
         {
             db.SlaPolicies.AddRange(
@@ -224,7 +233,7 @@ public static class Seeder
     {
         if (!db.Database.IsNpgsql()) return;
         var def = TenantContext.DefaultOrgId;
-        var tables = new[] { "Agents", "Categories", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria" };
+        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria" };
         var sql = new List<string>
         {
             "CREATE TABLE IF NOT EXISTS minicskh.\"Orgs\" (\"Id\" uuid PRIMARY KEY, \"Name\" text NOT NULL DEFAULT '', \"ApiKey\" text NOT NULL DEFAULT '', \"CreatedAt\" timestamp NOT NULL DEFAULT now())",

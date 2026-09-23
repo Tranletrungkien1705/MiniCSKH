@@ -18,6 +18,12 @@ public interface ITicketService
     Task ChangePriorityAsync(int ticketId, TicketPriority priority);
     Task<List<Agent>> AgentsAsync();
     Task<List<TicketCategory>> CategoriesAsync();
+    // Phân loại nghiệp vụ (Mst_TicketType)
+    Task<List<TicketType>> TicketTypesAsync(bool? active, BusinessType? businessType, string? q);
+    Task<TicketType?> TicketTypeGetAsync(int id);
+    Task<int> TicketTypeSaveAsync(TicketType model);
+    Task TicketTypeToggleAsync(int id);
+    Task<TicketTypeStats> TicketTypeStatsAsync();
     Task<DashStats> DashboardAsync();
     // Knowledge base
     Task<List<KbArticle>> KbListAsync(string? q, string? category);
@@ -68,6 +74,8 @@ public record RatingStats(int Total, int Rated, int Reviewed, int Satisfied, int
 public record SurveyStats(int Total, int Active, int Used, int Fields);
 
 public record SvImprvStats(int Total, int Active, int Used, int Criteria);
+
+public record TicketTypeStats(int Total, int Active, int ETicket, int Campaign);
 
 public class TicketService(AppDbContext db) : ITicketService
 {
@@ -136,6 +144,58 @@ public class TicketService(AppDbContext db) : ITicketService
 
     public Task<List<Agent>> AgentsAsync() => db.Agents.Where(a => a.IsActive).OrderBy(a => a.Name).ToListAsync();
     public Task<List<TicketCategory>> CategoriesAsync() => db.Categories.OrderBy(c => c.Name).ToListAsync();
+
+    // ── Phân loại nghiệp vụ (Mst_TicketType) ─────────────────────────
+    public async Task<List<TicketType>> TicketTypesAsync(bool? active, BusinessType? businessType, string? q)
+    {
+        var query = db.TicketTypes.AsQueryable();
+        if (active.HasValue) query = query.Where(t => t.IsActive == active.Value);
+        if (businessType.HasValue) query = query.Where(t => t.BusinessType == businessType.Value);
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(t => t.Code.Contains(q) || t.AgentName.Contains(q) || t.CustomerName.Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderBy(t => t.Order).ThenBy(t => t.Code).ToList();
+    }
+
+    public Task<TicketType?> TicketTypeGetAsync(int id) =>
+        db.TicketTypes.FirstOrDefaultAsync(t => t.Id == id);
+
+    public async Task<int> TicketTypeSaveAsync(TicketType model)
+    {
+        if (model.Id == 0)
+        {
+            if (string.IsNullOrWhiteSpace(model.Code)) model.Code = "TT-" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+            model.CreatedAt = model.UpdatedAt = DateTime.Now;
+            db.TicketTypes.Add(model);
+            await db.SaveChangesAsync();
+            return model.Id;
+        }
+        var e = await db.TicketTypes.FirstOrDefaultAsync(x => x.Id == model.Id) ?? throw new KeyNotFoundException();
+        e.Code = model.Code; e.AgentName = model.AgentName; e.CustomerName = model.CustomerName;
+        e.CreateTemplate = model.CreateTemplate; e.DetailTemplate = model.DetailTemplate;
+        e.HoCode = model.HoCode; e.BusinessType = model.BusinessType; e.IsActive = model.IsActive;
+        e.Order = model.Order; e.Remark = model.Remark; e.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
+    public async Task TicketTypeToggleAsync(int id)
+    {
+        var t = await db.TicketTypes.FirstOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException();
+        t.IsActive = !t.IsActive;
+        t.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<TicketTypeStats> TicketTypeStatsAsync()
+    {
+        var list = await db.TicketTypes.ToListAsync();
+        return new TicketTypeStats(
+            list.Count,
+            list.Count(t => t.IsActive),
+            list.Count(t => t.BusinessType == BusinessType.ETicket),
+            list.Count(t => t.BusinessType == BusinessType.Campaign));
+    }
 
     public async Task<DashStats> DashboardAsync()
     {
