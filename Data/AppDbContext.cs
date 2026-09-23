@@ -13,10 +13,13 @@ public class AppDbContext : DbContext
     public DbSet<Org> Orgs => Set<Org>();
     public DbSet<Agent> Agents => Set<Agent>();
     public DbSet<TicketCategory> Categories => Set<TicketCategory>();
+    public DbSet<SlaPolicy> SlaPolicies => Set<SlaPolicy>();
     public DbSet<Ticket> Tickets => Set<Ticket>();
     public DbSet<TicketComment> Comments => Set<TicketComment>();
     public DbSet<KbArticle> KbArticles => Set<KbArticle>();
     public DbSet<CallLog> Calls => Set<CallLog>();
+    public DbSet<Campaign> Campaigns => Set<Campaign>();
+    public DbSet<CampaignCustomer> CampaignCustomers => Set<CampaignCustomer>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -24,6 +27,15 @@ public class AppDbContext : DbContext
         b.Entity<Org>().HasIndex(x => x.ApiKey).IsUnique();
         b.Entity<Agent>().HasQueryFilter(x => x.OrgId == _orgId);
         b.Entity<TicketCategory>().HasQueryFilter(x => x.OrgId == _orgId);
+        b.Entity<SlaPolicy>(e =>
+        {
+            e.Property(x => x.Code).HasMaxLength(30);
+            e.Property(x => x.Level).HasMaxLength(120);
+            e.HasIndex(x => x.Code);
+            e.Ignore(x => x.FirstResText);
+            e.Ignore(x => x.ResolutionText);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
         b.Entity<KbArticle>().HasQueryFilter(x => x.OrgId == _orgId);
         b.Entity<CallLog>(e =>
         {
@@ -39,13 +51,36 @@ public class AppDbContext : DbContext
             e.HasIndex(x => x.Code);
             e.Ignore(x => x.IsOpen);
             e.Ignore(x => x.IsOverdue);
+            e.Ignore(x => x.ActualFirstResMinutes);
+            e.Ignore(x => x.ActualResolutionMinutes);
+            e.Ignore(x => x.ViolatesFirstResponse);
+            e.Ignore(x => x.ViolatesResolution);
+            e.Ignore(x => x.ViolatesSla);
             e.HasOne(x => x.Category).WithMany().HasForeignKey(x => x.CategoryId);
             e.HasOne(x => x.AssignedAgent).WithMany().HasForeignKey(x => x.AssignedAgentId);
+            e.HasOne(x => x.SlaPolicy).WithMany().HasForeignKey(x => x.SlaPolicyId);
             e.HasQueryFilter(x => x.OrgId == _orgId);
         });
         b.Entity<TicketComment>(e =>
         {
             e.HasOne(x => x.Ticket).WithMany(x => x.Comments).HasForeignKey(x => x.TicketId);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<Campaign>(e =>
+        {
+            e.Property(x => x.Code).HasMaxLength(20);
+            e.Property(x => x.Name).HasMaxLength(200);
+            e.HasIndex(x => x.Code);
+            e.Ignore(x => x.TotalCustomers);
+            e.Ignore(x => x.DoneCustomers);
+            e.Ignore(x => x.ProgressPercent);
+            e.Ignore(x => x.IsRunning);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<CampaignCustomer>(e =>
+        {
+            e.HasOne(x => x.Campaign).WithMany(x => x.Customers).HasForeignKey(x => x.CampaignId);
+            e.HasOne(x => x.Agent).WithMany().HasForeignKey(x => x.AgentId);
             e.HasQueryFilter(x => x.OrgId == _orgId);
         });
     }

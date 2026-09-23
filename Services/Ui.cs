@@ -38,4 +38,31 @@ public static class Ui
         $"<span class='badge bg-{OutcomeColor(o)}-subtle text-{OutcomeColor(o)} border border-{OutcomeColor(o)}-subtle'>{OutcomeName(o)}</span>";
     public static string DirName(CallDirection d) => d == CallDirection.Inbound ? "Gọi đến" : "Gọi đi";
     public static string DirIcon(CallDirection d) => d == CallDirection.Inbound ? "bi-telephone-inbound" : "bi-telephone-outbound";
+
+    // ── Campaign ─────────────────────
+    public static string CampaignStatusName(CampaignStatus s) => s switch
+    {
+        CampaignStatus.Pending => "Chờ duyệt", CampaignStatus.Approved => "Đã duyệt", CampaignStatus.Started => "Đang chạy",
+        CampaignStatus.Paused => "Tạm dừng", CampaignStatus.Finished => "Hoàn thành", CampaignStatus.Cancelled => "Đã hủy", _ => s.ToString()
+    };
+    public static string CampaignStatusColor(CampaignStatus s) => s switch
+    {
+        CampaignStatus.Pending => "secondary", CampaignStatus.Approved => "info", CampaignStatus.Started => "success",
+        CampaignStatus.Paused => "warning", CampaignStatus.Finished => "primary", CampaignStatus.Cancelled => "dark", _ => "secondary"
+    };
+    public static string CampaignStatusBadge(CampaignStatus s) =>
+        $"<span class='badge bg-{CampaignStatusColor(s)}-subtle text-{CampaignStatusColor(s)} border-{CampaignStatusColor(s)}-subtle'>{CampaignStatusName(s)}</span>";
+
+    public static string CustStatusName(CampaignCustomerStatus s) => s switch
+    {
+        CampaignCustomerStatus.Pending => "Chưa gọi", CampaignCustomerStatus.Done => "Thành công", CampaignCustomerStatus.Failed => "Lỗi",
+        CampaignCustomerStatus.NoAnswer => "Không nghe", CampaignCustomerStatus.CallAgain => "Hẹn gọi lại", CampaignCustomerStatus.DoNotCall => "Không liên hệ", _ => s.ToString()
+    };
+    public static string CustStatusColor(CampaignCustomerStatus s) => s switch
+    {
+        CampaignCustomerStatus.Pending => "secondary", CampaignCustomerStatus.Done => "success", CampaignCustomerStatus.Failed => "danger",
+        CampaignCustomerStatus.NoAnswer => "warning", CampaignCustomerStatus.CallAgain => "info", CampaignCustomerStatus.DoNotCall => "dark", _ => "secondary"
+    };
+    public static string CustStatusBadge(CampaignCustomerStatus s) =>
+        $"<span class='badge bg-{CustStatusColor(s)}-subtle text-{CustStatusColor(s)} border-{CustStatusColor(s)}-subtle'>{CustStatusName(s)}</span>";
 }

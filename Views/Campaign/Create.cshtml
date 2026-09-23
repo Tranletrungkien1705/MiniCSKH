@@ -1,0 +1,23 @@
+@model Campaign
+@{ ViewData["Title"] = "Tạo chiến dịch"; }
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="fw-bold mb-0"><i class="bi bi-megaphone me-2"></i>Tạo chiến dịch</h5>
+    <a asp-action="Index" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Quay lại</a>
+</div>
+
+<div class="card"><div class="card-body">
+    <form asp-action="Create" method="post" class="row g-3">
+        @Html.AntiForgeryToken()
+        <div class="col-md-8"><label class="form-label small mb-1">Tên chiến dịch *</label>
+            <input asp-for="Name" class="form-control" required /></div>
+        <div class="col-md-4"><label class="form-label small mb-1">Loại chiến dịch</label>
+            <select asp-for="CampaignType" class="form-select">
+                <option>Telesales</option><option>Survey</option><option>Chăm sóc</option><option>Thu hồi nợ</option>
+            </select></div>
+        <div class="col-12"><label class="form-label small mb-1">Mô tả</label>
+            <textarea asp-for="Description" class="form-control" rows="2"></textarea></div>
+        <div class="col-12">
+            <button class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Tạo chiến dịch</button>
+        </div>
+    </form>
+</div></div>

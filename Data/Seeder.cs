@@ -33,6 +33,14 @@ public static class Seeder
                 new TicketCategory { Name = "Tư vấn chung", SlaHours = 48 });
             await db.SaveChangesAsync();
         }
+        if (!await db.SlaPolicies.AnyAsync())
+        {
+            db.SlaPolicies.AddRange(
+                new SlaPolicy { Code = "SLA-VIP", Level = "VIP / Khẩn cấp", Description = "Khách VIP, sự cố nghiêm trọng — phản hồi nhanh, xử lý trong ngày.", FirstResMinutes = 15, ResolutionMinutes = 240 },
+                new SlaPolicy { Code = "SLA-STD", Level = "Tiêu chuẩn", Description = "Mức mặc định cho hầu hết phiếu hỗ trợ.", FirstResMinutes = 60, ResolutionMinutes = 480 },
+                new SlaPolicy { Code = "SLA-LOW", Level = "Thấp / Tư vấn", Description = "Câu hỏi tư vấn, không gấp.", FirstResMinutes = 240, ResolutionMinutes = 2880 });
+            await db.SaveChangesAsync();
+        }
         if (!await db.KbArticles.AnyAsync())
         {
             db.KbArticles.AddRange(
@@ -45,29 +53,34 @@ public static class Seeder
         {
             var cats = await db.Categories.ToListAsync();
             var agents = await db.Agents.ToListAsync();
+            var slas = await db.SlaPolicies.ToListAsync();
             int n = 0;
-            Ticket T(string subj, string cust, Channel ch, TicketPriority pri, TicketStatus st, int catIdx, int? agentIdx, int ageHours)
+            Ticket T(string subj, string cust, Channel ch, TicketPriority pri, TicketStatus st, int catIdx, int? agentIdx, int ageHours, int slaIdx, int? firstResMin)
             {
                 n++;
                 var created = DateTime.Now.AddHours(-ageHours);
                 var cat = cats[catIdx];
+                var sla = slas[slaIdx];
+                var done = st is TicketStatus.Resolved or TicketStatus.Closed;
                 return new Ticket
                 {
                     Code = $"TK{DateTime.Now:yyMM}{n:D4}",
                     Subject = subj, CustomerName = cust, Channel = ch, Priority = pri, Status = st,
                     CategoryId = cat.Id, AssignedAgentId = agentIdx is { } ai ? agents[ai].Id : null,
+                    SlaPolicyId = sla.Id,
                     CreatedAt = created, DueAt = created.AddHours(cat.SlaHours),
-                    ResolvedAt = st is TicketStatus.Resolved or TicketStatus.Closed ? created.AddHours(2) : null,
+                    FirstResponseAt = firstResMin is { } fm ? created.AddMinutes(fm) : null,
+                    ResolvedAt = done ? created.AddMinutes(sla.ResolutionMinutes + 30) : null,
                     Description = "Nội dung yêu cầu từ khách hàng.",
                     Comments = [ new TicketComment { Author = "Hệ thống", Body = "Phiếu được tạo.", CreatedAt = created } ]
                 };
             }
             db.Tickets.AddRange(
-                T("Không tải được hóa đơn PDF", "Cửa hàng Minh Anh", Channel.Email, TicketPriority.High, TicketStatus.New, 1, null, 1),
-                T("Sản phẩm giao bị lỗi", "Shop thời trang Hà", Channel.Zalo, TicketPriority.Urgent, TicketStatus.InProgress, 2, 0, 6),
-                T("Hỏi chính sách bảo hành", "Đại lý Phương Nam", Channel.Phone, TicketPriority.Normal, TicketStatus.WaitingCustomer, 3, 1, 30),
-                T("Cần xuất lại hóa đơn sai MST", "Công ty ABC", Channel.Web, TicketPriority.High, TicketStatus.Resolved, 1, 2, 50),
-                T("Tư vấn chọn size vợt", "Nguyễn Văn A", Channel.Web, TicketPriority.Low, TicketStatus.Closed, 3, 0, 72)
+                T("Không tải được hóa đơn PDF", "Cửa hàng Minh Anh", Channel.Email, TicketPriority.High, TicketStatus.New, 1, null, 1, 1, null),
+                T("Sản phẩm giao bị lỗi", "Shop thời trang Hà", Channel.Zalo, TicketPriority.Urgent, TicketStatus.InProgress, 2, 0, 6, 0, 10),
+                T("Hỏi chính sách bảo hành", "Đại lý Phương Nam", Channel.Phone, TicketPriority.Normal, TicketStatus.WaitingCustomer, 3, 1, 30, 2, 90),
+                T("Cần xuất lại hóa đơn sai MST", "Công ty ABC", Channel.Web, TicketPriority.High, TicketStatus.Resolved, 1, 2, 50, 1, 45),
+                T("Tư vấn chọn size vợt", "Nguyễn Văn A", Channel.Web, TicketPriority.Low, TicketStatus.Closed, 3, 0, 72, 2, 30)
             );
             await db.SaveChangesAsync();
         }
@@ -83,6 +96,39 @@ public static class Seeder
             );
             await db.SaveChangesAsync();
         }
+
+        if (!await db.Campaigns.AnyAsync())
+        {
+            var agents = await db.Agents.ToListAsync();
+            db.Campaigns.AddRange(
+                new Campaign
+                {
+                    Code = $"CP{DateTime.Now:yyMM}0001", Name = "Chăm sóc khách VIP quý này",
+                    CampaignType = "Telesales", Status = CampaignStatus.Started,
+                    Description = "Gọi hỏi thăm + upsell cho nhóm khách VIP.",
+                    CreatedAt = DateTime.Now.AddDays(-5), ApprovedAt = DateTime.Now.AddDays(-4), StartAt = DateTime.Now.AddDays(-3),
+                    Customers =
+                    [
+                        new CampaignCustomer { CustomerName = "Cửa hàng Minh Anh", PhoneNumber = "0901234567", Company = "Minh Anh", AgentId = agents[0].Id, Status = CampaignCustomerStatus.Done, Feedback = "Hài lòng, muốn mua thêm.", LastCallAt = DateTime.Now.AddDays(-2), CallCount = 1 },
+                        new CampaignCustomer { CustomerName = "Shop thời trang Hà", PhoneNumber = "0912345678", Company = "Hà Fashion", AgentId = agents[1].Id, Status = CampaignCustomerStatus.CallAgain, Remark = "Hẹn gọi lại sau 17h.", LastCallAt = DateTime.Now.AddDays(-1), CallCount = 2 },
+                        new CampaignCustomer { CustomerName = "Đại lý Phương Nam", PhoneNumber = "0934567890", Company = "Phương Nam", Status = CampaignCustomerStatus.Pending }
+                    ]
+                },
+                new Campaign
+                {
+                    Code = $"CP{DateTime.Now:yyMM}0002", Name = "Khảo sát hài lòng sau bán",
+                    CampaignType = "Survey", Status = CampaignStatus.Pending,
+                    Description = "Gọi khảo sát mức độ hài lòng sau khi đóng phiếu.",
+                    CreatedAt = DateTime.Now.AddDays(-1),
+                    Customers =
+                    [
+                        new CampaignCustomer { CustomerName = "Công ty ABC", PhoneNumber = "0945678901", Company = "ABC", Status = CampaignCustomerStatus.Pending },
+                        new CampaignCustomer { CustomerName = "Nguyễn Văn A", PhoneNumber = "0956789012", Status = CampaignCustomerStatus.Pending }
+                    ]
+                }
+            );
+            await db.SaveChangesAsync();
+        }
     }
 
     /// <summary>DB Postgres cloud cũ: tạo Orgs + thêm cột OrgId nếu thiếu, backfill về org mặc định. Idempotent.</summary>
@@ -90,7 +136,7 @@ public static class Seeder
     {
         if (!db.Database.IsNpgsql()) return;
         var def = TenantContext.DefaultOrgId;
-        var tables = new[] { "Agents", "Categories", "Tickets", "Comments", "KbArticles", "Calls" };
+        var tables = new[] { "Agents", "Categories", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers" };
         var sql = new List<string>
         {
             "CREATE TABLE IF NOT EXISTS minicskh.\"Orgs\" (\"Id\" uuid PRIMARY KEY, \"Name\" text NOT NULL DEFAULT '', \"ApiKey\" text NOT NULL DEFAULT '', \"CreatedAt\" timestamp NOT NULL DEFAULT now())",

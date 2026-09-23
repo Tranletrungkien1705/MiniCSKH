@@ -27,7 +27,22 @@ public interface ITicketService
     Task<List<CallLog>> CallsAsync(CallDirection? dir, CallOutcome? outcome, string? q);
     Task<int> LogCallAsync(CallLog call);
     Task<(int todayTotal, int missed, int avgSeconds)> CallStatsAsync();
+    // SLA
+    Task<List<SlaPolicy>> SlaListAsync();
+    Task<SlaPolicy?> SlaGetAsync(int id);
+    Task<int> SlaSaveAsync(SlaPolicy p);
+    Task<SlaStats> SlaStatsAsync();
+    // Campaign (chiến dịch gọi ra)
+    Task<List<Campaign>> CampaignsAsync(CampaignStatus? status, string? q);
+    Task<Campaign?> CampaignGetAsync(int id);
+    Task<int> CampaignCreateAsync(Campaign c);
+    Task CampaignChangeStatusAsync(int id, CampaignStatus status);
+    Task<CampaignCustomer?> CampaignCustomerGetAsync(int id);
+    Task CampaignCustomerSaveAsync(int customerId, int? agentId, CampaignCustomerStatus status, string? feedback, string? remark);
+    Task<(int total, int running, int doneCustomers, int pendingCustomers)> CampaignStatsAsync();
 }
+
+public record SlaStats(int Policies, int TicketsWithSla, int ViolatingFirstRes, int ViolatingResolution);
 
 public class TicketService(AppDbContext db) : ITicketService
 {
@@ -44,7 +59,7 @@ public class TicketService(AppDbContext db) : ITicketService
     }
 
     public Task<Ticket?> GetAsync(int id) =>
-        db.Tickets.Include(t => t.AssignedAgent).Include(t => t.Category).Include(t => t.Comments)
+        db.Tickets.Include(t => t.AssignedAgent).Include(t => t.Category).Include(t => t.SlaPolicy).Include(t => t.Comments)
             .FirstOrDefaultAsync(t => t.Id == id);
 
     public async Task<int> CreateAsync(Ticket t)
@@ -158,5 +173,100 @@ public class TicketService(AppDbContext db) : ITicketService
         var answered = today.Where(c => c.Outcome == CallOutcome.Answered && c.DurationSeconds > 0).ToList();
         var avg = answered.Count > 0 ? (int)answered.Average(c => c.DurationSeconds) : 0;
         return (today.Count, today.Count(c => c.Outcome == CallOutcome.Missed), avg);
+    }
+
+    // ── SLA ──────────────────────────
+    public async Task<List<SlaPolicy>> SlaListAsync()
+    {
+        var list = await db.SlaPolicies.ToListAsync();
+        return list.OrderBy(p => p.FirstResMinutes).ToList();
+    }
+
+    public Task<SlaPolicy?> SlaGetAsync(int id) => db.SlaPolicies.FirstOrDefaultAsync(p => p.Id == id);
+
+    public async Task<int> SlaSaveAsync(SlaPolicy p)
+    {
+        if (p.Id == 0)
+        {
+            if (string.IsNullOrWhiteSpace(p.Code)) p.Code = "SLA-" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+            db.SlaPolicies.Add(p);
+        }
+        else
+        {
+            var e = await db.SlaPolicies.FirstOrDefaultAsync(x => x.Id == p.Id) ?? throw new KeyNotFoundException();
+            e.Code = p.Code; e.Level = p.Level; e.Description = p.Description;
+            e.FirstResMinutes = p.FirstResMinutes; e.ResolutionMinutes = p.ResolutionMinutes; e.IsActive = p.IsActive;
+        }
+        await db.SaveChangesAsync();
+        return p.Id;
+    }
+
+    public async Task<SlaStats> SlaStatsAsync()
+    {
+        var policies = await db.SlaPolicies.CountAsync();
+        var tickets = await db.Tickets.Include(t => t.SlaPolicy).Where(t => t.SlaPolicyId != null).ToListAsync();
+        return new SlaStats(policies, tickets.Count,
+            tickets.Count(t => t.ViolatesFirstResponse), tickets.Count(t => t.ViolatesResolution));
+    }
+
+    // ── Campaign ─────────────────────
+    public async Task<List<Campaign>> CampaignsAsync(CampaignStatus? status, string? q)
+    {
+        var query = db.Campaigns.Include(c => c.Customers).AsQueryable();
+        if (status.HasValue) query = query.Where(c => c.Status == status.Value);
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(c => c.Name.Contains(q) || c.Code.Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderByDescending(c => c.CreatedAt).ToList();
+    }
+
+    public Task<Campaign?> CampaignGetAsync(int id) =>
+        db.Campaigns.Include(c => c.Customers).ThenInclude(x => x.Agent)
+            .FirstOrDefaultAsync(c => c.Id == id);
+
+    public async Task<int> CampaignCreateAsync(Campaign c)
+    {
+        var count = await db.Campaigns.CountAsync();
+        c.Code = $"CP{DateTime.Now:yyMM}{count + 1:D4}";
+        db.Campaigns.Add(c);
+        await db.SaveChangesAsync();
+        return c.Id;
+    }
+
+    public async Task CampaignChangeStatusAsync(int id, CampaignStatus status)
+    {
+        var c = await db.Campaigns.FirstOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException();
+        c.Status = status;
+        if (status == CampaignStatus.Approved) c.ApprovedAt ??= DateTime.Now;
+        if (status == CampaignStatus.Started) c.StartAt ??= DateTime.Now;
+        if (status == CampaignStatus.Finished) c.FinishAt ??= DateTime.Now;
+        await db.SaveChangesAsync();
+    }
+
+    public Task<CampaignCustomer?> CampaignCustomerGetAsync(int id) =>
+        db.CampaignCustomers.Include(x => x.Agent).Include(x => x.Campaign)
+            .FirstOrDefaultAsync(x => x.Id == id);
+
+    public async Task CampaignCustomerSaveAsync(int customerId, int? agentId, CampaignCustomerStatus status, string? feedback, string? remark)
+    {
+        var cc = await db.CampaignCustomers.FirstOrDefaultAsync(x => x.Id == customerId) ?? throw new KeyNotFoundException();
+        cc.AgentId = agentId;
+        cc.Status = status;
+        cc.Feedback = feedback;
+        cc.Remark = remark;
+        cc.LastCallAt = DateTime.Now;
+        cc.CallCount++;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<(int total, int running, int doneCustomers, int pendingCustomers)> CampaignStatsAsync()
+    {
+        var campaigns = await db.Campaigns.Include(c => c.Customers).ToListAsync();
+        var customers = campaigns.SelectMany(c => c.Customers).ToList();
+        return (
+            campaigns.Count,
+            campaigns.Count(c => c.Status == CampaignStatus.Started),
+            customers.Count(c => c.Status == CampaignCustomerStatus.Done),
+            customers.Count(c => c.Status == CampaignCustomerStatus.Pending));
     }
 }

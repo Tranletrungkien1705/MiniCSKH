@@ -1,0 +1,53 @@
+@model List<Campaign>
+@{
+    ViewData["Title"] = "Chiến dịch";
+    var (total, running, doneCustomers, pendingCustomers) = ((int, int, int, int))ViewBag.Stats;
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div><h5 class="fw-bold mb-0"><i class="bi bi-megaphone me-2"></i>Chiến dịch gọi ra</h5>
+        <small class="text-muted">@Model.Count chiến dịch</small></div>
+    <a asp-action="Create" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Tạo chiến dịch</a>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Tổng chiến dịch</div><div class="fs-3 fw-bold">@total</div></div>
+        <i class="bi bi-megaphone-fill fs-2 text-primary opacity-50"></i></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Đang chạy</div><div class="fs-3 fw-bold text-success">@running</div></div>
+        <i class="bi bi-play-circle-fill fs-2 text-success opacity-50"></i></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Khách đã gọi xong</div><div class="fs-3 fw-bold text-primary">@doneCustomers</div></div>
+        <i class="bi bi-check2-circle fs-2 text-primary opacity-50"></i></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body d-flex justify-content-between align-items-center">
+        <div><div class="text-muted small text-uppercase">Khách chưa gọi</div><div class="fs-3 fw-bold text-warning">@pendingCustomers</div></div>
+        <i class="bi bi-hourglass-split fs-2 text-warning opacity-50"></i></div></div></div>
+</div>
+
+<form method="get" class="card p-3 mb-3"><div class="row g-2 align-items-end">
+    <div class="col-auto"><label class="form-label small mb-1">Trạng thái</label>
+        <select name="status" class="form-select form-select-sm"><option value="">Tất cả</option>@foreach(CampaignStatus s in Enum.GetValues<CampaignStatus>()){<option value="@s" selected="@((ViewBag.Status as CampaignStatus?)==s)">@Ui.CampaignStatusName(s)</option>}</select></div>
+    <div class="col"><label class="form-label small mb-1">Tìm</label><input name="q" value="@ViewBag.Q" class="form-control form-control-sm" placeholder="Tên / mã chiến dịch" /></div>
+    <div class="col-auto"><button class="btn btn-outline-primary btn-sm">Lọc</button> <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Xóa</a></div>
+</div></form>
+
+<div class="card"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
+    <thead><tr><th>Mã</th><th>Tên chiến dịch</th><th>Loại</th><th>Trạng thái</th><th>Tiến độ</th><th>Bắt đầu</th></tr></thead>
+    <tbody>
+        @if(!Model.Any()){<tr><td colspan="6" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>Chưa có chiến dịch</td></tr>}
+        @foreach (var c in Model)
+        {
+            <tr style="cursor:pointer" onclick="location.href='/Campaign/Details/@c.Id'">
+                <td class="font-monospace small fw-semibold">@c.Code</td>
+                <td>@c.Name<div class="small text-muted">@c.Description</div></td>
+                <td><span class="badge bg-light text-dark border">@c.CampaignType</span></td>
+                <td>@Html.Raw(Ui.CampaignStatusBadge(c.Status))</td>
+                <td style="min-width:150px">
+                    <div class="d-flex justify-content-between small text-muted"><span>@c.DoneCustomers/@c.TotalCustomers</span><span>@c.ProgressPercent%</span></div>
+                    <div class="progress" style="height:6px"><div class="progress-bar" style="width:@(c.ProgressPercent)%"></div></div>
+                </td>
+                <td class="small text-muted">@(c.StartAt?.ToString("dd/MM HH:mm") ?? "—")</td>
+            </tr>
+        }
+    </tbody>
+</table></div></div>

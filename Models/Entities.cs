@@ -23,6 +23,28 @@ public class TicketCategory : IOrgOwned
     public int SlaHours { get; set; } = 24;
 }
 
+/// <summary>
+/// Chính sách SLA (Mst_SLA bên SkyCS): mức cam kết theo 2 mốc thời gian —
+/// phản hồi đầu tiên (FirstResMinutes) và xử lý xong (ResolutionMinutes).
+/// </summary>
+public class SlaPolicy : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string Code { get; set; } = "";          // SLAID
+    public string Level { get; set; } = "";         // SLALevel — tên mức SLA
+    public string? Description { get; set; }         // SLADesc
+    public int FirstResMinutes { get; set; } = 60;   // FirstResTime (phút)
+    public int ResolutionMinutes { get; set; } = 480; // ResolutionTime (phút)
+    public bool IsActive { get; set; } = true;       // SLAStatus
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+    public string FirstResText => FormatMinutes(FirstResMinutes);
+    public string ResolutionText => FormatMinutes(ResolutionMinutes);
+
+    public static string FormatMinutes(int m) => m <= 0 ? "—" : m < 60 ? $"{m} phút" : m % 60 == 0 ? $"{m / 60} giờ" : $"{m / 60}g{m % 60}p";
+}
+
 /// <summary>Phiếu hỗ trợ (eTicket).</summary>
 public class Ticket : IOrgOwned
 {
@@ -42,7 +64,7 @@ public class Ticket : IOrgOwned
 
     public int? CategoryId { get; set; }
     public int? AssignedAgentId { get; set; }
-
+    public int? SlaPolicyId { get; set; }         // chính sách SLA áp dụng
     public DateTime CreatedAt { get; set; } = DateTime.Now;
     public DateTime? DueAt { get; set; }          // hạn SLA
     public DateTime? FirstResponseAt { get; set; }
@@ -51,11 +73,23 @@ public class Ticket : IOrgOwned
 
     public TicketCategory? Category { get; set; }
     public Agent? AssignedAgent { get; set; }
+    public SlaPolicy? SlaPolicy { get; set; }
     public List<TicketComment> Comments { get; set; } = [];
 
     // ── tính toán ────────────────────────────────────────────────────
     public bool IsOpen => Status is not (TicketStatus.Resolved or TicketStatus.Closed or TicketStatus.Cancelled);
     public bool IsOverdue => IsOpen && DueAt.HasValue && DateTime.Now > DueAt.Value;
+
+    // ── SLA: thời gian thực tế (phút) so với cam kết ─────────────────
+    /// <summary>Thời gian phản hồi đầu tiên thực tế (phút). Chưa phản hồi → tính tới hiện tại.</summary>
+    public int ActualFirstResMinutes => (int)Math.Max(0, ((FirstResponseAt ?? DateTime.Now) - CreatedAt).TotalMinutes);
+    /// <summary>Thời gian xử lý thực tế (phút). Chưa xong → tính tới hiện tại.</summary>
+    public int ActualResolutionMinutes => (int)Math.Max(0, ((ResolvedAt ?? ClosedAt ?? DateTime.Now) - CreatedAt).TotalMinutes);
+    /// <summary>Vi phạm SLA phản hồi đầu tiên (chỉ xét khi đã có cam kết).</summary>
+    public bool ViolatesFirstResponse => SlaPolicy != null && ActualFirstResMinutes > SlaPolicy.FirstResMinutes;
+    /// <summary>Vi phạm SLA thời gian xử lý.</summary>
+    public bool ViolatesResolution => SlaPolicy != null && ActualResolutionMinutes > SlaPolicy.ResolutionMinutes;
+    public bool ViolatesSla => ViolatesFirstResponse || ViolatesResolution;
 }
 
 /// <summary>Dòng trao đổi trên phiếu (timeline). IsInternal = ghi chú nội bộ, KH không thấy.</summary>
@@ -107,4 +141,56 @@ public class KbArticle : IOrgOwned
     public int Views { get; set; }
     public bool IsPublished { get; set; } = true;
     public DateTime UpdatedAt { get; set; } = DateTime.Now;
+}
+
+// ── Chiến dịch (Campaign / Cpn) ──────────────────────
+// Vòng đời (theo SkyCS Cpn_Campaign_*): Pending → Approve → Started ⇄ Paused → Finish.
+public enum CampaignStatus { Pending = 0, Approved = 1, Started = 2, Paused = 3, Finished = 4, Cancelled = 5 }
+
+/// <summary>Kết quả gọi từng khách trong chiến dịch (SkyCS CampaignCustomerCallStatus).</summary>
+public enum CampaignCustomerStatus { Pending = 0, Done = 1, Failed = 2, NoAnswer = 3, CallAgain = 4, DoNotCall = 5 }
+
+/// <summary>Chiến dịch gọi ra (outbound campaign) — gom danh sách khách để agent gọi.</summary>
+public class Campaign : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string Code { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string? Description { get; set; }
+    public string CampaignType { get; set; } = "Telesales";   // loại chiến dịch (Mst_CampaignType)
+    public CampaignStatus Status { get; set; } = CampaignStatus.Pending;
+
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime? StartAt { get; set; }
+    public DateTime? FinishAt { get; set; }
+    public DateTime? ApprovedAt { get; set; }
+
+    public List<CampaignCustomer> Customers { get; set; } = [];
+
+    // ── tính toán ────────────────────
+    public int TotalCustomers => Customers.Count;
+    public int DoneCustomers => Customers.Count(c => c.Status == CampaignCustomerStatus.Done);
+    public int ProgressPercent => TotalCustomers == 0 ? 0 : (int)Math.Round(DoneCustomers * 100.0 / TotalCustomers);
+    public bool IsRunning => Status == CampaignStatus.Started;
+}
+
+/// <summary>Khách hàng trong 1 chiến dịch + kết quả gọi (agent phụ trách).</summary>
+public class CampaignCustomer : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public int CampaignId { get; set; }
+    public string CustomerName { get; set; } = "";
+    public string PhoneNumber { get; set; } = "";
+    public string? Company { get; set; }
+    public int? AgentId { get; set; }
+    public CampaignCustomerStatus Status { get; set; } = CampaignCustomerStatus.Pending;
+    public string? Feedback { get; set; }        // phản hồi của khách
+    public string? Remark { get; set; }          // ghi chú của agent
+    public DateTime? LastCallAt { get; set; }
+    public int CallCount { get; set; }
+
+    public Campaign Campaign { get; set; } = null!;
+    public Agent? Agent { get; set; }
 }
