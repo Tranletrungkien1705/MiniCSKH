@@ -788,6 +788,21 @@ public static class Seeder
             );
             await db.SaveChangesAsync();
         }
+
+        if (!await db.KbCategories.AnyAsync())
+        {
+            // Danh mục bài viết Knowledge Base (KB_Category) — cây phân cấp phân loại bài viết
+            // tri thức (KB_Post). Loại chia sẻ theo Mst_CateShareType (BRANCH/CREDITFUND/HO/KBTT/PRIVATE).
+            db.KbCategories.AddRange(
+                new KbCategory { Code = "KBC-HOADON", Name = "Hóa đơn & Chứng từ", Description = "Câu hỏi về hóa đơn điện tử, chứng từ, mã số thuế.", Slug = "hoa-don-chung-tu", ShareType = KbShareType.Ho, IsActive = true, PostCount = 2, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-50), UpdatedAt = DateTime.Now.AddDays(-5) },
+                new KbCategory { Code = "KBC-HOADON-PDF", ParentCode = "KBC-HOADON", Name = "Tra cứu / tải PDF", Description = "Hướng dẫn tra cứu và tải hóa đơn PDF/XML.", Slug = "tra-cuu-tai-pdf", ShareType = KbShareType.Ho, IsActive = true, PostCount = 1, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-45), UpdatedAt = DateTime.Now.AddDays(-4) },
+                new KbCategory { Code = "KBC-CHINHSACH", Name = "Chính sách bán hàng", Description = "Chính sách đổi trả, bảo hành, vận chuyển.", Slug = "chinh-sach-ban-hang", ShareType = KbShareType.Branch, IsActive = true, PostCount = 1, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-40), UpdatedAt = DateTime.Now.AddDays(-3) },
+                new KbCategory { Code = "KBC-VANCHUYEN", Name = "Vận chuyển & Giao hàng", Description = "Thời gian, phí và quy trình giao hàng.", Slug = "van-chuyen-giao-hang", ShareType = KbShareType.Branch, IsActive = true, PostCount = 1, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-35), UpdatedAt = DateTime.Now.AddDays(-2) },
+                new KbCategory { Code = "KBC-NOIBO", Name = "Quy trình nội bộ (riêng tư)", Description = "Tài liệu hướng dẫn nội bộ, chỉ chia sẻ trong đơn vị.", Slug = "quy-trinh-noi-bo", ShareType = KbShareType.Private, IsActive = true, PostCount = 0, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-20), UpdatedAt = DateTime.Now.AddDays(-1) },
+                new KbCategory { Code = "KBC-CU", Name = "Danh mục cũ (ngừng dùng)", Description = "Đã thay thế bằng KBC-CHINHSACH.", Slug = "danh-muc-cu", ShareType = KbShareType.Private, IsActive = false, PostCount = 0, CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-90), UpdatedAt = DateTime.Now.AddDays(-60) }
+            );
+            await db.SaveChangesAsync();
+        }
     }
 
     /// <summary>DB Postgres cloud cũ: tạo Orgs + thêm cột OrgId nếu thiếu, backfill về org mặc định. Idempotent.</summary>
@@ -795,7 +810,7 @@ public static class Seeder
     {
         if (!db.Database.IsNpgsql()) return;
         var def = TenantContext.DefaultOrgId;
-        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags", "ReceiveNotifies", "Addresses", "SlaWorkingDays", "SlaHolidays", "SlaScopes", "ContactChannels", "TicketCustomTypes", "TicketCustomTypeMaps", "Taxpayers", "CampaignTypes", "CampaignTypeColumns", "CampaignFeedbacks", "GovIDTypes", "Countries", "SatisfactionRatings", "ChannelTypes", "TicketTypeDepartments" };
+        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags", "ReceiveNotifies", "Addresses", "SlaWorkingDays", "SlaHolidays", "SlaScopes", "ContactChannels", "TicketCustomTypes", "TicketCustomTypeMaps", "Taxpayers", "CampaignTypes", "CampaignTypeColumns", "CampaignFeedbacks", "GovIDTypes", "Countries", "SatisfactionRatings", "ChannelTypes", "TicketTypeDepartments", "KbCategories" };
         var sql = new List<string>
         {
             "CREATE TABLE IF NOT EXISTS minicskh.\"Orgs\" (\"Id\" uuid PRIMARY KEY, \"Name\" text NOT NULL DEFAULT '', \"ApiKey\" text NOT NULL DEFAULT '', \"CreatedAt\" timestamp NOT NULL DEFAULT now())",

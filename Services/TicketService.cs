@@ -207,6 +207,13 @@ public interface ITicketService
     Task TicketTypeDepartmentToggleAsync(int id);
     Task TicketTypeDepartmentDeleteAsync(int id);
     Task<TicketTypeDepartmentStats> TicketTypeDepartmentStatsAsync();
+    // Danh mục bài viết Knowledge Base (KB_Category)
+    Task<List<KbCategory>> KbCategoriesAdminAsync(bool? active, string? parentCode, string? q);
+    Task<KbCategory?> KbCategoryGetAsync(int id);
+    Task<int> KbCategorySaveAsync(KbCategory model);
+    Task KbCategoryToggleAsync(int id);
+    Task KbCategoryDeleteAsync(int id);
+    Task<KbCategoryStats> KbCategoryStatsAsync();
 }
 
 public record SlaStats(int Policies, int TicketsWithSla, int ViolatingFirstRes, int ViolatingResolution);
@@ -260,6 +267,8 @@ public record ChannelTypeStats(int Total, int Active, int Inactive, int WithName
 public record NotifyStats(int Types, int ActiveTypes, int Managers, int Subscriptions, int EnabledSubscriptions);
 
 public record TicketTypeDepartmentStats(int Total, int Active, int Inactive, int DistinctTicketTypes, int DistinctDepartments);
+
+public record KbCategoryStats(int Total, int Active, int Inactive, int Root, int Child, int WithSlug, int Posts);
 
 public record TicketTypeStats(int Total, int Active, int ETicket, int Campaign);
 
@@ -2080,5 +2089,67 @@ public class TicketService(AppDbContext db) : ITicketService
             list.Count(x => !x.IsActive),
             list.Select(x => x.TicketTypeCode).Distinct().Count(),
             list.Select(x => x.DepartmentCode).Distinct().Count());
+    }
+
+    // ── Danh mục bài viết Knowledge Base (KB_Category) ───────────────
+    public async Task<List<KbCategory>> KbCategoriesAdminAsync(bool? active, string? parentCode, string? q)
+    {
+        var query = db.KbCategories.AsQueryable();
+        if (active.HasValue) query = query.Where(c => c.IsActive == active.Value);
+        if (!string.IsNullOrWhiteSpace(parentCode)) query = query.Where(c => c.ParentCode == parentCode);
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(c => c.Code.Contains(q) || c.Name.Contains(q) || (c.Description ?? "").Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderBy(c => c.ParentCode).ThenBy(c => c.Name).ToList();
+    }
+
+    public Task<KbCategory?> KbCategoryGetAsync(int id) =>
+        db.KbCategories.FirstOrDefaultAsync(c => c.Id == id);
+
+    public async Task<int> KbCategorySaveAsync(KbCategory model)
+    {
+        if (model.Id == 0)
+        {
+            if (string.IsNullOrWhiteSpace(model.Code)) model.Code = "KBC-" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+            if (string.IsNullOrWhiteSpace(model.Slug)) model.Slug = Tag.MakeSlug(model.Name);
+            model.CreatedAt = model.UpdatedAt = DateTime.Now;
+            db.KbCategories.Add(model);
+            await db.SaveChangesAsync();
+            return model.Id;
+        }
+        var e = await db.KbCategories.FirstOrDefaultAsync(x => x.Id == model.Id) ?? throw new KeyNotFoundException();
+        e.Code = model.Code; e.ParentCode = model.ParentCode; e.Name = model.Name;
+        e.Description = model.Description; e.Slug = model.Slug; e.ShareType = model.ShareType;
+        e.IsActive = model.IsActive; e.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
+    public async Task KbCategoryToggleAsync(int id)
+    {
+        var c = await db.KbCategories.FirstOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException();
+        c.IsActive = !c.IsActive;
+        c.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task KbCategoryDeleteAsync(int id)
+    {
+        var c = await db.KbCategories.FirstOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException();
+        db.KbCategories.Remove(c);
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<KbCategoryStats> KbCategoryStatsAsync()
+    {
+        var list = await db.KbCategories.ToListAsync();
+        return new KbCategoryStats(
+            list.Count,
+            list.Count(c => c.IsActive),
+            list.Count(c => !c.IsActive),
+            list.Count(c => c.IsRoot),
+            list.Count(c => !c.IsRoot),
+            list.Count(c => !string.IsNullOrWhiteSpace(c.Slug)),
+            list.Sum(c => c.PostCount));
     }
 }

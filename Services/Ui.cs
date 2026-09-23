@@ -440,4 +440,29 @@ public static class Ui
     /// <summary>Badge mã phòng ban (DepartmentCode).</summary>
     public static string DepartmentCodeBadge(string code) =>
         $"<span class='badge bg-info-subtle text-info border-info-subtle'><i class='bi bi-diagram-2 me-1'></i>{code}</span>";
+
+    // ── Danh mục bài viết Knowledge Base (KB_Category) ──
+    public static string KbCategoryActiveBadge(bool active) => active
+        ? "<span class='badge bg-success-subtle text-success border-success-subtle'>Đang dùng</span>"
+        : "<span class='badge bg-secondary-subtle text-secondary border-secondary-subtle'>Ngừng dùng</span>";
+    public static string KbShareTypeName(KbShareType t) => t switch
+    {
+        KbShareType.Private => "Riêng tư", KbShareType.Branch => "Chi nhánh",
+        KbShareType.CreditFund => "Quỹ TDND", KbShareType.Ho => "Nội bộ đơn vị",
+        KbShareType.Kbtt => "Trụ sở chính", _ => t.ToString()
+    };
+    public static string KbShareTypeColor(KbShareType t) => t switch
+    {
+        KbShareType.Private => "secondary", KbShareType.Branch => "info",
+        KbShareType.CreditFund => "warning", KbShareType.Ho => "primary",
+        KbShareType.Kbtt => "success", _ => "secondary"
+    };
+    public static string KbShareTypeIcon(KbShareType t) => t switch
+    {
+        KbShareType.Private => "bi-lock", KbShareType.Branch => "bi-diagram-2",
+        KbShareType.CreditFund => "bi-bank", KbShareType.Ho => "bi-building",
+        KbShareType.Kbtt => "bi-buildings", _ => "bi-share"
+    };
+    public static string KbShareTypeBadge(KbShareType t) =>
+        $"<span class='badge bg-{KbShareTypeColor(t)}-subtle text-{KbShareTypeColor(t)} border-{KbShareTypeColor(t)}-subtle'><i class='bi {KbShareTypeIcon(t)} me-1'></i>{KbShareTypeName(t)}</span>";
 }

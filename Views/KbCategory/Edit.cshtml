@@ -1,0 +1,57 @@
+@model KbCategory
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Thêm danh mục bài viết KB" : "Sửa danh mục bài viết KB";
+    var parents = (List<KbCategory>)ViewBag.Parents;
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Danh mục bài viết KB</a>
+        <h5 class="fw-bold mb-0 mt-1">@ViewData["Title"]</h5>
+    </div>
+</div>
+
+<form asp-action="Save" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="Id" value="@Model.Id" />
+
+    <div class="card mb-3"><div class="card-body">
+        <h6 class="fw-bold mb-3"><i class="bi bi-info-circle me-1"></i>Thông tin danh mục</h6>
+        <div class="row g-3">
+            <div class="col-md-4"><label class="form-label small">Mã danh mục (CategoryCode)</label>
+                <input name="Code" value="@Model.Code" class="form-control form-control-sm font-monospace" placeholder="Để trống sẽ tự sinh" /></div>
+            <div class="col-md-8"><label class="form-label small">Tên danh mục (CategoryName) <span class="text-danger">*</span></label>
+                <input name="Name" value="@Model.Name" class="form-control form-control-sm" required maxlength="200" /></div>
+            <div class="col-md-6"><label class="form-label small">Danh mục cha (CategoryParentCode)</label>
+                <select name="ParentCode" class="form-select form-select-sm">
+                    <option value="">— Không (danh mục gốc) —</option>
+                    @foreach (var p in parents)
+                    {
+                        if (p.Id == Model.Id) { continue; }
+                        <option value="@p.Code" selected="@(Model.ParentCode==p.Code)">@p.Code — @p.Name</option>
+                    }
+                </select></div>
+            <div class="col-md-6"><label class="form-label small">Loại chia sẻ (CateShareType)</label>
+                <select name="ShareType" class="form-select form-select-sm">
+                    @foreach (KbShareType t in Enum.GetValues<KbShareType>())
+                    {
+                        <option value="@t" selected="@(Model.ShareType==t)">@Ui.KbShareTypeName(t)</option>
+                    }
+                </select></div>
+            <div class="col-md-6"><label class="form-label small">Slug</label>
+                <input name="Slug" value="@Model.Slug" class="form-control form-control-sm font-monospace" placeholder="Để trống sẽ tự sinh từ tên" /></div>
+            <div class="col-md-6"><label class="form-label small">Số bài viết (QtyPost)</label>
+                <input name="PostCount" type="number" value="@Model.PostCount" class="form-control form-control-sm" /></div>
+            <div class="col-12"><label class="form-label small">Mô tả (CategoryDesc)</label>
+                <textarea name="Description" class="form-control form-control-sm" rows="2">@Model.Description</textarea></div>
+            <div class="col-12"><div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="IsActive" value="true" id="isActive" @(Model.IsActive ? "checked" : "") />
+                <label class="form-check-label small" for="isActive">Đang dùng (FlagActive)</label></div></div>
+        </div>
+        <div class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i>Danh mục lồng nhau qua "Danh mục cha" để tạo cây phân cấp. Để trống mã/slug hệ thống sẽ tự sinh.</div>
+    </div></div>
+
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary btn-sm"><i class="bi bi-check-lg me-1"></i>Lưu danh mục</button>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Hủy</a>
+    </div>
+</form>

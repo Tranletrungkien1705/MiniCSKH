@@ -1,0 +1,62 @@
+@model KbCategory
+@{
+    ViewData["Title"] = "Chi tiết danh mục bài viết KB";
+    var parent = (KbCategory?)ViewBag.Parent;
+}
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Danh mục bài viết KB</a>
+        <h5 class="fw-bold mb-1 mt-1">@Model.Name
+            @Html.Raw(Ui.KbCategoryActiveBadge(Model.IsActive))</h5>
+        <div class="text-muted small">Mã <span class="font-monospace">@Model.Code</span> · tạo @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil me-1"></i>Sửa</a>
+        <form asp-action="Toggle" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <button class="btn btn-sm @(Model.IsActive?"btn-outline-secondary":"btn-primary")">
+                <i class="bi bi-toggle-@(Model.IsActive?"off":"on") me-1"></i>@(Model.IsActive?"Ngừng dùng":"Kích hoạt")</button>
+        </form>
+        <form asp-action="Delete" method="post" onsubmit="return confirm('Xóa danh mục này?');">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash me-1"></i>Xóa</button>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Mã danh mục</div>
+        <div class="fs-6 fw-bold font-monospace">@Model.Code</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Danh mục cha</div>
+        <div class="fs-6 fw-bold font-monospace">@(string.IsNullOrWhiteSpace(Model.ParentCode) ? "— gốc —" : Model.ParentCode)</div>
+        @if (parent != null) { <div class="small text-muted">@parent.Name</div> }</div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Loại chia sẻ</div>
+        <div>@Html.Raw(Ui.KbShareTypeBadge(Model.ShareType))</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Số bài viết (QtyPost)</div>
+        <div class="fs-6 fw-bold">@Model.PostCount</div></div></div></div>
+</div>
+
+<div class="card mb-3"><div class="card-body">
+    <h6 class="fw-bold mb-2"><i class="bi bi-link-45deg me-1"></i>Slug</h6>
+    <div class="font-monospace small">@Model.SlugText</div>
+</div></div>
+
+@if (!string.IsNullOrWhiteSpace(Model.Description))
+{
+    <div class="card mb-3"><div class="card-body">
+        <h6 class="fw-bold mb-2"><i class="bi bi-card-text me-1"></i>Mô tả</h6>
+        <div style="white-space:pre-wrap">@Model.Description</div>
+    </div></div>
+}
+
+<div class="alert alert-light border">
+    <i class="bi bi-info-circle me-1"></i>Danh mục <span class="font-monospace fw-semibold">@Model.Code</span>
+    phân loại bài viết tri thức (KB_Post) trong Knowledge Base. Danh mục có thể lồng nhau qua
+    <span class="font-monospace">CategoryParentCode</span> để tạo cây phân cấp.
+</div>

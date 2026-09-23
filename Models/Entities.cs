@@ -1416,3 +1416,41 @@ public class TicketTypeDepartment : IOrgOwned
     /// <summary>Mô tả ngắn cặp gán (dùng cho view).</summary>
     public string PairText => $"{TicketTypeCode} → {DepartmentCode}";
 }
+
+// ── Danh mục bài viết Knowledge Base (KB_Category) ───────────────────
+// Theo SkyCS: danh mục bài viết KB (KB_Category) là cây phân cấp (CategoryParentCode)
+// dùng để phân loại bài viết tri thức (KB_Post). Mỗi danh mục có mã (CategoryCode),
+// tên (CategoryName), mô tả (CategoryDesc), slug (Slug — dùng cho URL/tìm kiếm),
+// trạng thái (FlagActive) và số lượng bài viết (QtyPost). Danh mục còn gắn LOẠI CHIA SẺ
+// (KB_CategoryShareType → Mst_CateShareType: BRANCH/CREDITFUND/HO/KBTT/PRIVATE) quy định
+// phạm vi chia sẻ nội dung. Là master data nền cho Knowledge Base.
+// (11.BackEnd/V10/idn.SkyCS.Biz/Master.cs, `KB_Category_Get`/`KB_Category_Create`/
+//  `KB_Category_Update`/`KB_Category_Delete`/`KB_Category_SaveX`;
+//  model 12.Dev.Common/idn.SkyCS.Common/Models/KB_Category.cs;
+//  controller 13.ClientGate/V20/idn.Sky.WebAPI/Controllers/KBCategoryController.cs)
+
+/// <summary>Loại chia sẻ danh mục KB (Mst_CateShareType.CateShareType).</summary>
+public enum KbShareType { Private = 0, Branch = 1, CreditFund = 2, Ho = 3, Kbtt = 4 }
+
+/// <summary>Danh mục bài viết Knowledge Base (KB_Category) — cây phân cấp.</summary>
+public class KbCategory : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string Code { get; set; } = "";              // CategoryCode — mã danh mục
+    public string? ParentCode { get; set; }              // CategoryParentCode — mã danh mục cha
+    public string Name { get; set; } = "";              // CategoryName — tên danh mục
+    public string? Description { get; set; }             // CategoryDesc — mô tả danh mục
+    public string? Slug { get; set; }                    // Slug — đường dẫn rút gọn
+    public KbShareType ShareType { get; set; } = KbShareType.Private;  // CateShareType — loại chia sẻ
+    public bool IsActive { get; set; } = true;           // FlagActive
+    public int PostCount { get; set; }                   // QtyPost — số lượng bài viết
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // CreateDTimeUTC
+    public string CreatedBy { get; set; } = "";          // CreateBy
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;   // LogLUDTimeUTC
+
+    // ── tính toán ────────────────────
+    public bool IsRoot => string.IsNullOrWhiteSpace(ParentCode);
+    /// <summary>Slug hiển thị: dùng Slug nếu có, ngược lại sinh từ tên.</summary>
+    public string SlugText => !string.IsNullOrWhiteSpace(Slug) ? Slug! : Tag.MakeSlug(Name);
+}
