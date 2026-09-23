@@ -1,0 +1,84 @@
+@model ServiceImprovement
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Tạo bộ cải tiến" : "Sửa bộ cải tiến";
+    var criteria = Model.Criteria.ToList();
+    if (criteria.Count == 0) criteria.Add(new SvImprvCriterion { Kind = Model.ItemType });
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Cải tiến chất lượng</a>
+        <h5 class="fw-bold mb-0 mt-1">@ViewData["Title"]</h5>
+    </div>
+</div>
+
+<form asp-action="Save" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="Id" value="@Model.Id" />
+    <input type="hidden" name="Code" value="@Model.Code" />
+
+    <div class="card mb-3"><div class="card-body">
+        <h6 class="fw-bold mb-3"><i class="bi bi-info-circle me-1"></i>Thông tin bộ tiêu chí</h6>
+        <div class="row g-3">
+            <div class="col-md-6"><label class="form-label small">Tên bộ tiêu chí <span class="text-danger">*</span></label>
+                <input name="Name" value="@Model.Name" class="form-control form-control-sm" placeholder="VD: Đánh giá chất lượng gọi ra" required /></div>
+            <div class="col-md-6"><label class="form-label small">Loại tiêu chí (SvImprvItType)</label>
+                <select name="ItemType" class="form-select form-select-sm">
+                    @foreach (SvImprvItemType t in Enum.GetValues<SvImprvItemType>())
+                    {<option value="@t" selected="@(Model.ItemType==t)">@Ui.SvImprvTypeName(t)</option>}
+                </select></div>
+            <div class="col-12"><label class="form-label small">Ghi chú</label>
+                <textarea name="Remark" class="form-control form-control-sm" rows="2">@Model.Remark</textarea></div>
+            <div class="col-12"><div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="IsActive" value="true" id="isActive" @(Model.IsActive ? "checked" : "") />
+                <label class="form-check-label small" for="isActive">Đang dùng (FlagActive)</label></div></div>
+        </div>
+    </div></div>
+
+    <div class="card mb-3"><div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold mb-0"><i class="bi bi-list-check me-1"></i>Các tiêu chí</h6>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="addRow()"><i class="bi bi-plus-lg me-1"></i>Thêm tiêu chí</button>
+        </div>
+        <div class="table-responsive"><table class="table align-middle mb-0" id="critTable">
+            <thead><tr><th style="width:34%">Từ khóa / mô tả</th><th style="width:12%">Số lần chuẩn</th><th style="width:10%">Bắt buộc</th><th style="width:12%">Min</th><th style="width:12%">Max</th><th style="width:12%">Cho phép</th><th style="width:40px"></th></tr></thead>
+            <tbody>
+                @foreach (var c in criteria)
+                {
+                    <tr>
+                        <td><input name="critWord" value="@c.Word" class="form-control form-control-sm" placeholder="VD: Kính ngữ / từ cấm / mô tả" /></td>
+                        <td><input name="critQty" value="@c.QtyStd" type="number" class="form-control form-control-sm" /></td>
+                        <td class="text-center"><input type="checkbox" name="critRequired" value="on" class="form-check-input" @(c.IsRequired ? "checked" : "") /></td>
+                        <td><input name="critMin" value="@c.MinValue" type="number" class="form-control form-control-sm" /></td>
+                        <td><input name="critMax" value="@c.MaxValue" type="number" class="form-control form-control-sm" /></td>
+                        <td><input name="critAllow" value="@c.QtyAllow" type="number" class="form-control form-control-sm" /></td>
+                        <td><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('tr').remove()"><i class="bi bi-x-lg"></i></button></td>
+                    </tr>
+                }
+            </tbody>
+        </table></div>
+        <div class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i>Ngưỡng Min/Max/Cho phép dùng cho tiêu chí thời lượng gọi &amp; phân tích audio; Số lần chuẩn dùng cho lời chào / từ cấm.</div>
+    </div></div>
+
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary btn-sm"><i class="bi bi-check-lg me-1"></i>Lưu bộ tiêu chí</button>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Hủy</a>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+    function addRow() {
+        const tb = document.querySelector('#critTable tbody');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input name="critWord" class="form-control form-control-sm" placeholder="VD: Kính ngữ / từ cấm / mô tả" /></td>
+            <td><input name="critQty" type="number" class="form-control form-control-sm" /></td>
+            <td class="text-center"><input type="checkbox" name="critRequired" value="on" class="form-check-input" /></td>
+            <td><input name="critMin" type="number" class="form-control form-control-sm" /></td>
+            <td><input name="critMax" type="number" class="form-control form-control-sm" /></td>
+            <td><input name="critAllow" type="number" class="form-control form-control-sm" /></td>
+            <td><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('tr').remove()"><i class="bi bi-x-lg"></i></button></td>`;
+        tb.appendChild(tr);
+    }
+</script>
+}

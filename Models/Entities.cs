@@ -285,3 +285,63 @@ public class SurveyFormField : IOrgOwned
         ? []
         : Options.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
 }
+
+// ── Cải tiến chất lượng dịch vụ (Service Improvement / SvImp_SvImprv) ──
+// Theo SkyCS: bộ tiêu chí đánh giá chất lượng cuộc gọi (ServiceImprovement.cs,
+// models SvImp_SvImprv + các bảng con Honorific/DenyWord/CallTalkTime/Audio).
+// Mỗi "bộ cải tiến" (SvImprv) gom nhiều tiêu chí con; dùng để chấm điểm cuộc gọi.
+
+/// <summary>Loại tiêu chí cải tiến (Mst_SvImprvItemType.SvImprvItType).</summary>
+public enum SvImprvItemType { Honorific = 0, DenyWord = 1, CallTalkTime = 2, Audio = 3 }
+
+/// <summary>Bộ tiêu chí cải tiến chất lượng dịch vụ (SvImp_SvImprv).</summary>
+public class ServiceImprovement : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string Code { get; set; } = "";            // SvImprvCode
+    public string Name { get; set; } = "";            // SvImprvName
+    public SvImprvItemType ItemType { get; set; } = SvImprvItemType.Honorific; // SvImprvItType
+    public string? Remark { get; set; }               // Remark
+    public bool IsActive { get; set; } = true;        // FlagActive
+    public DateTime? UsedAt { get; set; }             // DtimeUsed
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // CreateDTimeUTC
+    public string CreatedBy { get; set; } = "";       // CreateBy
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;   // LUDTimeUTC
+
+    public List<SvImprvCriterion> Criteria { get; set; } = [];
+
+    // ── tính toán ────────────────────
+    public int CriterionCount => Criteria.Count;
+    public int RequiredCount => Criteria.Count(c => c.IsRequired);
+    public bool IsUsed => UsedAt.HasValue;
+}
+
+/// <summary>
+/// Một tiêu chí con trong bộ cải tiến — gộp chung Honorific/DenyWord/CallTalkTime/Audio
+/// (SkyCS tách 4 bảng con; ở đây dùng 1 bảng với Kind để dễ nhìn).
+/// </summary>
+public class SvImprvCriterion : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public int ServiceImprovementId { get; set; }
+    public SvImprvItemType Kind { get; set; } = SvImprvItemType.Honorific; // loại tiêu chí
+    public string Word { get; set; } = "";            // WordDesc — từ khóa / mô tả tiêu chí
+    public int QtyStd { get; set; }                   // QtyStd — số lần chuẩn (Honorific/DenyWord)
+    public bool IsRequired { get; set; }              // FlagIsRequire (Honorific)
+    public int MinValue { get; set; }                 // TalkTimeMinValue / MinValue
+    public int MaxValue { get; set; }                 // TalkTimeMaxValue / MaxValue
+    public int QtyAllow { get; set; }                 // QtyAllow (Audio)
+    public bool IsActive { get; set; } = true;        // FlagActive
+
+    public ServiceImprovement ServiceImprovement { get; set; } = null!;
+
+    /// <summary>Mô tả ngưỡng giá trị theo loại tiêu chí (dùng cho view).</summary>
+    public string RangeText => Kind switch
+    {
+        SvImprvItemType.CallTalkTime => $"{MinValue}–{MaxValue} giây",
+        SvImprvItemType.Audio => $"min {MinValue} · max {MaxValue} · cho phép {QtyAllow}",
+        _ => QtyStd > 0 ? $"chuẩn {QtyStd} lần" : "—"
+    };
+}

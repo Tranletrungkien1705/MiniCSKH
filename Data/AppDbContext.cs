@@ -23,6 +23,8 @@ public class AppDbContext : DbContext
     public DbSet<TicketRating> Ratings => Set<TicketRating>();
     public DbSet<SurveyForm> SurveyForms => Set<SurveyForm>();
     public DbSet<SurveyFormField> SurveyFormFields => Set<SurveyFormField>();
+    public DbSet<ServiceImprovement> ServiceImprovements => Set<ServiceImprovement>();
+    public DbSet<SvImprvCriterion> SvImprvCriteria => Set<SvImprvCriterion>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -109,6 +111,23 @@ public class AppDbContext : DbContext
             e.Property(x => x.Name).HasMaxLength(200);
             e.Ignore(x => x.OptionList);
             e.HasOne(x => x.SurveyForm).WithMany(x => x.Fields).HasForeignKey(x => x.SurveyFormId);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<ServiceImprovement>(e =>
+        {
+            e.Property(x => x.Code).HasMaxLength(30);
+            e.Property(x => x.Name).HasMaxLength(200);
+            e.HasIndex(x => x.Code);
+            e.Ignore(x => x.CriterionCount);
+            e.Ignore(x => x.RequiredCount);
+            e.Ignore(x => x.IsUsed);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<SvImprvCriterion>(e =>
+        {
+            e.Property(x => x.Word).HasMaxLength(300);
+            e.Ignore(x => x.RangeText);
+            e.HasOne(x => x.ServiceImprovement).WithMany(x => x.Criteria).HasForeignKey(x => x.ServiceImprovementId);
             e.HasQueryFilter(x => x.OrgId == _orgId);
         });
     }

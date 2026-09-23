@@ -88,4 +88,23 @@ public static class Ui
         SurveyFieldType.Text => "bi-textarea-t", SurveyFieldType.Number => "bi-123", SurveyFieldType.Rating => "bi-star",
         SurveyFieldType.SingleChoice => "bi-ui-radios", SurveyFieldType.MultiChoice => "bi-ui-checks", SurveyFieldType.Date => "bi-calendar3", _ => "bi-input-cursor"
     };
+
+    // ── Cải tiến chất lượng dịch vụ (SvImprv) ──
+    public static string SvImprvTypeName(SvImprvItemType t) => t switch
+    {
+        SvImprvItemType.Honorific => "Lời chào / kính ngữ", SvImprvItemType.DenyWord => "Từ cấm",
+        SvImprvItemType.CallTalkTime => "Thời lượng gọi", SvImprvItemType.Audio => "Phân tích audio", _ => t.ToString()
+    };
+    public static string SvImprvTypeColor(SvImprvItemType t) => t switch
+    {
+        SvImprvItemType.Honorific => "success", SvImprvItemType.DenyWord => "danger",
+        SvImprvItemType.CallTalkTime => "info", SvImprvItemType.Audio => "warning", _ => "secondary"
+    };
+    public static string SvImprvTypeIcon(SvImprvItemType t) => t switch
+    {
+        SvImprvItemType.Honorific => "bi-chat-heart", SvImprvItemType.DenyWord => "bi-slash-circle",
+        SvImprvItemType.CallTalkTime => "bi-stopwatch", SvImprvItemType.Audio => "bi-soundwave", _ => "bi-tag"
+    };
+    public static string SvImprvTypeBadge(SvImprvItemType t) =>
+        $"<span class='badge bg-{SvImprvTypeColor(t)}-subtle text-{SvImprvTypeColor(t)} border-{SvImprvTypeColor(t)}-subtle'>{SvImprvTypeName(t)}</span>";
 }

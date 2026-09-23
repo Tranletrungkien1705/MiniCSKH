@@ -53,6 +53,12 @@ public interface ITicketService
     Task<int> SurveyFormSaveAsync(SurveyForm form, List<SurveyFormField> fields);
     Task SurveyFormToggleAsync(int id);
     Task<SurveyStats> SurveyStatsAsync();
+    // Cải tiến chất lượng dịch vụ (SvImp_SvImprv)
+    Task<List<ServiceImprovement>> SvImprvsAsync(bool? active, SvImprvItemType? type, string? q);
+    Task<ServiceImprovement?> SvImprvGetAsync(int id);
+    Task<int> SvImprvSaveAsync(ServiceImprovement model, List<SvImprvCriterion> criteria);
+    Task SvImprvToggleAsync(int id);
+    Task<SvImprvStats> SvImprvStatsAsync();
 }
 
 public record SlaStats(int Policies, int TicketsWithSla, int ViolatingFirstRes, int ViolatingResolution);
@@ -60,6 +66,8 @@ public record SlaStats(int Policies, int TicketsWithSla, int ViolatingFirstRes, 
 public record RatingStats(int Total, int Rated, int Reviewed, int Satisfied, int Unsatisfied, double AvgScore);
 
 public record SurveyStats(int Total, int Active, int Used, int Fields);
+
+public record SvImprvStats(int Total, int Active, int Used, int Criteria);
 
 public class TicketService(AppDbContext db) : ITicketService
 {
@@ -409,5 +417,61 @@ public class TicketService(AppDbContext db) : ITicketService
             forms.Count(f => f.IsActive),
             forms.Count(f => f.IsUsed),
             forms.Sum(f => f.Fields.Count));
+    }
+
+    // ── Cải tiến chất lượng dịch vụ (SvImp_SvImprv) ──────────────────
+    public async Task<List<ServiceImprovement>> SvImprvsAsync(bool? active, SvImprvItemType? type, string? q)
+    {
+        var query = db.ServiceImprovements.Include(s => s.Criteria).AsQueryable();
+        if (active.HasValue) query = query.Where(s => s.IsActive == active.Value);
+        if (type.HasValue) query = query.Where(s => s.ItemType == type.Value);
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(s => s.Name.Contains(q) || s.Code.Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderByDescending(s => s.UpdatedAt).ToList();
+    }
+
+    public Task<ServiceImprovement?> SvImprvGetAsync(int id) =>
+        db.ServiceImprovements.Include(s => s.Criteria).FirstOrDefaultAsync(s => s.Id == id);
+
+    public async Task<int> SvImprvSaveAsync(ServiceImprovement model, List<SvImprvCriterion> criteria)
+    {
+        if (model.Id == 0)
+        {
+            if (string.IsNullOrWhiteSpace(model.Code)) model.Code = "SI-" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+            model.CreatedAt = model.UpdatedAt = DateTime.Now;
+            foreach (var c in criteria) model.Criteria.Add(c);
+            db.ServiceImprovements.Add(model);
+            await db.SaveChangesAsync();
+            return model.Id;
+        }
+        var e = await db.ServiceImprovements.Include(x => x.Criteria).FirstOrDefaultAsync(x => x.Id == model.Id)
+            ?? throw new KeyNotFoundException();
+        e.Name = model.Name; e.ItemType = model.ItemType; e.Remark = model.Remark;
+        e.IsActive = model.IsActive; e.UpdatedAt = DateTime.Now;
+        // Thay toàn bộ danh sách tiêu chí (bộ cải tiến là cấu hình, không giữ lịch sử tiêu chí).
+        db.SvImprvCriteria.RemoveRange(e.Criteria);
+        e.Criteria.Clear();
+        foreach (var c in criteria) e.Criteria.Add(c);
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
+    public async Task SvImprvToggleAsync(int id)
+    {
+        var s = await db.ServiceImprovements.FirstOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException();
+        s.IsActive = !s.IsActive;
+        s.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<SvImprvStats> SvImprvStatsAsync()
+    {
+        var list = await db.ServiceImprovements.Include(s => s.Criteria).ToListAsync();
+        return new SvImprvStats(
+            list.Count,
+            list.Count(s => s.IsActive),
+            list.Count(s => s.IsUsed),
+            list.Sum(s => s.Criteria.Count));
     }
 }

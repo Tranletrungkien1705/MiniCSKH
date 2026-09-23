@@ -182,6 +182,41 @@ public static class Seeder
             );
             await db.SaveChangesAsync();
         }
+
+        if (!await db.ServiceImprovements.AnyAsync())
+        {
+            db.ServiceImprovements.AddRange(
+                new ServiceImprovement
+                {
+                    Code = "SI-CALL", Name = "Đánh giá chất lượng gọi ra",
+                    ItemType = SvImprvItemType.Honorific,
+                    Remark = "Bộ tiêu chí chấm điểm cuộc gọi telesales.",
+                    IsActive = true, CreatedAt = DateTime.Now.AddDays(-8), UpdatedAt = DateTime.Now.AddDays(-8),
+                    CreatedBy = "Hệ thống", UsedAt = DateTime.Now.AddDays(-2),
+                    Criteria =
+                    [
+                        new SvImprvCriterion { Kind = SvImprvItemType.Honorific, Word = "Chào hỏi đúng kính ngữ (Anh/Chị)", QtyStd = 1, IsRequired = true },
+                        new SvImprvCriterion { Kind = SvImprvItemType.Honorific, Word = "Cảm ơn khách khi kết thúc", QtyStd = 1, IsRequired = true },
+                        new SvImprvCriterion { Kind = SvImprvItemType.DenyWord, Word = "Từ cấm: 'không biết', 'tùy bạn'", QtyStd = 0 },
+                        new SvImprvCriterion { Kind = SvImprvItemType.CallTalkTime, Word = "Thời lượng gọi hợp lý", MinValue = 60, MaxValue = 600 }
+                    ]
+                },
+                new ServiceImprovement
+                {
+                    Code = "SI-AUDIO", Name = "Phân tích audio cuộc gọi",
+                    ItemType = SvImprvItemType.Audio,
+                    Remark = "Tiêu chí phân tích tự động từ file ghi âm.",
+                    IsActive = true, CreatedAt = DateTime.Now.AddDays(-3), UpdatedAt = DateTime.Now.AddDays(-3),
+                    CreatedBy = "Hệ thống",
+                    Criteria =
+                    [
+                        new SvImprvCriterion { Kind = SvImprvItemType.Audio, Word = "Tỷ lệ im lặng", MinValue = 0, MaxValue = 30, QtyAllow = 2 },
+                        new SvImprvCriterion { Kind = SvImprvItemType.Audio, Word = "Tốc độ nói (từ/phút)", MinValue = 100, MaxValue = 180, QtyAllow = 1 }
+                    ]
+                }
+            );
+            await db.SaveChangesAsync();
+        }
     }
 
     /// <summary>DB Postgres cloud cũ: tạo Orgs + thêm cột OrgId nếu thiếu, backfill về org mặc định. Idempotent.</summary>
@@ -189,7 +224,7 @@ public static class Seeder
     {
         if (!db.Database.IsNpgsql()) return;
         var def = TenantContext.DefaultOrgId;
-        var tables = new[] { "Agents", "Categories", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields" };
+        var tables = new[] { "Agents", "Categories", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria" };
         var sql = new List<string>
         {
             "CREATE TABLE IF NOT EXISTS minicskh.\"Orgs\" (\"Id\" uuid PRIMARY KEY, \"Name\" text NOT NULL DEFAULT '', \"ApiKey\" text NOT NULL DEFAULT '', \"CreatedAt\" timestamp NOT NULL DEFAULT now())",
