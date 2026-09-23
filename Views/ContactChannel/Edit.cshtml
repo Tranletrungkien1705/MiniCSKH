@@ -1,0 +1,46 @@
+@model ContactChannel
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Thêm kênh liên hệ" : "Sửa kênh liên hệ";
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Kênh liên hệ</a>
+        <h5 class="fw-bold mb-0 mt-1">@ViewData["Title"]</h5>
+    </div>
+</div>
+
+<form asp-action="Save" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="Id" value="@Model.Id" />
+
+    <div class="card mb-3"><div class="card-body">
+        <h6 class="fw-bold mb-3"><i class="bi bi-info-circle me-1"></i>Thông tin kênh liên hệ</h6>
+        <div class="row g-3">
+            <div class="col-md-4"><label class="form-label small">Mã kênh (ContactChannel)</label>
+                <input name="Code" value="@Model.Code" class="form-control form-control-sm" placeholder="VD: CALL / EMAIL / ZALO" />
+                <div class="form-text">Để trống sẽ tự sinh mã.</div></div>
+            <div class="col-md-4"><label class="form-label small">Phạm vi sử dụng (FlagUseType)</label>
+                <select name="UseType" class="form-select form-select-sm">
+                    @foreach (var t in Enum.GetValues<CatalogUseType>())
+                    {
+                        <option value="@t" selected="@(Model.UseType==t)">@Ui.ContactUseTypeName(t)</option>
+                    }
+                </select></div>
+            <div class="col-md-4"><label class="form-label small">Trạng thái</label>
+                <div class="form-check form-switch mt-1">
+                    <input class="form-check-input" type="checkbox" name="IsActive" value="true" id="isActive" @(Model.IsActive ? "checked" : "") />
+                    <label class="form-check-label small" for="isActive">Đang dùng (FlagActive)</label></div></div>
+            <div class="col-md-6"><label class="form-label small">Tên cho agent <span class="text-danger">*</span></label>
+                <input name="AgentName" value="@Model.AgentName" class="form-control form-control-sm" placeholder="VD: Gọi điện thoại" required /></div>
+            <div class="col-md-6"><label class="form-label small">Tên cho khách hàng <span class="text-danger">*</span></label>
+                <input name="CustomerName" value="@Model.CustomerName" class="form-control form-control-sm" placeholder="VD: Gọi điện thoại" required /></div>
+            <div class="col-12"><label class="form-label small">Ghi chú</label>
+                <input name="Remark" value="@Model.Remark" class="form-control form-control-sm" placeholder="Mô tả kênh liên hệ" /></div>
+        </div>
+    </div></div>
+
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary btn-sm"><i class="bi bi-check-lg me-1"></i>Lưu kênh liên hệ</button>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Hủy</a>
+    </div>
+</form>

@@ -43,6 +43,7 @@ public class AppDbContext : DbContext
     public DbSet<Address> Addresses => Set<Address>();
     public DbSet<SlaWorkingDay> SlaWorkingDays => Set<SlaWorkingDay>();
     public DbSet<SlaHoliday> SlaHolidays => Set<SlaHoliday>();
+    public DbSet<ContactChannel> ContactChannels => Set<ContactChannel>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -298,6 +299,15 @@ public class AppDbContext : DbContext
             e.Property(x => x.Name).HasMaxLength(200);
             e.HasIndex(x => new { x.SlaPolicyId, x.Holiday });
             e.HasOne(x => x.SlaPolicy).WithMany().HasForeignKey(x => x.SlaPolicyId);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<ContactChannel>(e =>
+        {
+            e.Property(x => x.Code).HasMaxLength(50);
+            e.Property(x => x.AgentName).HasMaxLength(200);
+            e.Property(x => x.CustomerName).HasMaxLength(200);
+            e.HasIndex(x => x.Code);
+            e.Ignore(x => x.UseTypeName);
             e.HasQueryFilter(x => x.OrgId == _orgId);
         });
     }

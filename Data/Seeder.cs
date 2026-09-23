@@ -548,6 +548,20 @@ public static class Seeder
                 await db.SaveChangesAsync();
             }
         }
+
+        if (!await db.ContactChannels.AnyAsync())
+        {
+            // Kênh liên hệ (Mst_ContactChannel) — cách liên hệ với khách hàng.
+            db.ContactChannels.AddRange(
+                new ContactChannel { Code = "CALL", AgentName = "Gọi điện thoại", CustomerName = "Gọi điện thoại", UseType = CatalogUseType.Type2, IsActive = true, Remark = "Liên hệ qua điện thoại trực tiếp.", CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-50), UpdatedAt = DateTime.Now.AddDays(-5) },
+                new ContactChannel { Code = "EMAIL", AgentName = "Gửi email", CustomerName = "Nhận email", UseType = CatalogUseType.Type2, IsActive = true, Remark = "Liên hệ qua thư điện tử.", CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-45), UpdatedAt = DateTime.Now.AddDays(-4) },
+                new ContactChannel { Code = "ZALO", AgentName = "Nhắn Zalo", CustomerName = "Nhận Zalo", UseType = CatalogUseType.Type2, IsActive = true, Remark = "Liên hệ qua Zalo OA.", CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-40), UpdatedAt = DateTime.Now.AddDays(-3) },
+                new ContactChannel { Code = "SMS", AgentName = "Gửi SMS", CustomerName = "Nhận SMS", UseType = CatalogUseType.Type3, IsActive = true, Remark = "Chỉ gửi tin nhắn một chiều cho khách.", CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-35), UpdatedAt = DateTime.Now.AddDays(-2) },
+                new ContactChannel { Code = "MEET", AgentName = "Gặp trực tiếp", CustomerName = "Gặp trực tiếp", UseType = CatalogUseType.Type1, IsActive = true, Remark = "Hẹn gặp tại văn phòng/địa điểm khách.", CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-30), UpdatedAt = DateTime.Now.AddDays(-1) },
+                new ContactChannel { Code = "FAX", AgentName = "Gửi fax (ngừng dùng)", CustomerName = "Nhận fax", UseType = CatalogUseType.Type2, IsActive = false, Remark = "Kênh cũ, đã ngừng sử dụng.", CreatedBy = "Hệ thống", CreatedAt = DateTime.Now.AddDays(-90), UpdatedAt = DateTime.Now.AddDays(-60) }
+            );
+            await db.SaveChangesAsync();
+        }
     }
 
     /// <summary>DB Postgres cloud cũ: tạo Orgs + thêm cột OrgId nếu thiếu, backfill về org mặc định. Idempotent.</summary>
@@ -555,7 +569,7 @@ public static class Seeder
     {
         if (!db.Database.IsNpgsql()) return;
         var def = TenantContext.DefaultOrgId;
-        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags", "ReceiveNotifies", "Addresses", "SlaWorkingDays", "SlaHolidays" };
+        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules", "TicketCatalogs", "Departments", "DepartmentMembers", "PaymentTerms", "Areas", "Tags", "ReceiveNotifies", "Addresses", "SlaWorkingDays", "SlaHolidays", "ContactChannels" };
         var sql = new List<string>
         {
             "CREATE TABLE IF NOT EXISTS minicskh.\"Orgs\" (\"Id\" uuid PRIMARY KEY, \"Name\" text NOT NULL DEFAULT '', \"ApiKey\" text NOT NULL DEFAULT '', \"CreatedAt\" timestamp NOT NULL DEFAULT now())",

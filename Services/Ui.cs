@@ -256,4 +256,18 @@ public static class Ui
         1 => "Chủ nhật", 2 => "Thứ hai", 3 => "Thứ ba", 4 => "Thứ tư",
         5 => "Thứ năm", 6 => "Thứ sáu", 7 => "Thứ bảy", _ => $"Thứ {code}"
     };
+
+    // ── Kênh liên hệ (Mst_ContactChannel) ──
+    public static string ContactUseTypeName(CatalogUseType t) => t switch
+    {
+        CatalogUseType.Type1 => "Chỉ agent", CatalogUseType.Type2 => "Agent & khách",
+        CatalogUseType.Type3 => "Chỉ khách", _ => t.ToString()
+    };
+    public static string ContactUseTypeColor(CatalogUseType t) => t switch
+    {
+        CatalogUseType.Type1 => "info", CatalogUseType.Type2 => "success",
+        CatalogUseType.Type3 => "warning", _ => "secondary"
+    };
+    public static string ContactUseTypeBadge(CatalogUseType t) =>
+        $"<span class='badge bg-{ContactUseTypeColor(t)}-subtle text-{ContactUseTypeColor(t)} border-{ContactUseTypeColor(t)}-subtle'>{ContactUseTypeName(t)}</span>";
 }

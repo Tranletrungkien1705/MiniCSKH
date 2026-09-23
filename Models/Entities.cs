@@ -881,4 +881,37 @@ public class SlaHoliday : IOrgOwned
     public string CreatedBy { get; set; } = "";          // LogLUBy
 
     public SlaPolicy SlaPolicy { get; set; } = null!;
+}// ── Kênh liên hệ (Mst_ContactChannel) ────────────────────────────────
+// Theo SkyCS: kênh liên hệ (Mst_ContactChannel) là master data quy định
+// CÁCH liên hệ với khách hàng (gọi điện, email, Zalo, SMS, gặp trực tiếp…),
+// khác với "kênh tiếp nhận" (Mst_ReceptionChannel — nơi phiếu được tạo đến).
+// Mỗi kênh có mã (ContactChannel), tên hiển thị cho agent và cho khách hàng,
+// phạm vi sử dụng (FlagUseType TYPE1/2/3) và trạng thái (FlagActive).
+// eTicket dùng kênh liên hệ để xác định cách thức liên lạc với khách.
+// (11.BackEnd/V10/idn.SkyCS.Biz/Master.cs, `Mst_ContactChannel_Get`/`_Save`;
+//  model 12.Dev.Common/idn.SkyCS.Common/Models/Mst_ContactChannel.cs)
+
+/// <summary>Kênh liên hệ (Mst_ContactChannel) — cách liên hệ với khách hàng.</summary>
+public class ContactChannel : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string Code { get; set; } = "";              // ContactChannel — mã kênh liên hệ
+    public string AgentName { get; set; } = "";         // AgentContactChannelName — tên cho agent
+    public string CustomerName { get; set; } = "";      // CustomerContactChannelName — tên cho khách
+    public CatalogUseType UseType { get; set; } = CatalogUseType.Type2;  // FlagUseType (TYPE1/2/3)
+    public bool IsActive { get; set; } = true;          // FlagActive
+    public string? Remark { get; set; }                 // Remark
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // LogLUDTimeUTC
+    public string CreatedBy { get; set; } = "";         // LogLUBy
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+    // ── tính toán ────────────────────────────────────────────────────
+    public string UseTypeName => UseType switch
+    {
+        CatalogUseType.Type1 => "Chỉ agent",
+        CatalogUseType.Type2 => "Agent & khách",
+        CatalogUseType.Type3 => "Chỉ khách",
+        _ => UseType.ToString()
+    };
 }

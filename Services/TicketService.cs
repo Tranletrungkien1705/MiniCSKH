@@ -134,6 +134,12 @@ public interface ITicketService
     Task<int> SlaCalendarSaveAsync(SlaPolicy model, List<SlaWorkingDay> workingDays, List<SlaHoliday> holidays);
     Task<SlaCalendarStats> SlaCalendarStatsAsync();
     Task<DateTime?> SlaCalcDeadlineAsync(int slaPolicyId, DateTime reception, bool firstResponse);
+    // Kênh liên hệ (Mst_ContactChannel)
+    Task<List<ContactChannel>> ContactChannelsAsync(bool? active, CatalogUseType? useType, string? q);
+    Task<ContactChannel?> ContactChannelGetAsync(int id);
+    Task<int> ContactChannelSaveAsync(ContactChannel model);
+    Task ContactChannelToggleAsync(int id);
+    Task<ContactChannelStats> ContactChannelStatsAsync();
 }
 
 public record SlaStats(int Policies, int TicketsWithSla, int ViolatingFirstRes, int ViolatingResolution);
@@ -165,6 +171,8 @@ public record ReceiveNotifyStats(int Total, int WithName, int WithRemark, int Di
 public record AddressStats(int Total, int Active, int Provinces, int Districts, int Wards);
 
 public record SlaCalendarStats(int Policies, int WithWorkingDays, int WithHolidays, int WorkingDayRows, int HolidayRows);
+
+public record ContactChannelStats(int Total, int Active, int AgentOnly, int Both, int CustomerOnly);
 
 public record TicketTypeStats(int Total, int Active, int ETicket, int Campaign);
 
@@ -1310,5 +1318,63 @@ public class TicketService(AppDbContext db) : ITicketService
             day = day.AddDays(1);
         }
         return null;
+    }
+
+    // ── Kênh liên hệ (Mst_ContactChannel) ────────────────────────────
+    public async Task<List<ContactChannel>> ContactChannelsAsync(bool? active, CatalogUseType? useType, string? q)
+    {
+        var query = db.ContactChannels.AsQueryable();
+        if (active.HasValue) query = query.Where(c => c.IsActive == active.Value);
+        if (useType.HasValue) query = query.Where(c => c.UseType == useType.Value);
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(c => c.Code.Contains(q) || c.AgentName.Contains(q) || c.CustomerName.Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderBy(c => c.Code).ToList();
+    }
+
+    public Task<ContactChannel?> ContactChannelGetAsync(int id) =>
+        db.ContactChannels.FirstOrDefaultAsync(c => c.Id == id);
+
+    public async Task<int> ContactChannelSaveAsync(ContactChannel model)
+    {
+        // Theo Mst_ContactChannel_Save: tên cho agent và cho khách bắt buộc;
+        // FlagUseType phải là TYPE1/TYPE2/TYPE3 (enum đã đảm bảo).
+        if (string.IsNullOrWhiteSpace(model.AgentName))
+            throw new InvalidOperationException("Cần tên kênh cho agent.");
+        if (string.IsNullOrWhiteSpace(model.CustomerName))
+            throw new InvalidOperationException("Cần tên kênh cho khách hàng.");
+
+        if (model.Id == 0)
+        {
+            if (string.IsNullOrWhiteSpace(model.Code)) model.Code = "CC-" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+            model.CreatedAt = model.UpdatedAt = DateTime.Now;
+            db.ContactChannels.Add(model);
+            await db.SaveChangesAsync();
+            return model.Id;
+        }
+        var e = await db.ContactChannels.FirstOrDefaultAsync(x => x.Id == model.Id) ?? throw new KeyNotFoundException();
+        e.Code = model.Code; e.AgentName = model.AgentName; e.CustomerName = model.CustomerName;
+        e.UseType = model.UseType; e.IsActive = model.IsActive; e.Remark = model.Remark; e.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
+    public async Task ContactChannelToggleAsync(int id)
+    {
+        var c = await db.ContactChannels.FirstOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException();
+        c.IsActive = !c.IsActive;
+        c.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<ContactChannelStats> ContactChannelStatsAsync()
+    {
+        var list = await db.ContactChannels.ToListAsync();
+        return new ContactChannelStats(
+            list.Count,
+            list.Count(c => c.IsActive),
+            list.Count(c => c.UseType == CatalogUseType.Type1),
+            list.Count(c => c.UseType == CatalogUseType.Type2),
+            list.Count(c => c.UseType == CatalogUseType.Type3));
     }
 }
