@@ -1,0 +1,52 @@
+@model NotifyType
+@{
+    ViewData["Title"] = "Chi tiết loại thông báo";
+    var subs = (List<NotifySubscription>)ViewBag.Subscriptions;
+    var managers = (List<NotifyManager>)ViewBag.Managers;
+    var nameOf = managers.ToDictionary(m => m.UserCode, m => m.DisplayName);
+}
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Quản lý thông báo</a>
+        <h5 class="fw-bold mb-1 mt-1"><i class="bi @Ui.NotifyTypeIcon(Model.Code) me-1"></i>@Model.DisplayName <span class="font-monospace text-muted">@Model.Code</span>
+            @Html.Raw(Ui.NotifyActiveBadge(Model.DefaultActive))</h5>
+        <div class="text-muted small">tạo @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm") · cập nhật @Model.UpdatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil me-1"></i>Sửa</a>
+        <form asp-action="Toggle" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <button class="btn btn-sm @(Model.DefaultActive?"btn-outline-secondary":"btn-primary")">
+                <i class="bi bi-toggle-@(Model.DefaultActive?"off":"on") me-1"></i>@(Model.DefaultActive?"Tắt mặc định":"Bật mặc định")</button>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-4"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Mã (NotifyType)</div><div class="fs-5 fw-bold font-monospace">@Model.Code</div></div></div></div>
+    <div class="col-md-4"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Mô tả (NotifyDesc)</div><div class="fs-6 fw-bold">@Model.DisplayName</div></div></div></div>
+    <div class="col-md-4"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Mặc định (DefaultActive)</div>
+        <div class="fs-6 fw-bold">@Html.Raw(Ui.NotifyActiveBadge(Model.DefaultActive))</div></div></div></div>
+</div>
+
+<div class="card"><div class="card-body">
+    <h6 class="fw-bold mb-3"><i class="bi bi-people me-1"></i>Người nhận loại thông báo này (@subs.Count)</h6>
+    <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+        <thead><tr><th>UserCode</th><th>Tên</th><th>Trạng thái nhận</th></tr></thead>
+        <tbody>
+            @if(!subs.Any()){<tr><td colspan="3" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>Chưa có người nhận</td></tr>}
+            @foreach (var s in subs)
+            {
+                <tr>
+                    <td class="font-monospace small">@s.UserCode</td>
+                    <td>@(nameOf.TryGetValue(s.UserCode, out var n) ? n : s.UserCode)</td>
+                    <td>@Html.Raw(Ui.NotifyFlagBadge(s.FlagNotify))</td>
+                </tr>
+            }
+        </tbody>
+    </table></div>
+</div></div>

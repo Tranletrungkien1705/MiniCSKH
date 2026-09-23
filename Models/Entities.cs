@@ -1320,3 +1320,67 @@ public class ChannelType : IOrgOwned
         _ => "bi-broadcast"
     };
 }
+
+// ── Quản lý thông báo (Mst_NotifyType / Mst_ManageNotify / ────────────
+//    Map_UserInNotifyType) ────────────────────────────
+// Theo SkyCS: hệ thống thông báo nội bộ gồm 3 bảng:
+//  • Mst_NotifyType — danh mục LOẠI thông báo (mã + mô tả + cờ bật mặc định),
+//    ví dụ "Tạo hóa đơn", "Duyệt đơn hàng", "Thông báo khác".
+//  • Mst_ManageNotify — danh sách NGƯỜI QUẢN LÝ nhận thông báo (Sys_User.UserCode
+//    + tên hiển thị). Khi tạo user mới, hệ thống tự thêm vào bảng này
+//    (`Mst_ManageNotify_CreateX` trong System.cs).
+//  • Map_UserInNotifyType — MA TRẬN phân quyền thông báo: mỗi cặp
+//    (UserCode × NotifyType) có cờ FlagNotify bật/tắt — quyết định user đó có
+//    nhận loại thông báo tương ứng hay không.
+// (11.BackEnd/V10/idn.SkyCS.Biz/System.cs, `Mst_ManageNotify_CreateX`/`_DeleteX`;
+//  Delete/Delete.Master.Cloud.cs, `Mst_NotifyType_Get`/`Mst_ManageNotify_Get`/
+//  `Map_UserInNotifyType_Get`; models 12.Dev.Common/idn.SkyCS.Common/Models/
+//  Mst_NotifyType.cs, Mst_ManageNotify.cs, RQ_/RT_Map_UserInNotifyType.cs;
+//  schema 11.BackEnd/V10/05.Refs.Biz/Migrate/20200806.z11.CreateTable.MapNotify.sql)
+
+/// <summary>Loại thông báo (Mst_NotifyType) — danh mục loại thông báo nội bộ.</summary>
+public class NotifyType : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string Code { get; set; } = "";              // NotifyType — mã loại thông báo
+    public string? Description { get; set; }             // NotifyDesc — mô tả loại thông báo
+    public bool DefaultActive { get; set; } = true;      // DefaultActive — bật mặc định cho user mới
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // LogLUDTimeUTC
+    public string CreatedBy { get; set; } = "";          // LogLUBy
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+    // ── tính toán ────────────────────
+    public string DisplayName => string.IsNullOrWhiteSpace(Description) ? Code : Description!;
+}
+
+/// <summary>Người quản lý nhận thông báo (Mst_ManageNotify) — 1 user trong danh sách nhận thông báo.</summary>
+public class NotifyManager : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string UserCode { get; set; } = "";          // UserCode — mã user (Sys_User.UserCode)
+    public string? UserName { get; set; }                // UserName — tên hiển thị
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // LogLUDTimeUTC
+    public string CreatedBy { get; set; } = "";          // LogLUBy
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+    // ── tính toán ────────────────────
+    public string DisplayName => string.IsNullOrWhiteSpace(UserName) ? UserCode : UserName!;
+}
+
+/// <summary>
+/// Ma trận phân quyền thông báo (Map_UserInNotifyType) — mỗi dòng = 1 cặp
+/// (UserCode × NotifyType) với cờ FlagNotify bật/tắt.
+/// </summary>
+public class NotifySubscription : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string UserCode { get; set; } = "";          // UserCode — mã user (Mst_ManageNotify.UserCode)
+    public string NotifyTypeCode { get; set; } = "";    // NotifyType — mã loại thông báo (Mst_NotifyType.NotifyType)
+    public bool FlagNotify { get; set; } = true;         // FlagNotify — có nhận loại thông báo này không
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // LogLUDTimeUTC
+    public string CreatedBy { get; set; } = "";          // LogLUBy
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+}

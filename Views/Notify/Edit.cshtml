@@ -1,0 +1,34 @@
+@model NotifyType
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Thêm loại thông báo" : "Sửa loại thông báo";
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Quản lý thông báo</a>
+        <h5 class="fw-bold mb-0 mt-1">@ViewData["Title"]</h5>
+    </div>
+</div>
+
+<form asp-action="Save" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="Id" value="@Model.Id" />
+
+    <div class="card mb-3"><div class="card-body">
+        <h6 class="fw-bold mb-3"><i class="bi bi-info-circle me-1"></i>Thông tin loại thông báo</h6>
+        <div class="row g-3">
+            <div class="col-md-4"><label class="form-label small">Mã loại thông báo (NotifyType) <span class="text-danger">*</span></label>
+                <input name="Code" value="@Model.Code" class="form-control form-control-sm" placeholder="VD: Invoice_Create / Others" required />
+                <div class="form-text">Để trống sẽ tự sinh mã.</div></div>
+            <div class="col-md-8"><label class="form-label small">Mô tả (NotifyDesc)</label>
+                <input name="Description" value="@Model.Description" class="form-control form-control-sm" placeholder="VD: Tạo hóa đơn" /></div>
+            <div class="col-12"><div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="DefaultActive" value="true" id="defaultActive" @(Model.DefaultActive ? "checked" : "") />
+                <label class="form-check-label small" for="defaultActive">Bật mặc định cho user mới (DefaultActive)</label></div></div>
+        </div>
+    </div></div>
+
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary btn-sm"><i class="bi bi-check-lg me-1"></i>Lưu loại thông báo</button>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Hủy</a>
+    </div>
+</form>

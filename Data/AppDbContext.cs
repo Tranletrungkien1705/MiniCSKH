@@ -55,6 +55,9 @@ public class AppDbContext : DbContext
     public DbSet<Country> Countries => Set<Country>();
     public DbSet<SatisfactionRating> SatisfactionRatings => Set<SatisfactionRating>();
     public DbSet<ChannelType> ChannelTypes => Set<ChannelType>();
+    public DbSet<NotifyType> NotifyTypes => Set<NotifyType>();
+    public DbSet<NotifyManager> NotifyManagers => Set<NotifyManager>();
+    public DbSet<NotifySubscription> NotifySubscriptions => Set<NotifySubscription>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -419,6 +422,29 @@ public class AppDbContext : DbContext
             e.Property(x => x.Name).HasMaxLength(200);
             e.HasIndex(x => x.Code);
             e.Ignore(x => x.Icon);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<NotifyType>(e =>
+        {
+            e.Property(x => x.Code).HasMaxLength(50);
+            e.Property(x => x.Description).HasMaxLength(400);
+            e.HasIndex(x => x.Code);
+            e.Ignore(x => x.DisplayName);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<NotifyManager>(e =>
+        {
+            e.Property(x => x.UserCode).HasMaxLength(50);
+            e.Property(x => x.UserName).HasMaxLength(400);
+            e.HasIndex(x => x.UserCode);
+            e.Ignore(x => x.DisplayName);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<NotifySubscription>(e =>
+        {
+            e.Property(x => x.UserCode).HasMaxLength(50);
+            e.Property(x => x.NotifyTypeCode).HasMaxLength(50);
+            e.HasIndex(x => new { x.UserCode, x.NotifyTypeCode });
             e.HasQueryFilter(x => x.OrgId == _orgId);
         });
     }

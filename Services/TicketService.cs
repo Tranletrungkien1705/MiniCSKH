@@ -188,6 +188,18 @@ public interface ITicketService
     Task<int> ChannelTypeSaveAsync(ChannelType model);
     Task ChannelTypeToggleAsync(int id);
     Task<ChannelTypeStats> ChannelTypeStatsAsync();
+    // Quản lý thông báo (Mst_NotifyType / Mst_ManageNotify / Map_UserInNotifyType)
+    Task<List<NotifyType>> NotifyTypesAsync(bool? active, string? q);
+    Task<NotifyType?> NotifyTypeGetAsync(int id);
+    Task<int> NotifyTypeSaveAsync(NotifyType model);
+    Task NotifyTypeToggleAsync(int id);
+    Task<List<NotifyManager>> NotifyManagersAsync(string? q);
+    Task<NotifyManager?> NotifyManagerGetAsync(int id);
+    Task<int> NotifyManagerSaveAsync(NotifyManager model);
+    Task NotifyManagerDeleteAsync(int id);
+    Task<List<NotifySubscription>> NotifySubscriptionsAsync(string? userCode);
+    Task NotifySubscriptionSaveAsync(string userCode, List<NotifySubscription> subs);
+    Task<NotifyStats> NotifyStatsAsync();
 }
 
 public record SlaStats(int Policies, int TicketsWithSla, int ViolatingFirstRes, int ViolatingResolution);
@@ -237,6 +249,8 @@ public record CountryStats(int Total, int Active, int Inactive, int WithPostCode
 public record SatisfactionRatingStats(int Total, int Active, int Inactive, int Positive);
 
 public record ChannelTypeStats(int Total, int Active, int Inactive, int WithName);
+
+public record NotifyStats(int Types, int ActiveTypes, int Managers, int Subscriptions, int EnabledSubscriptions);
 
 public record TicketTypeStats(int Total, int Active, int ETicket, int Campaign);
 
@@ -1888,5 +1902,116 @@ public class TicketService(AppDbContext db) : ITicketService
             list.Count(c => c.IsActive),
             list.Count(c => !c.IsActive),
             list.Count(c => !string.IsNullOrWhiteSpace(c.Name)));
+    }
+
+    // ── Quản lý thông báo (Mst_NotifyType / Mst_ManageNotify / Map_UserInNotifyType) ──
+    public async Task<List<NotifyType>> NotifyTypesAsync(bool? active, string? q)
+    {
+        var query = db.NotifyTypes.AsQueryable();
+        if (active.HasValue) query = query.Where(t => t.DefaultActive == active.Value);
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(t => t.Code.Contains(q) || (t.Description ?? "").Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderBy(t => t.Code).ToList();
+    }
+
+    public Task<NotifyType?> NotifyTypeGetAsync(int id) =>
+        db.NotifyTypes.FirstOrDefaultAsync(t => t.Id == id);
+
+    public async Task<int> NotifyTypeSaveAsync(NotifyType model)
+    {
+        if (model.Id == 0)
+        {
+            if (string.IsNullOrWhiteSpace(model.Code)) model.Code = "NT-" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+            model.CreatedAt = model.UpdatedAt = DateTime.Now;
+            db.NotifyTypes.Add(model);
+            await db.SaveChangesAsync();
+            return model.Id;
+        }
+        var e = await db.NotifyTypes.FirstOrDefaultAsync(x => x.Id == model.Id) ?? throw new KeyNotFoundException();
+        e.Code = model.Code; e.Description = model.Description;
+        e.DefaultActive = model.DefaultActive; e.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
+    public async Task NotifyTypeToggleAsync(int id)
+    {
+        var t = await db.NotifyTypes.FirstOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException();
+        t.DefaultActive = !t.DefaultActive;
+        t.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<List<NotifyManager>> NotifyManagersAsync(string? q)
+    {
+        var query = db.NotifyManagers.AsQueryable();
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(m => m.UserCode.Contains(q) || (m.UserName ?? "").Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderBy(m => m.UserCode).ToList();
+    }
+
+    public Task<NotifyManager?> NotifyManagerGetAsync(int id) =>
+        db.NotifyManagers.FirstOrDefaultAsync(m => m.Id == id);
+
+    public async Task<int> NotifyManagerSaveAsync(NotifyManager model)
+    {
+        if (model.Id == 0)
+        {
+            model.CreatedAt = model.UpdatedAt = DateTime.Now;
+            db.NotifyManagers.Add(model);
+            await db.SaveChangesAsync();
+            return model.Id;
+        }
+        var e = await db.NotifyManagers.FirstOrDefaultAsync(x => x.Id == model.Id) ?? throw new KeyNotFoundException();
+        e.UserCode = model.UserCode; e.UserName = model.UserName; e.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
+    public async Task NotifyManagerDeleteAsync(int id)
+    {
+        var m = await db.NotifyManagers.FirstOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException();
+        // Xóa kèm ma trận phân quyền của user này (theo quan hệ UserCode).
+        var subs = await db.NotifySubscriptions.Where(s => s.UserCode == m.UserCode).ToListAsync();
+        db.NotifySubscriptions.RemoveRange(subs);
+        db.NotifyManagers.Remove(m);
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<List<NotifySubscription>> NotifySubscriptionsAsync(string? userCode)
+    {
+        var query = db.NotifySubscriptions.AsQueryable();
+        if (!string.IsNullOrWhiteSpace(userCode)) query = query.Where(s => s.UserCode == userCode);
+        var list = await query.ToListAsync();
+        return list.OrderBy(s => s.UserCode).ThenBy(s => s.NotifyTypeCode).ToList();
+    }
+
+    public async Task NotifySubscriptionSaveAsync(string userCode, List<NotifySubscription> subs)
+    {
+        // Thay toàn bộ ma trận của 1 user (theo Map_UserInNotifyType: clear-all/insert-all).
+        var existing = await db.NotifySubscriptions.Where(s => s.UserCode == userCode).ToListAsync();
+        db.NotifySubscriptions.RemoveRange(existing);
+        foreach (var s in subs)
+        {
+            s.UserCode = userCode;
+            s.CreatedAt = s.UpdatedAt = DateTime.Now;
+            db.NotifySubscriptions.Add(s);
+        }
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<NotifyStats> NotifyStatsAsync()
+    {
+        var types = await db.NotifyTypes.ToListAsync();
+        var managers = await db.NotifyManagers.CountAsync();
+        var subs = await db.NotifySubscriptions.ToListAsync();
+        return new NotifyStats(
+            types.Count,
+            types.Count(t => t.DefaultActive),
+            managers,
+            subs.Count,
+            subs.Count(s => s.FlagNotify));
     }
 }

@@ -407,4 +407,26 @@ public static class Ui
         "FACEBOOK" => "bi-facebook",
         _ => "bi-broadcast"
     };
+
+    // ── Quản lý thông báo (Mst_NotifyType / Mst_ManageNotify / Map_UserInNotifyType) ──
+    public static string NotifyActiveBadge(bool active) => active
+        ? "<span class='badge bg-success-subtle text-success border-success-subtle'>Bật mặc định</span>"
+        : "<span class='badge bg-secondary-subtle text-secondary border-secondary-subtle'>Tắt mặc định</span>";
+    public static string NotifyFlagBadge(bool on) => on
+        ? "<span class='badge bg-success-subtle text-success border-success-subtle'><i class='bi bi-bell-fill me-1'></i>Nhận</span>"
+        : "<span class='badge bg-secondary-subtle text-secondary border-secondary-subtle'><i class='bi bi-bell-slash me-1'></i>Không nhận</span>";
+    /// <summary>Biểu tượng theo loại thông báo (dựa vào mã).</summary>
+    public static string NotifyTypeIcon(string code) => code.ToUpperInvariant() switch
+    {
+        "INVOICE_CREATE" => "bi-receipt",
+        "INVOICEISSUED" => "bi-file-earmark-check",
+        "DLORDERAPPROVED" => "bi-bag-check",
+        "SOORDERCREATED" => "bi-cart-plus",
+        "SOORDERAPPROVED" => "bi-cart-check",
+        "SRORDERCREATED" => "bi-basket",
+        "SRORDERAPPROVED" => "bi-basket-fill",
+        "CONTRACTSENT" => "bi-file-earmark-text",
+        "OTHERS" => "bi-bell",
+        _ => "bi-bell"
+    };
 }
