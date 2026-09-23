@@ -1,0 +1,79 @@
+@model AllocateRule
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Tạo thiết lập phân bổ" : "Sửa thiết lập phân bổ";
+    var agents = Model.Agents.ToList();
+    if (agents.Count == 0) agents.Add(new AllocateAgent());
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Phân bổ phiếu tự động</a>
+        <h5 class="fw-bold mb-0 mt-1">@ViewData["Title"]</h5>
+    </div>
+</div>
+
+<form asp-action="Save" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="Id" value="@Model.Id" />
+
+    <div class="card mb-3"><div class="card-body">
+        <h6 class="fw-bold mb-3"><i class="bi bi-info-circle me-1"></i>Thông tin thiết lập</h6>
+        <div class="row g-3">
+            <div class="col-md-6"><label class="form-label small">Mã phòng ban nhận phiếu <span class="text-danger">*</span></label>
+                <input name="DepartmentCode" value="@Model.DepartmentCode" class="form-control form-control-sm" placeholder="VD: PB-KYTHUAT" required /></div>
+            <div class="col-md-6"><label class="form-label small">Ghi chú</label>
+                <input name="Remark" value="@Model.Remark" class="form-control form-control-sm" placeholder="Mô tả thiết lập" /></div>
+            <div class="col-md-4"><div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="AllocateEven" value="true" id="allocateEven" @(Model.AllocateEven ? "checked" : "") />
+                <label class="form-check-label small" for="allocateEven">Chia đều cho agent (FlagAllocateEven)</label></div></div>
+            <div class="col-md-4"><div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="AssignAgent" value="true" id="assignAgent" @(Model.AssignAgent ? "checked" : "") />
+                <label class="form-check-label small" for="assignAgent">Tự gán agent (FlagAssignAgent)</label></div></div>
+            <div class="col-md-4"><div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="AllMissedCall" value="true" id="allMissedCall" @(Model.AllMissedCall ? "checked" : "") />
+                <label class="form-check-label small" for="allMissedCall">Gán cả cuộc gọi nhỡ (FlagAllMissedCall)</label></div></div>
+            <div class="col-12"><div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="IsActive" value="true" id="isActive" @(Model.IsActive ? "checked" : "") />
+                <label class="form-check-label small" for="isActive">Đang dùng (FlagActive)</label></div></div>
+        </div>
+    </div></div>
+
+    <div class="card mb-3"><div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold mb-0"><i class="bi bi-people me-1"></i>Agent nhận phiếu</h6>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="addRow()"><i class="bi bi-plus-lg me-1"></i>Thêm agent</button>
+        </div>
+        <div class="table-responsive"><table class="table align-middle mb-0" id="agentTable">
+            <thead><tr><th style="width:40%">Mã agent (UserCode)</th><th>Ghi chú</th><th style="width:40px"></th></tr></thead>
+            <tbody>
+                @foreach (var a in agents)
+                {
+                    <tr>
+                        <td><input name="agentCode" value="@a.AgentCode" class="form-control form-control-sm" placeholder="VD: ha.nguyen" /></td>
+                        <td><input name="agentRemark" value="@a.Remark" class="form-control form-control-sm" placeholder="Ghi chú" /></td>
+                        <td><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('tr').remove()"><i class="bi bi-x-lg"></i></button></td>
+                    </tr>
+                }
+            </tbody>
+        </table></div>
+        <div class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i>Khi bật "Tự gán agent", phiếu mới sẽ được phân cho các agent trong danh sách này (chia đều nếu bật FlagAllocateEven).</div>
+    </div></div>
+
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary btn-sm"><i class="bi bi-check-lg me-1"></i>Lưu thiết lập</button>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Hủy</a>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+    function addRow() {
+        const tb = document.querySelector('#agentTable tbody');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input name="agentCode" class="form-control form-control-sm" placeholder="VD: ha.nguyen" /></td>
+            <td><input name="agentRemark" class="form-control form-control-sm" placeholder="Ghi chú" /></td>
+            <td><button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('tr').remove()"><i class="bi bi-x-lg"></i></button></td>`;
+        tb.appendChild(tr);
+    }
+</script>
+}

@@ -301,6 +301,42 @@ public static class Seeder
             );
             await db.SaveChangesAsync();
         }
+
+        if (!await db.AllocateRules.AnyAsync())
+        {
+            db.AllocateRules.AddRange(
+                new AllocateRule
+                {
+                    DepartmentCode = "PB-KYTHUAT", AllocateEven = true, AssignAgent = true, AllMissedCall = true,
+                    IsActive = true, Remark = "Chia đều phiếu kỹ thuật cho các agent trong tổ.",
+                    CreatedAt = DateTime.Now.AddDays(-15), UpdatedAt = DateTime.Now.AddDays(-3), CreatedBy = "Hệ thống",
+                    Agents =
+                    [
+                        new AllocateAgent { AgentCode = "ha.nguyen", Remark = "Tổ trưởng kỹ thuật" },
+                        new AllocateAgent { AgentCode = "minh.tran", Remark = "Kỹ thuật viên" },
+                        new AllocateAgent { AgentCode = "lan.le", Remark = "Kỹ thuật viên" }
+                    ]
+                },
+                new AllocateRule
+                {
+                    DepartmentCode = "PB-CSKH", AllocateEven = false, AssignAgent = true, AllMissedCall = false,
+                    IsActive = true, Remark = "Gán phiếu chăm sóc khách hàng theo thứ tự agent.",
+                    CreatedAt = DateTime.Now.AddDays(-10), UpdatedAt = DateTime.Now.AddDays(-1), CreatedBy = "Hệ thống",
+                    Agents =
+                    [
+                        new AllocateAgent { AgentCode = "ha.nguyen", Remark = "CSKH" },
+                        new AllocateAgent { AgentCode = "lan.le", Remark = "CSKH" }
+                    ]
+                },
+                new AllocateRule
+                {
+                    DepartmentCode = "PB-TONGDAI", AllocateEven = true, AssignAgent = false, AllMissedCall = true,
+                    IsActive = false, Remark = "Chỉ phân về phòng ban tổng đài, không gán agent.",
+                    CreatedAt = DateTime.Now.AddDays(-20), UpdatedAt = DateTime.Now.AddDays(-20), CreatedBy = "Hệ thống"
+                }
+            );
+            await db.SaveChangesAsync();
+        }
     }
 
     /// <summary>DB Postgres cloud cũ: tạo Orgs + thêm cột OrgId nếu thiếu, backfill về org mặc định. Idempotent.</summary>
@@ -308,7 +344,7 @@ public static class Seeder
     {
         if (!db.Database.IsNpgsql()) return;
         var def = TenantContext.DefaultOrgId;
-        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups" };
+        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents" };
         var sql = new List<string>
         {
             "CREATE TABLE IF NOT EXISTS minicskh.\"Orgs\" (\"Id\" uuid PRIMARY KEY, \"Name\" text NOT NULL DEFAULT '', \"ApiKey\" text NOT NULL DEFAULT '', \"CreatedAt\" timestamp NOT NULL DEFAULT now())",

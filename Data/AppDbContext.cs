@@ -30,6 +30,8 @@ public class AppDbContext : DbContext
     public DbSet<CustomerContact> CustomerContacts => Set<CustomerContact>();
     public DbSet<CustomerHistory> CustomerHistories => Set<CustomerHistory>();
     public DbSet<CustomerGroup> CustomerGroups => Set<CustomerGroup>();
+    public DbSet<AllocateRule> AllocateRules => Set<AllocateRule>();
+    public DbSet<AllocateAgent> AllocateAgents => Set<AllocateAgent>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -171,6 +173,19 @@ public class AppDbContext : DbContext
         b.Entity<CustomerHistory>(e =>
         {
             e.HasOne(x => x.Owner).WithMany(x => x.Histories).HasForeignKey(x => x.CustomerId);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<AllocateRule>(e =>
+        {
+            e.Property(x => x.DepartmentCode).HasMaxLength(30);
+            e.Ignore(x => x.AgentCount);
+            e.Ignore(x => x.ModeText);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<AllocateAgent>(e =>
+        {
+            e.Property(x => x.AgentCode).HasMaxLength(30);
+            e.HasOne(x => x.Rule).WithMany(x => x.Agents).HasForeignKey(x => x.AllocateRuleId);
             e.HasQueryFilter(x => x.OrgId == _orgId);
         });
     }

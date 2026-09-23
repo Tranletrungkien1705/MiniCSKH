@@ -72,6 +72,12 @@ public interface ITicketService
     Task CustomerToggleAsync(int id);
     Task<CustomerStats> CustomerStatsAsync();
     Task<List<CustomerGroup>> CustomerGroupsAsync();
+    // Thiết lập phân bổ phiếu tự động (Mst_EstablishAllocateETicket)
+    Task<List<AllocateRule>> AllocateRulesAsync(bool? active, string? q);
+    Task<AllocateRule?> AllocateRuleGetAsync(int id);
+    Task<int> AllocateRuleSaveAsync(AllocateRule model, List<AllocateAgent> agents);
+    Task AllocateRuleToggleAsync(int id);
+    Task<AllocateStats> AllocateStatsAsync();
 }
 
 public record SlaStats(int Policies, int TicketsWithSla, int ViolatingFirstRes, int ViolatingResolution);
@@ -83,6 +89,8 @@ public record SurveyStats(int Total, int Active, int Used, int Fields);
 public record SvImprvStats(int Total, int Active, int Used, int Criteria);
 
 public record CustomerStats(int Total, int Active, int Business, int Individual, int Contacts);
+
+public record AllocateStats(int Total, int Active, int AssignAgent, int AllMissedCall, int Agents);
 
 public record TicketTypeStats(int Total, int Active, int ETicket, int Campaign);
 
@@ -612,5 +620,61 @@ public class TicketService(AppDbContext db) : ITicketService
     {
         var list = await db.CustomerGroups.Include(g => g.Customers).ToListAsync();
         return list.OrderBy(g => g.Name).ToList();
+    }
+
+    // ── Thiết lập phân bổ phiếu tự động (Mst_EstablishAllocateETicket) ──
+    public async Task<List<AllocateRule>> AllocateRulesAsync(bool? active, string? q)
+    {
+        var query = db.AllocateRules.Include(r => r.Agents).AsQueryable();
+        if (active.HasValue) query = query.Where(r => r.IsActive == active.Value);
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(r => r.DepartmentCode.Contains(q) || (r.Remark ?? "").Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderByDescending(r => r.UpdatedAt).ToList();
+    }
+
+    public Task<AllocateRule?> AllocateRuleGetAsync(int id) =>
+        db.AllocateRules.Include(r => r.Agents).FirstOrDefaultAsync(r => r.Id == id);
+
+    public async Task<int> AllocateRuleSaveAsync(AllocateRule model, List<AllocateAgent> agents)
+    {
+        if (model.Id == 0)
+        {
+            model.CreatedAt = model.UpdatedAt = DateTime.Now;
+            foreach (var a in agents) model.Agents.Add(a);
+            db.AllocateRules.Add(model);
+            await db.SaveChangesAsync();
+            return model.Id;
+        }
+        var e = await db.AllocateRules.Include(x => x.Agents).FirstOrDefaultAsync(x => x.Id == model.Id)
+            ?? throw new KeyNotFoundException();
+        e.DepartmentCode = model.DepartmentCode; e.AllocateEven = model.AllocateEven;
+        e.AssignAgent = model.AssignAgent; e.AllMissedCall = model.AllMissedCall;
+        e.IsActive = model.IsActive; e.Remark = model.Remark; e.UpdatedAt = DateTime.Now;
+        // Thay toàn bộ danh sách agent nhận phiếu (thiết lập là cấu hình, không giữ lịch sử).
+        db.AllocateAgents.RemoveRange(e.Agents);
+        e.Agents.Clear();
+        foreach (var a in agents) e.Agents.Add(a);
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
+    public async Task AllocateRuleToggleAsync(int id)
+    {
+        var r = await db.AllocateRules.FirstOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException();
+        r.IsActive = !r.IsActive;
+        r.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<AllocateStats> AllocateStatsAsync()
+    {
+        var list = await db.AllocateRules.Include(r => r.Agents).ToListAsync();
+        return new AllocateStats(
+            list.Count,
+            list.Count(r => r.IsActive),
+            list.Count(r => r.AssignAgent),
+            list.Count(r => r.AllMissedCall),
+            list.Sum(r => r.Agents.Count));
     }
 }

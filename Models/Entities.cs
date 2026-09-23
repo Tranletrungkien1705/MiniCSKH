@@ -466,3 +466,45 @@ public class CustomerHistory : IOrgOwned
     public DateTime ChangedAt { get; set; } = DateTime.Now;   // LUDTimeUTC
     public Customer Owner { get; set; } = null!;
 }
+
+// ── Thiết lập phân bổ phiếu tự động (Mst_EstablishAllocateETicket) ────
+// Theo SkyCS: cấu hình cách hệ thống tự động phân bổ eTicket mới về phòng ban
+// và gán cho agent. Gồm 1 bản ghi cấu hình (Mst_EstablishAllocateETicket) +
+// danh sách agent nhận phiếu (Mst_EstablishAllocateETAssignAgent).
+// (11.BackEnd/V10/idn.SkyCS.Biz/Master.cs, `Mst_EstablishAllocateETicket_Get`/`_SaveX`)
+
+/// <summary>Thiết lập phân bổ phiếu tự động (Mst_EstablishAllocateETicket).</summary>
+public class AllocateRule : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string DepartmentCode { get; set; } = "";   // DepartmentCode — phòng ban nhận phiếu
+    public bool AllocateEven { get; set; } = true;      // FlagAllocateEven — chia đều cho các agent
+    public bool AssignAgent { get; set; } = true;       // FlagAssignAgent — tự gán agent
+    public bool AllMissedCall { get; set; }             // FlagAllMissedCall — gán cả cuộc gọi nhỡ
+    public bool IsActive { get; set; } = true;          // FlagActive
+    public string? Remark { get; set; }                 // Remark
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // LogLUDTimeUTC
+    public string CreatedBy { get; set; } = "";        // LogLUBy
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+    public List<AllocateAgent> Agents { get; set; } = [];
+
+    // ── tính toán ────────────────────
+    public int AgentCount => Agents.Count;
+    public string ModeText => AssignAgent
+        ? (AllocateEven ? "Chia đều cho agent" : "Gán agent theo thứ tự")
+        : "Chỉ phân về phòng ban";
+}
+
+/// <summary>Agent nhận phiếu trong thiết lập phân bổ (Mst_EstablishAllocateETAssignAgent).</summary>
+public class AllocateAgent : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public int AllocateRuleId { get; set; }
+    public string AgentCode { get; set; } = "";        // AgentCode — mã agent (Sys_User.UserCode)
+    public string? Remark { get; set; }                 // Remark
+    public bool IsActive { get; set; } = true;          // FlagActive
+    public AllocateRule Rule { get; set; } = null!;
+}

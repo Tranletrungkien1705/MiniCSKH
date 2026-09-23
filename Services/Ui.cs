@@ -136,4 +136,20 @@ public static class Ui
 
     public static string PartnerTypeName(PartnerType p) => p switch
     { PartnerType.Customer => "Khách hàng", PartnerType.Supplier => "Nhà cung cấp", PartnerType.Both => "Cả hai", _ => p.ToString() };
+
+    // ── Thiết lập phân bổ phiếu tự động (Mst_EstablishAllocateETicket) ──
+    public static string AllocateModeName(AllocateRule r) => r switch
+    {
+        { AssignAgent: false } => "Phân về phòng ban",
+        { AllocateEven: true } => "Chia đều cho agent",
+        _ => "Gán agent theo thứ tự"
+    };
+    public static string AllocateModeColor(AllocateRule r) => r switch
+    {
+        { AssignAgent: false } => "secondary",
+        { AllocateEven: true } => "success",
+        _ => "info"
+    };
+    public static string AllocateModeBadge(AllocateRule r) =>
+        $"<span class='badge bg-{AllocateModeColor(r)}-subtle text-{AllocateModeColor(r)} border-{AllocateModeColor(r)}-subtle'>{AllocateModeName(r)}</span>";
 }
