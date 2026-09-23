@@ -337,6 +337,33 @@ public static class Seeder
             );
             await db.SaveChangesAsync();
         }
+
+        if (!await db.ReminderRules.AnyAsync())
+        {
+            db.ReminderRules.AddRange(
+                new ReminderRule
+                {
+                    EstablishId = "RM-SLA", NotifySystem = true, NotifyEmail = true, NotifySms = false, NotifyZalo = true,
+                    SubFormCodeEmail = "TPL-REMIND-EMAIL", SubFormCodeZalo = "TPL-REMIND-ZALO",
+                    IsActive = true, Remark = "Nhắc khi phiếu sắp tới hạn SLA: thông báo hệ thống + email + Zalo.",
+                    CreatedAt = DateTime.Now.AddDays(-12), UpdatedAt = DateTime.Now.AddDays(-2), CreatedBy = "Hệ thống"
+                },
+                new ReminderRule
+                {
+                    EstablishId = "RM-OVERDUE", NotifySystem = true, NotifyEmail = true, NotifySms = true, NotifyZalo = false,
+                    SubFormCodeEmail = "TPL-OVERDUE-EMAIL", SubFormCodeSms = "TPL-OVERDUE-SMS",
+                    IsActive = true, Remark = "Nhắc khi phiếu đã quá hạn xử lý: hệ thống + email + SMS.",
+                    CreatedAt = DateTime.Now.AddDays(-8), UpdatedAt = DateTime.Now.AddDays(-1), CreatedBy = "Hệ thống"
+                },
+                new ReminderRule
+                {
+                    EstablishId = "RM-OLD", NotifySystem = true, NotifyEmail = false, NotifySms = false, NotifyZalo = false,
+                    IsActive = false, Remark = "Thiết lập cũ, đã ngừng dùng.",
+                    CreatedAt = DateTime.Now.AddDays(-30), UpdatedAt = DateTime.Now.AddDays(-30), CreatedBy = "Hệ thống"
+                }
+            );
+            await db.SaveChangesAsync();
+        }
     }
 
     /// <summary>DB Postgres cloud cũ: tạo Orgs + thêm cột OrgId nếu thiếu, backfill về org mặc định. Idempotent.</summary>
@@ -344,7 +371,7 @@ public static class Seeder
     {
         if (!db.Database.IsNpgsql()) return;
         var def = TenantContext.DefaultOrgId;
-        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents" };
+        var tables = new[] { "Agents", "Categories", "TicketTypes", "SlaPolicies", "Tickets", "Comments", "KbArticles", "Calls", "Campaigns", "CampaignCustomers", "Ratings", "SurveyForms", "SurveyFormFields", "ServiceImprovements", "SvImprvCriteria", "Customers", "CustomerContacts", "CustomerHistories", "CustomerGroups", "AllocateRules", "AllocateAgents", "ReminderRules" };
         var sql = new List<string>
         {
             "CREATE TABLE IF NOT EXISTS minicskh.\"Orgs\" (\"Id\" uuid PRIMARY KEY, \"Name\" text NOT NULL DEFAULT '', \"ApiKey\" text NOT NULL DEFAULT '', \"CreatedAt\" timestamp NOT NULL DEFAULT now())",

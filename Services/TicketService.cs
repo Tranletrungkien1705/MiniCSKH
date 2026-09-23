@@ -78,6 +78,12 @@ public interface ITicketService
     Task<int> AllocateRuleSaveAsync(AllocateRule model, List<AllocateAgent> agents);
     Task AllocateRuleToggleAsync(int id);
     Task<AllocateStats> AllocateStatsAsync();
+    // Thiết lập nhắc nhở phiếu (Mst_EstablishRemindETicket)
+    Task<List<ReminderRule>> ReminderRulesAsync(bool? active, RemindChannel? channel, string? q);
+    Task<ReminderRule?> ReminderRuleGetAsync(int id);
+    Task<int> ReminderRuleSaveAsync(ReminderRule model);
+    Task ReminderRuleToggleAsync(int id);
+    Task<ReminderStats> ReminderStatsAsync();
 }
 
 public record SlaStats(int Policies, int TicketsWithSla, int ViolatingFirstRes, int ViolatingResolution);
@@ -91,6 +97,8 @@ public record SvImprvStats(int Total, int Active, int Used, int Criteria);
 public record CustomerStats(int Total, int Active, int Business, int Individual, int Contacts);
 
 public record AllocateStats(int Total, int Active, int AssignAgent, int AllMissedCall, int Agents);
+
+public record ReminderStats(int Total, int Active, int System, int Email, int Sms, int Zalo);
 
 public record TicketTypeStats(int Total, int Active, int ETicket, int Campaign);
 
@@ -676,5 +684,65 @@ public class TicketService(AppDbContext db) : ITicketService
             list.Count(r => r.AssignAgent),
             list.Count(r => r.AllMissedCall),
             list.Sum(r => r.Agents.Count));
+    }
+
+    // ── Thiết lập nhắc nhở phiếu (Mst_EstablishRemindETicket) ────────
+    public async Task<List<ReminderRule>> ReminderRulesAsync(bool? active, RemindChannel? channel, string? q)
+    {
+        var query = db.ReminderRules.AsQueryable();
+        if (active.HasValue) query = query.Where(r => r.IsActive == active.Value);
+        if (channel.HasValue) query = query.Where(r =>
+            (channel.Value == RemindChannel.System && r.NotifySystem) ||
+            (channel.Value == RemindChannel.Email && r.NotifyEmail) ||
+            (channel.Value == RemindChannel.Sms && r.NotifySms) ||
+            (channel.Value == RemindChannel.Zalo && r.NotifyZalo));
+        if (!string.IsNullOrWhiteSpace(q))
+            query = query.Where(r => r.EstablishId.Contains(q) || (r.Remark ?? "").Contains(q));
+        var list = await query.ToListAsync();
+        return list.OrderByDescending(r => r.UpdatedAt).ToList();
+    }
+
+    public Task<ReminderRule?> ReminderRuleGetAsync(int id) =>
+        db.ReminderRules.FirstOrDefaultAsync(r => r.Id == id);
+
+    public async Task<int> ReminderRuleSaveAsync(ReminderRule model)
+    {
+        if (model.Id == 0)
+        {
+            if (string.IsNullOrWhiteSpace(model.EstablishId)) model.EstablishId = "RM-" + Guid.NewGuid().ToString("N")[..6].ToUpperInvariant();
+            model.CreatedAt = model.UpdatedAt = DateTime.Now;
+            db.ReminderRules.Add(model);
+            await db.SaveChangesAsync();
+            return model.Id;
+        }
+        var e = await db.ReminderRules.FirstOrDefaultAsync(x => x.Id == model.Id) ?? throw new KeyNotFoundException();
+        e.EstablishId = model.EstablishId;
+        e.NotifySystem = model.NotifySystem; e.NotifyEmail = model.NotifyEmail;
+        e.NotifySms = model.NotifySms; e.NotifyZalo = model.NotifyZalo;
+        e.SubFormCodeEmail = model.SubFormCodeEmail; e.SubFormCodeSms = model.SubFormCodeSms;
+        e.SubFormCodeZalo = model.SubFormCodeZalo;
+        e.IsActive = model.IsActive; e.Remark = model.Remark; e.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+        return e.Id;
+    }
+
+    public async Task ReminderRuleToggleAsync(int id)
+    {
+        var r = await db.ReminderRules.FirstOrDefaultAsync(x => x.Id == id) ?? throw new KeyNotFoundException();
+        r.IsActive = !r.IsActive;
+        r.UpdatedAt = DateTime.Now;
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<ReminderStats> ReminderStatsAsync()
+    {
+        var list = await db.ReminderRules.ToListAsync();
+        return new ReminderStats(
+            list.Count,
+            list.Count(r => r.IsActive),
+            list.Count(r => r.NotifySystem),
+            list.Count(r => r.NotifyEmail),
+            list.Count(r => r.NotifySms),
+            list.Count(r => r.NotifyZalo));
     }
 }

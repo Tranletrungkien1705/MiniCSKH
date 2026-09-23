@@ -32,6 +32,7 @@ public class AppDbContext : DbContext
     public DbSet<CustomerGroup> CustomerGroups => Set<CustomerGroup>();
     public DbSet<AllocateRule> AllocateRules => Set<AllocateRule>();
     public DbSet<AllocateAgent> AllocateAgents => Set<AllocateAgent>();
+    public DbSet<ReminderRule> ReminderRules => Set<ReminderRule>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -186,6 +187,14 @@ public class AppDbContext : DbContext
         {
             e.Property(x => x.AgentCode).HasMaxLength(30);
             e.HasOne(x => x.Rule).WithMany(x => x.Agents).HasForeignKey(x => x.AllocateRuleId);
+            e.HasQueryFilter(x => x.OrgId == _orgId);
+        });
+        b.Entity<ReminderRule>(e =>
+        {
+            e.Property(x => x.EstablishId).HasMaxLength(30);
+            e.HasIndex(x => x.EstablishId);
+            e.Ignore(x => x.ChannelCount);
+            e.Ignore(x => x.Channels);
             e.HasQueryFilter(x => x.OrgId == _orgId);
         });
     }

@@ -152,4 +152,23 @@ public static class Ui
     };
     public static string AllocateModeBadge(AllocateRule r) =>
         $"<span class='badge bg-{AllocateModeColor(r)}-subtle text-{AllocateModeColor(r)} border-{AllocateModeColor(r)}-subtle'>{AllocateModeName(r)}</span>";
+
+    // ── Thiết lập nhắc nhở phiếu (Mst_EstablishRemindETicket) ──
+    public static string RemindChannelName(RemindChannel c) => c switch
+    {
+        RemindChannel.System => "Hệ thống", RemindChannel.Email => "Email",
+        RemindChannel.Sms => "SMS", RemindChannel.Zalo => "Zalo", _ => c.ToString()
+    };
+    public static string RemindChannelColor(RemindChannel c) => c switch
+    {
+        RemindChannel.System => "primary", RemindChannel.Email => "info",
+        RemindChannel.Sms => "warning", RemindChannel.Zalo => "success", _ => "secondary"
+    };
+    public static string RemindChannelIcon(RemindChannel c) => c switch
+    {
+        RemindChannel.System => "bi-bell", RemindChannel.Email => "bi-envelope",
+        RemindChannel.Sms => "bi-chat-left-text", RemindChannel.Zalo => "bi-chat-dots", _ => "bi-tag"
+    };
+    public static string RemindChannelBadge(RemindChannel c) =>
+        $"<span class='badge bg-{RemindChannelColor(c)}-subtle text-{RemindChannelColor(c)} border-{RemindChannelColor(c)}-subtle'><i class='bi {RemindChannelIcon(c)} me-1'></i>{RemindChannelName(c)}</span>";
 }

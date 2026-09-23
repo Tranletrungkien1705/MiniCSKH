@@ -1,0 +1,64 @@
+@model ReminderRule
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Tạo thiết lập nhắc nhở" : "Sửa thiết lập nhắc nhở";
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Nhắc nhở phiếu</a>
+        <h5 class="fw-bold mb-0 mt-1">@ViewData["Title"]</h5>
+    </div>
+</div>
+
+<form asp-action="Save" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="Id" value="@Model.Id" />
+
+    <div class="card mb-3"><div class="card-body">
+        <h6 class="fw-bold mb-3"><i class="bi bi-info-circle me-1"></i>Thông tin thiết lập</h6>
+        <div class="row g-3">
+            <div class="col-md-6"><label class="form-label small">Mã thiết lập <span class="text-danger">*</span></label>
+                <input name="EstablishId" value="@Model.EstablishId" class="form-control form-control-sm" placeholder="VD: RM-SLA" required /></div>
+            <div class="col-md-6"><label class="form-label small">Ghi chú</label>
+                <input name="Remark" value="@Model.Remark" class="form-control form-control-sm" placeholder="Mô tả thiết lập" /></div>
+            <div class="col-12"><div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="IsActive" value="true" id="isActive" @(Model.IsActive ? "checked" : "") />
+                <label class="form-check-label small" for="isActive">Đang dùng (FlagActive)</label></div></div>
+        </div>
+    </div></div>
+
+    <div class="card mb-3"><div class="card-body">
+        <h6 class="fw-bold mb-3"><i class="bi bi-broadcast me-1"></i>Kênh nhắc nhở</h6>
+        <div class="row g-3">
+            <div class="col-md-6"><div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="NotifySystem" value="true" id="notifySystem" @(Model.NotifySystem ? "checked" : "") />
+                <label class="form-check-label small" for="notifySystem"><i class="bi bi-bell me-1"></i>Thông báo hệ thống (FlagNotifySystem)</label></div></div>
+            <div class="col-md-6"><div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="NotifyEmail" value="true" id="notifyEmail" @(Model.NotifyEmail ? "checked" : "") />
+                <label class="form-check-label small" for="notifyEmail"><i class="bi bi-envelope me-1"></i>Email (FlagNotifyEmail)</label></div></div>
+            <div class="col-md-6"><div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="NotifySms" value="true" id="notifySms" @(Model.NotifySms ? "checked" : "") />
+                <label class="form-check-label small" for="notifySms"><i class="bi bi-chat-left-text me-1"></i>SMS (FlagNotifySMS)</label></div></div>
+            <div class="col-md-6"><div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="NotifyZalo" value="true" id="notifyZalo" @(Model.NotifyZalo ? "checked" : "") />
+                <label class="form-check-label small" for="notifyZalo"><i class="bi bi-chat-dots me-1"></i>Zalo (FlagNotifyZalo)</label></div></div>
+        </div>
+    </div></div>
+
+    <div class="card mb-3"><div class="card-body">
+        <h6 class="fw-bold mb-3"><i class="bi bi-file-earmark-text me-1"></i>Mẫu nội dung theo kênh</h6>
+        <div class="row g-3">
+            <div class="col-md-4"><label class="form-label small">Mẫu Email (SubFormCodeEmail)</label>
+                <input name="SubFormCodeEmail" value="@Model.SubFormCodeEmail" class="form-control form-control-sm" placeholder="VD: TPL-REMIND-EMAIL" /></div>
+            <div class="col-md-4"><label class="form-label small">Mẫu SMS (SubFormCodeSMS)</label>
+                <input name="SubFormCodeSms" value="@Model.SubFormCodeSms" class="form-control form-control-sm" placeholder="VD: TPL-REMIND-SMS" /></div>
+            <div class="col-md-4"><label class="form-label small">Mẫu Zalo (SubFormCodeZalo)</label>
+                <input name="SubFormCodeZalo" value="@Model.SubFormCodeZalo" class="form-control form-control-sm" placeholder="VD: TPL-REMIND-ZALO" /></div>
+        </div>
+        <div class="small text-muted mt-2"><i class="bi bi-info-circle me-1"></i>Mẫu nội dung chỉ áp dụng cho kênh tương ứng khi kênh đó được bật.</div>
+    </div></div>
+
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary btn-sm"><i class="bi bi-check-lg me-1"></i>Lưu thiết lập</button>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Hủy</a>
+    </div>
+</form>

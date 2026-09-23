@@ -508,3 +508,49 @@ public class AllocateAgent : IOrgOwned
     public bool IsActive { get; set; } = true;          // FlagActive
     public AllocateRule Rule { get; set; } = null!;
 }
+
+// ── Thiết lập nhắc nhở phiếu (Mst_EstablishRemindETicket) ────────────
+// Theo SkyCS: cấu hình kênh thông báo khi phiếu tới hạn / quá hạn xử lý.
+// Mỗi bản ghi bật/tắt 4 kênh (Hệ thống/Email/SMS/Zalo) và gắn mẫu nội dung
+// (SubFormCode) cho từng kênh. (11.BackEnd/V10/idn.SkyCS.Biz/Master.cs,
+// `Mst_EstablishRemindETicket_Get`/`_SaveX`)
+
+/// <summary>Kênh nhắc nhở phiếu (Mst_EstablishRemindETicket.FlagNotify*).</summary>
+public enum RemindChannel { System = 0, Email = 1, Sms = 2, Zalo = 3 }
+
+/// <summary>Thiết lập nhắc nhở phiếu (Mst_EstablishRemindETicket).</summary>
+public class ReminderRule : IOrgOwned
+{
+    public int Id { get; set; }
+    public Guid OrgId { get; set; }
+    public string EstablishId { get; set; } = "";       // EstablishID — mã thiết lập
+    public bool NotifySystem { get; set; } = true;       // FlagNotifySystem — thông báo trên hệ thống
+    public bool NotifyEmail { get; set; }                // FlagNotifyEmail
+    public bool NotifySms { get; set; }                  // FlagNotifySMS
+    public bool NotifyZalo { get; set; }                 // FlagNotifyZalo
+    public string? SubFormCodeEmail { get; set; }        // SubFormCodeEmail — mẫu nội dung email
+    public string? SubFormCodeSms { get; set; }          // SubFormCodeSMS — mẫu nội dung SMS
+    public string? SubFormCodeZalo { get; set; }         // SubFormCodeZalo — mẫu nội dung Zalo
+    public bool IsActive { get; set; } = true;           // FlagActive
+    public string? Remark { get; set; }                  // Remark
+    public DateTime CreatedAt { get; set; } = DateTime.Now;   // LogLUDTimeUTC
+    public string CreatedBy { get; set; } = "";          // LogLUBy
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+    // ── tính toán ────────────────────
+    /// <summary>Số kênh nhắc nhở đang bật.</summary>
+    public int ChannelCount => (NotifySystem ? 1 : 0) + (NotifyEmail ? 1 : 0) + (NotifySms ? 1 : 0) + (NotifyZalo ? 1 : 0);
+    /// <summary>Danh sách kênh đang bật (dùng cho view).</summary>
+    public List<RemindChannel> Channels
+    {
+        get
+        {
+            var list = new List<RemindChannel>();
+            if (NotifySystem) list.Add(RemindChannel.System);
+            if (NotifyEmail) list.Add(RemindChannel.Email);
+            if (NotifySms) list.Add(RemindChannel.Sms);
+            if (NotifyZalo) list.Add(RemindChannel.Zalo);
+            return list;
+        }
+    }
+}

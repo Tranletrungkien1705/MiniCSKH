@@ -1,0 +1,67 @@
+@model ReminderRule
+@{
+    ViewData["Title"] = "Chi tiết thiết lập nhắc nhở";
+}
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Nhắc nhở phiếu</a>
+        <h5 class="fw-bold mb-1 mt-1">Thiết lập <span class="font-monospace">@Model.EstablishId</span>
+            @if(Model.IsActive){<span class="badge bg-success-subtle text-success border-success-subtle">Đang dùng</span>}
+            else{<span class="badge bg-secondary-subtle text-secondary border-secondary-subtle">Ngừng dùng</span>}</h5>
+        <div class="text-muted small">@Model.ChannelCount kênh nhắc nhở · tạo @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil me-1"></i>Sửa</a>
+        <form asp-action="Toggle" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.Id" />
+            <button class="btn btn-sm @(Model.IsActive?"btn-outline-secondary":"btn-primary")">
+                <i class="bi bi-toggle-@(Model.IsActive?"off":"on") me-1"></i>@(Model.IsActive?"Ngừng dùng":"Kích hoạt")</button>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Mã thiết lập</div><div class="fs-5 fw-bold font-monospace">@Model.EstablishId</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Số kênh bật</div><div class="fs-5 fw-bold">@Model.ChannelCount</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Thông báo hệ thống</div><div class="fs-5 fw-bold">@(Model.NotifySystem ? "Có" : "Không")</div></div></div></div>
+    <div class="col-md-3"><div class="card"><div class="card-body">
+        <div class="text-muted small text-uppercase">Cập nhật</div><div class="fs-5 fw-bold">@Model.UpdatedAt.ToString("dd/MM/yyyy")</div></div></div></div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.Remark))
+{
+    <div class="alert alert-light border"><i class="bi bi-info-circle me-1"></i>@Model.Remark</div>
+}
+
+<div class="card"><div class="card-body">
+    <h6 class="fw-bold mb-3"><i class="bi bi-broadcast me-1"></i>Kênh nhắc nhở &amp; mẫu nội dung</h6>
+    <div class="table-responsive"><table class="table table-hover align-middle mb-0">
+        <thead><tr><th>Kênh</th><th>Trạng thái</th><th>Mẫu nội dung (SubFormCode)</th></tr></thead>
+        <tbody>
+            <tr>
+                <td>@Html.Raw(Ui.RemindChannelBadge(RemindChannel.System))</td>
+                <td>@if(Model.NotifySystem){<span class="badge bg-success-subtle text-success border-success-subtle">Bật</span>}else{<span class="badge bg-secondary-subtle text-secondary border-secondary-subtle">Tắt</span>}</td>
+                <td class="small text-muted">Thông báo trong ứng dụng (không cần mẫu)</td>
+            </tr>
+            <tr>
+                <td>@Html.Raw(Ui.RemindChannelBadge(RemindChannel.Email))</td>
+                <td>@if(Model.NotifyEmail){<span class="badge bg-success-subtle text-success border-success-subtle">Bật</span>}else{<span class="badge bg-secondary-subtle text-secondary border-secondary-subtle">Tắt</span>}</td>
+                <td class="font-monospace small">@(string.IsNullOrWhiteSpace(Model.SubFormCodeEmail) ? "—" : Model.SubFormCodeEmail)</td>
+            </tr>
+            <tr>
+                <td>@Html.Raw(Ui.RemindChannelBadge(RemindChannel.Sms))</td>
+                <td>@if(Model.NotifySms){<span class="badge bg-success-subtle text-success border-success-subtle">Bật</span>}else{<span class="badge bg-secondary-subtle text-secondary border-secondary-subtle">Tắt</span>}</td>
+                <td class="font-monospace small">@(string.IsNullOrWhiteSpace(Model.SubFormCodeSms) ? "—" : Model.SubFormCodeSms)</td>
+            </tr>
+            <tr>
+                <td>@Html.Raw(Ui.RemindChannelBadge(RemindChannel.Zalo))</td>
+                <td>@if(Model.NotifyZalo){<span class="badge bg-success-subtle text-success border-success-subtle">Bật</span>}else{<span class="badge bg-secondary-subtle text-secondary border-secondary-subtle">Tắt</span>}</td>
+                <td class="font-monospace small">@(string.IsNullOrWhiteSpace(Model.SubFormCodeZalo) ? "—" : Model.SubFormCodeZalo)</td>
+            </tr>
+        </tbody>
+    </table></div>
+</div></div>
