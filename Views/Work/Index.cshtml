@@ -1,0 +1,78 @@
+@model List<Work>
+@{
+    ViewData["Title"] = "Công việc";
+    var agents = (List<Agent>)ViewBag.Agents;
+    var st = ViewBag.Status as WorkStatuses?;
+    var uid = ViewBag.UserId as int?;
+    string TenAgent(int id) => agents.FirstOrDefault(a => a.Id == id)?.Name ?? "—";
+}
+@* Cột bám WorkByUserResult.cshtml (Name, Start, End, StartActual, EndActual, Deadline, StdTime,
+   StatusDesc, Remark, ConvId) — NGUON_VIEW_BANG_COT.tsv: bảng Work, 12 cột. *@
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="h5 fw-bold mb-0"><i class="bi bi-list-task me-2"></i>Công việc
+            <span class="text-muted fw-normal" style="font-size:12px">(port 1:1 WorkByUserResult.cshtml — Work)</span></h1>
+        <small class="text-muted">@Model.Count công việc</small>
+    </div>
+    <a asp-action="Create" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Tạo công việc</a>
+</div>
+
+<form method="get" class="card p-3 mb-3"><div class="row g-2 align-items-end">
+    <div class="col-auto"><label class="form-label small mb-1">Trạng thái</label>
+        <select name="status" class="form-select form-select-sm">
+            <option value="">Tất cả</option>
+            @foreach (WorkStatuses s in Enum.GetValues<WorkStatuses>())
+            {
+                <option value="@s" selected="@(st == s)">@s</option>
+            }
+        </select></div>
+    <div class="col-auto"><label class="form-label small mb-1">Người phụ trách</label>
+        <select name="userId" class="form-select form-select-sm">
+            <option value="">Tất cả</option>
+            @foreach (var a in agents)
+            {
+                <option value="@a.Id" selected="@(uid == a.Id)">@a.Name</option>
+            }
+        </select></div>
+    <div class="col"><label class="form-label small mb-1">Tìm kiếm</label>
+        <input name="q" value="@ViewBag.Q" class="form-control form-control-sm" placeholder="Tên công việc / địa điểm" /></div>
+    <div class="col-auto"><button class="btn btn-outline-primary btn-sm">Lọc</button>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Xóa</a></div>
+</div></form>
+
+<div class="card"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
+    <thead><tr>
+        <th>Id</th><th>Tên công việc</th><th>Loại</th><th>Phụ trách</th><th>Bắt đầu</th><th>Kết thúc</th>
+        <th>Hạn</th><th>Định mức</th><th>Thực hiện</th><th>Ưu tiên</th><th>Trạng thái</th><th>Hội thoại</th>
+    </tr></thead>
+    <tbody>
+        @if (!Model.Any())
+        {
+            <tr><td colspan="12" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>Chưa có công việc</td></tr>
+        }
+        @foreach (var w in Model)
+        {
+            <tr>
+                <td class="font-monospace small">@w.Id</td>
+                <td class="fw-semibold">@w.Name
+                    @if (w.IsGroup)
+                    {
+                        @* Work.cs:81 IsGroup — WorkController.cs:419 đặt true khi có HƠN 1 người theo việc *@
+                        <span class="badge bg-info-subtle text-info border border-info-subtle ms-1">nhóm</span>
+                    }
+                </td>
+                <td class="small">@(w.WorkType?.Name ?? "—")</td>
+                <td class="small">@TenAgent(w.UserId)</td>
+                <td class="small font-monospace">@w.Start</td>
+                <td class="small font-monospace">@w.End</td>
+                <td class="small font-monospace">@w.Deadline</td>
+                <td class="small text-end">@(w.StdTime) phút</td>
+                <td class="small text-end">@(w.Duration) phút</td>
+                <td class="small">@w.Priority</td>
+                @* Work.cs:137 StatusDesc = Status.ToString() — nguồn hiển thị đúng chuỗi này *@
+                <td><span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">@w.StatusDesc</span></td>
+                <td class="small">@(w.ConvId > 0 ? $"#{w.ConvId}" : "—")</td>
+            </tr>
+        }
+    </tbody>
+</table></div></div>

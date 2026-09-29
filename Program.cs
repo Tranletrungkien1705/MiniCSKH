@@ -25,6 +25,7 @@ builder.Services.AddDbContext<AppDbContext>(o =>
     else o.UseSqlite(conn);
 });
 builder.Services.AddScoped<ITicketService, TicketService>();
+builder.Services.AddScoped<ISkyCsService, SkyCsService>();   // cụm port 1:1 từ 2023.8A.SkyCS (SLA/Conversation/Work)
 builder.Services.AddScoped<ITenantContext, TenantContext>();   // multi-tenant: ngữ cảnh org/request
 // SSO chung: tin token MiniSSO (OIDC RS256).
 var ssoAuthority = Environment.GetEnvironmentVariable("SSO_AUTHORITY") ?? "https://minisso.onrender.com";

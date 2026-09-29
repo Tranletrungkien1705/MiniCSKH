@@ -1,0 +1,187 @@
+@model Conversation
+@{
+    ViewData["Title"] = (string)ViewBag.PageTitle;
+    var L = (ConvEditLists)ViewBag.Lists;
+    var kh = Model.Customer ?? new CsCustomer();
+    // ConvEdit.cshtml:400 + :403-427 — danh sách agent theo Team, để lọc ô PIC theo Team đang chọn
+    var userInTeams = L.UserInTeams.Select(u => new { u.UserId, u.TeamId }).ToList();
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h5 fw-bold mb-0"><i class="bi bi-chat-left-text me-2"></i>@ViewBag.PageTitle
+        <span class="text-muted fw-normal" style="font-size:12px">(port 1:1 ConvEdit.cshtml — Conversation)</span></h1>
+    <a asp-action="Index" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Quay lại</a>
+</div>
+
+<form method="post" id="frmConv"><div class="card"><div class="card-body">
+    @Html.AntiForgeryToken()
+    @* ConvEdit.cshtml:35-36 — hai trường ẩn Id + CustomerId *@
+    <input type="hidden" name="Id" value="@Model.Id" />
+    <input type="hidden" name="CustomerId" value="@Model.CustomerId" />
+
+    <div class="row g-3">
+        @* ConvEdit.cshtml:39-44 — Title (bắt buộc) *@
+        <div class="col-md-6"><label class="form-label fw-semibold">Tiêu đề <span class="text-danger">*</span></label>
+            <input name="Title" value="@Model.Title" class="form-control" placeholder="Nhập tiêu đề" required /></div>
+
+        @* ConvEdit.cshtml:46-51 — Tags (nguồn dùng widget tagsinput, đích nhập chuỗi phân tách bằng ',') *@
+        <div class="col-md-6"><label class="form-label fw-semibold">Tags</label>
+            <input name="Tags" value="@Model.Tags" class="form-control" placeholder="cách nhau bằng dấu phẩy" /></div>
+    </div>
+
+    <hr class="my-4" />
+    <div class="mb-2 text-uppercase small fw-bold text-muted">Khách hàng</div>
+    <div class="row g-3">
+        @* ConvEdit.cshtml:53-74 — Customer.Name bắt buộc. Nguồn khi TẠO MỚI còn có nút "Select"/"New"
+           mở popup chọn khách (customer/selectonepop, ConvEdit.cshtml:357-381) — CỐ Ý BỎ popup,
+           đích cho nhập tay; cột thì giữ đủ. *@
+        <div class="col-md-4"><label class="form-label fw-semibold">Tên khách hàng <span class="text-danger">*</span></label>
+            <input name="Customer.Name" value="@kh.Name" class="form-control" required /></div>
+        @* ConvEdit.cshtml:77-82 *@
+        <div class="col-md-4"><label class="form-label fw-semibold">Mã khách hàng</label>
+            <input name="Customer.Code" value="@kh.Code" class="form-control" /></div>
+        @* ConvEdit.cshtml:83-88 *@
+        <div class="col-md-4"><label class="form-label fw-semibold">Địa chỉ</label>
+            <input name="Customer.Address" value="@kh.Address" class="form-control" /></div>
+        @* ConvEdit.cshtml:90-110 — Company (nguồn có nút "New company" mở EditCompany, CỐ Ý BỎ) *@
+        <div class="col-md-4"><label class="form-label fw-semibold">Công ty</label>
+            <select name="Customer.CompanyId" class="form-select">
+                <option value="0"></option>
+                @foreach (var item in L.Companies)
+                {
+                    <option value="@item.Id" selected="@(kh.CompanyId == item.Id)">@item.Name</option>
+                }
+            </select></div>
+        @* ConvEdit.cshtml:112-117 *@
+        <div class="col-md-4"><label class="form-label fw-semibold">Điện thoại</label>
+            <input name="Customer.PhoneNo" value="@kh.PhoneNo" class="form-control" /></div>
+        @* ConvEdit.cshtml:119-124 *@
+        <div class="col-md-4"><label class="form-label fw-semibold">Email</label>
+            <input name="Customer.Email" value="@kh.Email" class="form-control" /></div>
+    </div>
+
+    <hr class="my-4" />
+    <div class="mb-2 text-uppercase small fw-bold text-muted">Phân loại &amp; xử lý</div>
+    <div class="row g-3">
+        @* ConvEdit.cshtml:126-138 — Product, lọc IsActive ở controller nguồn :1127 *@
+        <div class="col-md-4"><label class="form-label fw-semibold">Sản phẩm</label>
+            <select name="ProductId" class="form-select">
+                <option value="0"></option>
+                @foreach (var item in L.ProductList)
+                {
+                    <option value="@item.Id" selected="@(Model.ProductId == item.Id)">@item.Name</option>
+                }
+            </select></div>
+
+        @* ConvEdit.cshtml:140-151 — Status bắt buộc *@
+        <div class="col-md-4"><label class="form-label fw-semibold">Trạng thái <span class="text-danger">*</span></label>
+            <select name="StatusId" class="form-select" required>
+                @foreach (var item in L.StatusList)
+                {
+                    <option value="@item.Code" selected="@(Model.StatusId == item.Code)">@item.Name</option>
+                }
+            </select></div>
+
+        @* ConvEdit.cshtml:153-165 — Type. Nguồn đánh dấu * trên nhãn nhưng KHÔNG đặt
+           data-val-required trên ô select ⇒ thực tế KHÔNG chặn. Port y nguyên hành vi thật. *@
+        <div class="col-md-4"><label class="form-label fw-semibold">Loại</label>
+            <select name="TypeId" class="form-select">
+                @foreach (var item in L.TypeList)
+                {
+                    <option value="@item.Code" selected="@(Model.TypeId == item.Code)">@item.Name</option>
+                }
+            </select></div>
+
+        @* ConvEdit.cshtml:167-179 — Priority (cũng chỉ * trên nhãn) *@
+        <div class="col-md-4"><label class="form-label fw-semibold">Ưu tiên</label>
+            <select name="PriorityId" class="form-select">
+                @foreach (var item in L.PriorityList)
+                {
+                    <option value="@item.Code" selected="@(Model.PriorityId == item.Code)">@item.Name</option>
+                }
+            </select></div>
+
+        @* ConvEdit.cshtml:182-194 — Source *@
+        <div class="col-md-4"><label class="form-label fw-semibold">Nguồn</label>
+            <select name="SourceId" class="form-select">
+                @foreach (var item in L.SourceList)
+                {
+                    <option value="@item.Code" selected="@(Model.SourceId == item.Code)">@item.Name</option>
+                }
+            </select></div>
+
+        @* ConvEdit.cshtml:206-216 — Channel *@
+        <div class="col-md-4"><label class="form-label fw-semibold">Kênh</label>
+            <select name="ChannelId" class="form-select">
+                @foreach (var item in L.ChannelList)
+                {
+                    <option value="@item.Code" selected="@(Model.ChannelId == item.Code)">@item.Name</option>
+                }
+            </select></div>
+
+        @* ConvEdit.cshtml:196-204 — Deadline bắt buộc, LƯU DẠNG CHUỖI "yyyy-MM-dd HH:mm"
+           (nguồn Conversation.cs:95 là string, picker nguồn format đúng dạng này — ConvEdit.cshtml:332) *@
+        <div class="col-md-4"><label class="form-label fw-semibold">Hạn xử lý <span class="text-danger">*</span></label>
+            <input name="Deadline" value="@Model.Deadline" class="form-control" placeholder="yyyy-MM-dd HH:mm" required /></div>
+
+        @* ConvEdit.cshtml:220-240 — PIC = cặp Team + người; ô người LỌC THEO Team đang chọn
+           (nguồn loadUsers(), ConvEdit.cshtml:403-443) và mặc định lấy Team.WorkAssignUserId (:438) *@
+        <div class="col-md-4"><label class="form-label fw-semibold">Nhóm xử lý</label>
+            <select name="TeamId" id="selTeam" class="form-select">
+                <option value="0"></option>
+                @foreach (var item in L.TeamList)
+                {
+                    <option value="@item.Id" data-default-id="@item.WorkAssignUserId" selected="@(Model.TeamId == item.Id)">@item.Name</option>
+                }
+            </select></div>
+        <div class="col-md-4"><label class="form-label fw-semibold">Người phụ trách (PIC) <span class="text-danger">*</span></label>
+            <select name="PicId" id="selPic" class="form-select" required></select></div>
+
+        @* ConvEdit.cshtml:244-256 — SLA, nguồn hiển thị SLA.Description (không phải Level) *@
+        <div class="col-md-4"><label class="form-label fw-semibold">SLA</label>
+            <select name="SLAId" class="form-select">
+                <option value="0"></option>
+                @foreach (var item in L.SlaList)
+                {
+                    <option value="@item.Id" selected="@(item.Id == Model.SLAId)">@item.Description</option>
+                }
+            </select></div>
+    </div>
+
+    @* ConvEdit.cshtml:262-263 — hai nút Save / Cancel *@
+    <div class="mt-3">
+        <button class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>Lưu</button>
+        <a asp-action="Index" class="btn btn-light">Hủy</a>
+    </div>
+</div></div></form>
+
+@section Scripts {
+<script>
+    // Port 1:1 ConvEdit.cshtml:403-443 — loadUsers(teamId, userId):
+    //  • xóa hết option của ô PIC, chèn lại option "0", rồi thêm những agent thuộc đúng Team đó
+    //  • đổi Team ⇒ PIC nhảy về Team.WorkAssignUserId ("default-id"); nếu default-id == '0' thì để trống
+    var userList = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(L.UserList.Select(u => new { Id = u.Id, Name = u.Name })));
+    var userInTeams = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(userInTeams));
+
+    function loadUsers(teamId, userId) {
+        var sel = document.getElementById('selPic');
+        sel.innerHTML = '<option value="0"></option>';
+        userInTeams.filter(function (uit) { return String(uit.TeamId) === String(teamId); })
+            .forEach(function (uit) {
+                var u = userList.find(function (x) { return String(x.Id) === String(uit.UserId); });
+                if (!u) return;
+                var o = document.createElement('option');
+                o.value = uit.UserId; o.text = u.Name;
+                sel.appendChild(o);
+            });
+        sel.value = userId;
+    }
+    loadUsers('@Model.TeamId', '@Model.PicId');
+
+    document.getElementById('selTeam').addEventListener('change', function () {
+        var opt = this.options[this.selectedIndex];
+        var userId = opt ? (opt.getAttribute('data-default-id') || 0) : 0;
+        if (String(userId) === '0') userId = '';
+        loadUsers(this.value, userId);
+    });
+</script>
+}

@@ -1,0 +1,101 @@
+@model List<Conversation>
+@{
+    ViewData["Title"] = "Hội thoại";
+    var L = (ConvEditLists)ViewBag.Lists;
+    string TenTraCuu(List<ConvLookup> ds, int code) => ds.FirstOrDefault(x => x.Code == code)?.Name ?? "—";
+}
+@* Cột bám ConvItem_Tr.cshtml (Id, Title, Customer, ConvPriority, CanEdit/CanProcess)
+   + ConvList_Table.cshtml. Cột SLA lấy từ Conversation.CalcSlaSatisfaction (Conversation.cs:223). *@
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h1 class="h5 fw-bold mb-0"><i class="bi bi-chat-left-text me-2"></i>Hội thoại
+            <span class="text-muted fw-normal" style="font-size:12px">(port 1:1 ConvItem_Tr.cshtml — Conversation)</span></h1>
+        <small class="text-muted">@Model.Count hội thoại</small>
+    </div>
+    <a asp-action="Edit" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg me-1"></i>Thêm hội thoại</a>
+</div>
+
+<form method="get" class="card p-3 mb-3"><div class="row g-2 align-items-end">
+    <div class="col-auto"><label class="form-label small mb-1">Trạng thái</label>
+        <select name="statusId" class="form-select form-select-sm">
+            <option value="">Tất cả</option>
+            @foreach (var s in L.StatusList)
+            {
+                <option value="@s.Code" selected="@(ViewBag.StatusId as int? == s.Code)">@s.Name</option>
+            }
+        </select></div>
+    <div class="col-auto"><label class="form-label small mb-1">Ưu tiên</label>
+        <select name="priorityId" class="form-select form-select-sm">
+            <option value="">Tất cả</option>
+            @foreach (var p in L.PriorityList)
+            {
+                <option value="@p.Code" selected="@(ViewBag.PriorityId as int? == p.Code)">@p.Name</option>
+            }
+        </select></div>
+    <div class="col-auto"><label class="form-label small mb-1">Người phụ trách</label>
+        <select name="picId" class="form-select form-select-sm">
+            <option value="">Tất cả</option>
+            @foreach (var a in L.UserList)
+            {
+                <option value="@a.Id" selected="@(ViewBag.PicId as int? == a.Id)">@a.Name</option>
+            }
+        </select></div>
+    <div class="col"><label class="form-label small mb-1">Tìm kiếm</label>
+        <input name="q" value="@ViewBag.Q" class="form-control form-control-sm" placeholder="Tiêu đề / khách hàng / tags" /></div>
+    <div class="col-auto"><button class="btn btn-outline-primary btn-sm">Lọc</button>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Xóa</a></div>
+</div></form>
+
+<div class="card"><div class="table-responsive"><table class="table table-hover align-middle mb-0">
+    <thead><tr>
+        <th>Id</th><th>Tiêu đề</th><th>Khách hàng</th><th>Kênh</th><th>Nguồn</th><th>Loại</th>
+        <th>Ưu tiên</th><th>Trạng thái</th><th>Nhóm</th><th>PIC</th><th>Hạn</th><th>SLA</th>
+    </tr></thead>
+    <tbody>
+        @if (!Model.Any())
+        {
+            <tr><td colspan="12" class="text-center text-muted py-4"><i class="bi bi-inbox fs-4 d-block mb-2"></i>Chưa có hội thoại</td></tr>
+        }
+        @foreach (var c in Model)
+        {
+            <tr style="cursor:pointer" onclick="location.href='/Conversation/Edit/@c.Id'">
+                <td class="font-monospace small">@c.Id</td>
+                <td class="fw-semibold">@c.Title
+                    @if (!string.IsNullOrWhiteSpace(c.Tags))
+                    {
+                        <div>
+                            @* Conversation.cs:124-135 — TagList tách theo ',' rồi trim + hạ chữ *@
+                            @foreach (var tag in c.TagList ?? [])
+                            {
+                                <span class="badge bg-light text-muted border me-1">@tag</span>
+                            }
+                        </div>
+                    }
+                </td>
+                <td class="small">@(c.Customer?.Name ?? c.CustomerName)</td>
+                <td class="small">@TenTraCuu(L.ChannelList, c.ChannelId)</td>
+                <td class="small">@TenTraCuu(L.SourceList, c.SourceId)</td>
+                <td class="small">@TenTraCuu(L.TypeList, c.TypeId)</td>
+                <td class="small">@TenTraCuu(L.PriorityList, c.PriorityId)</td>
+                <td class="small">@TenTraCuu(L.StatusList, c.StatusId)</td>
+                <td class="small">@(c.Team?.Name ?? "—")</td>
+                <td class="small">@(c.Pic?.Name ?? "—")</td>
+                <td class="small font-monospace">@c.Deadline</td>
+                <td>
+                    @if (c.SLA == null)
+                    {
+                        <span class="text-muted small">—</span>
+                    }
+                    else if (c.IsSlaSatisfied)
+                    {
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">Đạt</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Vỡ SLA</span>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table></div></div>

@@ -1,0 +1,145 @@
+@model Work
+@{
+    ViewData["Title"] = "Tạo công việc";
+    var L = (WorkAddLists)ViewBag.Lists;
+    var overlapped = ViewBag.Overlapped as List<Work> ?? [];
+    var inchargeId = ViewBag.InchargeId as int?;
+    var memberIds = ViewBag.MemberIds as int[] ?? [];
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h5 fw-bold mb-0"><i class="bi bi-plus-square me-2"></i>Tạo công việc
+        <span class="text-muted fw-normal" style="font-size:12px">(port 1:1 AddWork.cshtml — Work)</span></h1>
+    <a asp-action="Index" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Quay lại</a>
+</div>
+
+@if (overlapped.Any())
+{
+    @* Port 1:1 WorkController.cs:422-448 + partial WorkOverlapped: có việc TRÙNG GIỜ của người phụ trách
+       thì CHƯA ghi gì, hiện danh sách để người dùng xác nhận; post lại với confirm=true mới lưu. *@
+    <div class="alert alert-warning">
+        <div class="fw-semibold mb-2"><i class="bi bi-exclamation-triangle me-1"></i>Trùng giờ với @overlapped.Count công việc đã có</div>
+        <ul class="mb-0 small">
+            @foreach (var w in overlapped)
+            {
+                <li>#@w.Id — @w.Name (@w.Start → @w.End)</li>
+            }
+        </ul>
+    </div>
+}
+
+<form method="post"><div class="card"><div class="card-body">
+    @Html.AntiForgeryToken()
+    @* AddWork.cshtml:18 — Id luôn là 0 ở màn này (nguồn chỉ dùng cho tạo mới) *@
+    <input type="hidden" name="Id" value="0" />
+    @* cờ xác nhận trùng giờ — nguồn gửi confirm=true ở lần post thứ hai (WorkController.cs:410) *@
+    <input type="hidden" name="confirm" value="@(overlapped.Any() ? "true" : "false")" />
+
+    <div class="row g-3">
+        @* AddWork.cshtml:21-27 — Name bắt buộc; nguồn còn gợi ý WorkUnit qua autocomplete
+           /loadworkunits (AddWork.cshtml:279-298): chọn 1 định mức thì tự điền WUId, StdTime,
+           Duration, TypeId và tính lại End. Đích làm bằng ô chọn định mức bên dưới. *@
+        <div class="col-md-12"><label class="form-label fw-semibold">Tên công việc <span class="text-danger">*</span></label>
+            <input name="Name" value="@Model.Name" class="form-control" required /></div>
+
+        @* AddWork.cshtml:31-59 — cặp Start ~ End; cả hai LƯU DẠNG CHUỖI "yyyy-MM-dd HH:mm"
+           (nguồn Work.cs:104-106 là string; guard trùng giờ so sánh chuỗi — WorkManager.cs:274) *@
+        <div class="col-md-4"><label class="form-label fw-semibold">Bắt đầu <span class="text-danger">*</span></label>
+            <input name="Start" value="@Model.Start" class="form-control" placeholder="yyyy-MM-dd HH:mm" required /></div>
+        <div class="col-md-4"><label class="form-label fw-semibold">Kết thúc <span class="text-danger">*</span></label>
+            <input name="End" value="@Model.End" class="form-control" placeholder="yyyy-MM-dd HH:mm" required /></div>
+        @* AddWork.cshtml:61-73 — Deadline (nguồn KHÔNG đánh data-val-required cho ô này) *@
+        <div class="col-md-4"><label class="form-label fw-semibold">Hạn</label>
+            <input name="Deadline" value="@Model.Deadline" class="form-control" placeholder="yyyy-MM-dd HH:mm" /></div>
+    </div>
+
+    <hr class="my-4" />
+    @* AddWork.cshtml:77-89 + :344-392 — khối "Members": người ĐẦU TIÊN được thêm là Incharge,
+       những người sau là Normal; chỉ có MỘT Incharge (AddWork.cshtml:321-326).
+       Người Incharge KHÔNG được lưu vào WorkFollow — nó nằm ở Work.UserId (WorkManager.cs:83-90). *@
+    <div class="mb-2 text-uppercase small fw-bold text-muted">Thành viên</div>
+    <div class="row g-3">
+        <div class="col-md-4"><label class="form-label fw-semibold">Người phụ trách (Incharge)</label>
+            <select name="inchargeId" class="form-select">
+                <option value="0">— Người tạo —</option>
+                @foreach (var a in L.AllOrgUsers)
+                {
+                    <option value="@a.Id" selected="@(inchargeId == a.Id)">@a.Name</option>
+                }
+            </select>
+            <div class="form-text">Bỏ trống ⇒ nguồn gán người tạo làm phụ trách (WorkManager.cs:85).</div></div>
+        <div class="col-md-8"><label class="form-label fw-semibold">Thành viên khác (Normal)</label>
+            <select name="memberIds" class="form-select" multiple size="4">
+                @foreach (var a in L.AllOrgUsers)
+                {
+                    <option value="@a.Id" selected="@(memberIds.Contains(a.Id))">@a.Name</option>
+                }
+            </select>
+            <div class="form-text">Từ 2 người theo việc trở lên ⇒ đánh dấu là công việc nhóm (WorkController.cs:419).</div></div>
+    </div>
+
+    <hr class="my-4" />
+    <div class="mb-2 text-uppercase small fw-bold text-muted">Thông tin thêm</div>
+    <div class="row g-3">
+        @* AddWork.cshtml:103-110 *@
+        <div class="col-md-12"><label class="form-label fw-semibold">Mô tả</label>
+            <textarea name="Description" rows="2" class="form-control">@Model.Description</textarea></div>
+
+        @* AddWork.cshtml:113-126 — WorkType *@
+        <div class="col-md-4"><label class="form-label fw-semibold">Loại công việc</label>
+            <select name="TypeId" class="form-select">
+                <option value="0"></option>
+                @foreach (var item in L.WorkTypes)
+                {
+                    <option value="@item.Id" selected="@(Model.TypeId == item.Id)">@item.Name</option>
+                }
+            </select></div>
+
+        @* AddWork.cshtml:129-142 — Priority, mặc định Normal (nguồn :135 đặt selected trên Normal) *@
+        <div class="col-md-4"><label class="form-label fw-semibold">Ưu tiên</label>
+            <select name="Priority" class="form-select">
+                @foreach (WorkPriorites p in new[] { WorkPriorites.Low, WorkPriorites.Normal, WorkPriorites.High, WorkPriorites.Urgent })
+                {
+                    <option value="@p" selected="@(Model.Priority == WorkPriorites.None ? p == WorkPriorites.Normal : Model.Priority == p)">@p</option>
+                }
+            </select></div>
+
+        @* AddWork.cshtml:145-153 — WorkUnit: nguồn có 1 ô ẩn WUId + 1 ô chỉ-đọc WU_Desc, giá trị do
+           autocomplete điền. Đích thay bằng ô chọn ⇒ WU_Desc không cần cột (nguồn cũng không có cột đó). *@
+        <div class="col-md-4"><label class="form-label fw-semibold">Định mức (WorkUnit)</label>
+            <select name="WUId" class="form-select">
+                <option value="0"></option>
+                @foreach (var item in L.WorkUnits)
+                {
+                    <option value="@item.Id" selected="@(Model.WUId == item.Id)">@item.Name (@item.StdTime phút)</option>
+                }
+            </select></div>
+
+        @* AddWork.cshtml:156-162 — StdTime (phút) *@
+        <div class="col-md-4"><label class="form-label fw-semibold">Thời gian định mức (phút)</label>
+            <input name="StdTime" value="@Model.StdTime" type="number" min="0" class="form-control" /></div>
+        @* AddWork.cshtml:165-172 — Duration (phút) *@
+        <div class="col-md-4"><label class="form-label fw-semibold">Thời lượng (phút)</label>
+            <input name="Duration" value="@Model.Duration" type="number" min="0" class="form-control" /></div>
+        @* AddWork.cshtml:175-183 — Place *@
+        <div class="col-md-4"><label class="form-label fw-semibold">Địa điểm</label>
+            <input name="WorkPlace" value="@Model.WorkPlace" class="form-control" /></div>
+        @* AddWork.cshtml:189-196 — Remark *@
+        <div class="col-md-6"><label class="form-label fw-semibold">Ghi chú</label>
+            <input name="Remark" value="@Model.Remark" class="form-control" /></div>
+        @* AddWork.cshtml:199-213 — Product *@
+        <div class="col-md-6"><label class="form-label fw-semibold">Sản phẩm</label>
+            <select name="ProductId" class="form-select">
+                <option value="0"></option>
+                @foreach (var item in L.ProductList)
+                {
+                    <option value="@item.Id" selected="@(Model.ProductId == item.Id)">@item.Name</option>
+                }
+            </select></div>
+    </div>
+
+    @* AddWork.cshtml:220-221 — hai nút Save / Cancel *@
+    <div class="mt-3">
+        <button class="btn btn-primary"><i class="bi bi-check-lg me-1"></i>@(overlapped.Any() ? "Vẫn lưu (đã biết trùng giờ)" : "Tạo công việc")</button>
+        <a asp-action="Index" class="btn btn-light">Hủy</a>
+    </div>
+</div></div></form>
